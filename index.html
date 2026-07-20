@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PixisEditor — browser-based pixel art editor</title>
+<meta name="description" content="PixisEditor is a fast, free, browser-based pixel art editor with layers, frame animation and a dockable tool UI. No install, runs entirely client-side. Currently in open beta.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d0e14'/%3E%3Crect x='1' y='1' width='2' height='2' fill='%2358e6c9'/%3E%3Crect x='5' y='1' width='2' height='2' fill='%23ff6b9d'/%3E%3Crect x='3' y='3' width='2' height='2' fill='%23ffd166'/%3E%3Crect x='1' y='5' width='2' height='2' fill='%23ff6b9d'/%3E%3Crect x='5' y='5' width='2' height='2' fill='%2358e6c9'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0d0e14;
+    --bg-2:#14151f;
+    --panel:#1a1c29;
+    --border:#2a2c3d;
+    --text:#e8e9f0;
+    --text-dim:#9a9cb0;
+    --accent:#58e6c9;
+    --accent-2:#ff6b9d;
+    --accent-3:#ffd166;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* pixel-grid backdrop */
+  .pixel-bg{
+    position:fixed;inset:0;z-index:-1;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size:40px 40px;
+    opacity:.18;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 90%);
+  }
+
+  header{
+    position:sticky;top:0;z-index:10;
+    background:rgba(13,14,20,.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.2px;text-decoration:none}
+  .brand-mark{width:22px;height:22px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px}
+  .brand-mark i{background:var(--border);border-radius:1px}
+  .brand-mark i:nth-child(1){background:var(--accent)}
+  .brand-mark i:nth-child(3){background:var(--accent-2)}
+  .brand-mark i:nth-child(5){background:var(--accent-3)}
+  .brand-mark i:nth-child(7){background:var(--accent-2)}
+  .brand-mark i:nth-child(9){background:var(--accent)}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--text-dim)}
+  .nav-links a{text-decoration:none;transition:color .15s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{display:flex;gap:10px}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 18px;border-radius:8px;
+    font-size:14px;font-weight:600;text-decoration:none;
+    border:1px solid transparent;cursor:pointer;
+    transition:transform .12s ease, border-color .15s, background .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:#07231d}
+  .btn-primary:hover{background:#7bf0d8}
+  .btn-ghost{border-color:var(--border);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--accent)}
+  .btn-sm{padding:8px 14px;font-size:13px}
+  .btn-disabled{opacity:.55;cursor:default;pointer-events:none}
+
+  section{padding:96px 0}
+  section.tight{padding:64px 0}
+  h1{font-size:clamp(32px,5vw,56px);line-height:1.1;letter-spacing:-.5px;font-weight:800}
+  h2{font-size:clamp(24px,3vw,32px);letter-spacing:-.3px;font-weight:700;margin-bottom:12px}
+  .eyebrow{
+    display:inline-block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:var(--accent);background:rgba(88,230,201,.1);border:1px solid rgba(88,230,201,.25);
+    padding:5px 10px;border-radius:999px;margin-bottom:18px;
+  }
+  .lede{color:var(--text-dim);font-size:18px;max-width:640px}
+
+  .hero{padding-top:110px;padding-bottom:70px;text-align:center}
+  .hero .lede{margin:20px auto 34px}
+  .hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .hero-shot{
+    margin-top:64px;border:1px solid var(--border);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    padding:2px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6);
+  }
+  .hero-shot-inner{
+    border-radius:8px;overflow:hidden;aspect-ratio:16/9;
+    display:grid;place-items:center;background:var(--bg-2);
+    position:relative;
+  }
+  .fake-grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size:24px 24px;
+  }
+  .fake-sprite{position:relative;display:grid;grid-template-columns:repeat(8,14px);grid-template-rows:repeat(8,14px);gap:0}
+  .fake-sprite i{background:transparent}
+  .fake-sprite i.a{background:var(--accent)}
+  .fake-sprite i.b{background:var(--accent-2)}
+  .fake-sprite i.c{background:var(--accent-3)}
+  .fake-sprite i.d{background:#4a4d68}
+
+  .section-head{text-align:center;max-width:600px;margin:0 auto 48px}
+  .section-head .lede{margin:0 auto}
+
+  .grid{display:grid;gap:20px}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:860px){.grid-3{grid-template-columns:1fr 1fr}}
+  @media (max-width:600px){.grid-3{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:24px;
+  }
+  .card h3{font-size:16px;margin-bottom:8px}
+  .card p{color:var(--text-dim);font-size:14px}
+  .card .ico{width:36px;height:36px;border-radius:8px;margin-bottom:14px;display:grid;place-items:center;font-size:16px}
+  .ico-1{background:rgba(88,230,201,.12);color:var(--accent)}
+  .ico-2{background:rgba(255,107,157,.12);color:var(--accent-2)}
+  .ico-3{background:rgba(255,209,102,.12);color:var(--accent-3)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  @media (max-width:820px){.split{grid-template-columns:1fr}}
+
+  .about-visual{
+    border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);
+    padding:28px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;color:var(--text-dim);
+  }
+  .about-visual .line{margin-bottom:6px}
+  .about-visual .k{color:var(--accent)}
+  .about-visual .v{color:var(--text)}
+
+  .cta-band{
+    background:linear-gradient(135deg, rgba(88,230,201,.08), rgba(255,107,157,.06));
+    border:1px solid var(--border);border-radius:16px;
+    padding:56px;text-align:center;
+  }
+  .cta-band h2{margin-bottom:10px}
+  .cta-band .lede{margin:0 auto 28px}
+
+  .donate-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:32px;
+  }
+  .donate-note{font-size:13px;color:var(--text-dim);margin-top:16px}
+  .donate-note b{color:var(--text)}
+
+  .supporters{
+    border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--text-dim);
+  }
+
+  footer{border-top:1px solid var(--border);padding:40px 0;margin-top:40px}
+  .footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;color:var(--text-dim);font-size:13px}
+  .footer-links{display:flex;gap:20px}
+  .footer-links a{text-decoration:none;color:var(--text-dim)}
+  .footer-links a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="pixel-bg"></div>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top">
+        <span class="brand-mark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        PixisEditor
+      </a>
+      <div class="nav-links">
+        <a href="#about">About</a>
+        <a href="#features">Features</a>
+        <a href="#beta">Beta</a>
+        <a href="#support">Support</a>
+      </div>
+      <div class="nav-cta">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/anurbis-dev" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm btn-disabled">Try Pixis Now</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero wrap">
+    <span class="eyebrow">Open beta</span>
+    <h1>A pixel art editor that<br>lives in your browser.</h1>
+    <p class="lede" style="text-align:center">
+      Layers, frame-by-frame animation, a full brush/shape toolset and a dockable panel UI —
+      no install, no account, nothing to configure. Open a tab and start drawing.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary btn-disabled">Try Pixis Now</a>
+      <a class="btn btn-ghost" href="#beta">Join the beta</a>
+    </div>
+
+    <div class="hero-shot">
+      <div class="hero-shot-inner">
+        <div class="fake-grid"></div>
+        <div class="fake-sprite">
+          <i class="d"></i><i class="d"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="d"></i><i class="d"></i>
+          <i class="d"></i><i class="a"></i><i class="a"></i><i class="c"></i><i class="c"></i><i class="a"></i><i class="a"></i><i class="d"></i>
+          <i class="a"></i><i class="a"></i><i class="c"></i><i class="c"></i><i class="c"></i><i class="c"></i><i class="a"></i><i class="a"></i>
+          <i class="a"></i><i class="a"></i><i class="a"></i><i class="b"></i><i class="b"></i><i class="a"></i><i class="a"></i><i class="a"></i>
+          <i class="d"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="d"></i>
+          <i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i>
+          <i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i>
+          <i class="d"></i><i class="c"></i><i class="c"></i><i class="d"></i><i class="d"></i><i class="c"></i><i class="c"></i><i class="d"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="wrap">
+    <div class="split">
+      <div>
+        <span class="eyebrow">What / why</span>
+        <h2>Built because pixel art tooling shouldn't need an install.</h2>
+        <p class="lede">
+          PixisEditor is a browser-based pixel art editor: layers, frame animation, a dockable
+          tool/panel UI, PNG/GIF export, all running client-side on Canvas 2D. Ships as a
+          single-file build, so it works the same whether it's hosted, downloaded, or opened
+          straight from disk.
+        </p>
+        <p class="lede" style="margin-top:16px">
+          It's an independent project developed solo, currently in active beta with new
+          tools and fixes shipping regularly.
+        </p>
+      </div>
+      <div class="about-visual">
+        <div class="line"><span class="k">renderer</span> <span class="v">Canvas 2D, tiled compositor</span></div>
+        <div class="line"><span class="k">stack</span> <span class="v">vanilla ES6, Vite single-file build</span></div>
+        <div class="line"><span class="k">runs</span> <span class="v">entirely client-side, no server</span></div>
+        <div class="line"><span class="k">status</span> <span class="v">open beta, shipping weekly</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Everything a pixel workflow needs</h2>
+      <p class="lede">No plugins to hunt down, no export pipeline to wire up.</p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="ico ico-1">▤</div>
+        <h3>Layers &amp; groups</h3>
+        <p>Full layer stack with groups, blend modes, opacity and adjustment layers.</p>
+      </div>
+      <div class="card">
+        <div class="ico ico-2">▶</div>
+        <h3>Frame animation</h3>
+        <p>Frame-by-frame animation with onion skinning, right in the same canvas.</p>
+      </div>
+      <div class="card">
+        <div class="ico ico-3">✎</div>
+        <h3>Full tool set</h3>
+        <p>Brush, shapes, lasso, retouch and palette tools with per-tool settings.</p>
+      </div>
+      <div class="card">
+        <div class="ico ico-1">▦</div>
+        <h3>Dockable panels</h3>
+        <p>Rearrange tool, layers and preview panels into the layout you want.</p>
+      </div>
+      <div class="card">
+        <div class="ico ico-2">⇩</div>
+        <h3>PNG / GIF export</h3>
+        <p>Export finished art or animations without leaving the browser.</p>
+      </div>
+      <div class="card">
+        <div class="ico ico-3">⚡</div>
+        <h3>Single-file, no install</h3>
+        <p>One self-contained build — open it from a URL or straight off disk.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="beta" class="wrap tight">
+    <div class="cta-band">
+      <span class="eyebrow">Open beta</span>
+      <h2>Try it now, help shape what's next</h2>
+      <p class="lede">
+        PixisEditor is free to use during the beta, with new tools and fixes shipping
+        regularly. Public access is opening soon — check back shortly.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary btn-disabled">Try Pixis Now</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="support" class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Support</span>
+      <h2>Support the project</h2>
+      <p class="lede">
+        PixisEditor is free to use during the beta. If it's useful to you, a donation
+        goes straight toward development time ahead of the full release.
+      </p>
+    </div>
+
+    <div class="split">
+      <div class="donate-card">
+        <h3 style="font-size:18px;margin-bottom:12px">Donate</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin-bottom:20px">
+          GitHub Sponsors takes 0% platform fee — GitHub covers payment processing, and
+          funds go straight to the developer's payout account.
+        </p>
+        <a class="btn btn-primary" href="https://github.com/sponsors/anurbis-dev" target="_blank" rel="noopener">♥ Sponsor on GitHub</a>
+        <p class="donate-note">Sponsorship link goes live once GitHub Sponsors is enabled for this account.</p>
+      </div>
+
+      <div class="supporters">
+        <h3 style="font-size:16px;color:var(--text);margin-bottom:8px">Top supporters</h3>
+        <p style="font-size:14px">Nobody yet — be the first name on this list.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <span>PixisEditor — built by <a href="https://github.com/anurbis-dev" target="_blank" rel="noopener">anurbis-dev</a></span>
+    <div class="footer-links">
+      <a href="https://github.com/anurbis-dev" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
