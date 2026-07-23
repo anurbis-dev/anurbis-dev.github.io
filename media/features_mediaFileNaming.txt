@@ -1,0 +1,8 @@
+Карточка	Файл
+
+Layers & groups	 layers.mp4
+Frame animation	 animation.mp4
+Full tool set	 tools.mp4
+Dockable panels	 panels.mp4
+PNG / GIF export export.mp4
+Single-file…	 single-file.mp4

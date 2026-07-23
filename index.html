@@ -97,24 +97,143 @@
     background:linear-gradient(180deg,var(--panel),var(--bg-2));
     padding:2px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6);
   }
-  .hero-shot-inner{
+  .shot-frame{
     border-radius:8px;overflow:hidden;aspect-ratio:16/9;
-    display:grid;place-items:center;background:var(--bg-2);
-    position:relative;
+    background:var(--bg-2);position:relative;touch-action:pan-y;cursor:grab;user-select:none;
   }
-  .fake-grid{
-    position:absolute;inset:0;
+  .shot-frame:active{cursor:grabbing}
+  .shot-frame .fake-grid{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
     background-image:
       linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
     background-size:24px 24px;
   }
-  .fake-sprite{position:relative;display:grid;grid-template-columns:repeat(8,14px);grid-template-rows:repeat(8,14px);gap:0}
-  .fake-sprite i{background:transparent}
-  .fake-sprite i.a{background:var(--accent)}
-  .fake-sprite i.b{background:var(--accent-2)}
-  .fake-sprite i.c{background:var(--accent-3)}
-  .fake-sprite i.d{background:#4a4d68}
+  .carousel-track{
+    display:flex;height:100%;width:100%;
+    transition:transform .55s cubic-bezier(.4,0,.2,1);
+    will-change:transform;
+  }
+  .carousel-track.no-anim{transition:none}
+  .carousel-slide{
+    flex:0 0 100%;height:100%;display:grid;place-items:center;
+    background:var(--bg-2);
+  }
+  .carousel-slide img{
+    width:100%;height:100%;object-fit:contain;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+    pointer-events:none;
+  }
+  .carousel-dots{
+    position:absolute;left:0;right:0;bottom:12px;z-index:3;
+    display:flex;justify-content:center;gap:8px;pointer-events:none;
+  }
+  .carousel-dots span{
+    width:7px;height:7px;border-radius:50%;
+    background:rgba(255,255,255,.25);transition:background .2s,transform .2s;
+  }
+  .carousel-dots span.on{background:var(--accent);transform:scale(1.15)}
+
+  /* pixel dissolve overlay (works carousel) */
+  .pixel-fx{
+    position:absolute;inset:0;z-index:2;pointer-events:none;
+    width:100%;height:100%;display:none;
+  }
+  .pixel-fx.active{display:block}
+
+  .works-shot{
+    border:1px solid var(--border);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    padding:2px;box-shadow:0 40px 80px -30px rgba(0,0,0,.55);
+    max-width:900px;margin:0 auto;
+  }
+
+  .works-tiles{
+    margin-top:28px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:12px;
+    max-height:340px;
+    overflow:auto;
+    padding:4px 2px 8px;
+    scrollbar-width:thin;
+    scrollbar-color:var(--border) transparent;
+  }
+  .works-tiles::-webkit-scrollbar{width:8px;height:8px}
+  .works-tiles::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  .works-tile{
+    aspect-ratio:1;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel);overflow:hidden;cursor:pointer;padding:0;
+    transition:border-color .15s,transform .12s,box-shadow .15s;
+  }
+  .works-tile:hover{
+    border-color:var(--accent);transform:translateY(-2px);
+    box-shadow:0 10px 24px -12px rgba(88,230,201,.35);
+  }
+  .works-tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .works-tile img{
+    width:100%;height:100%;object-fit:cover;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  .works-tile.is-active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+  .lightbox{
+    position:fixed;inset:0;z-index:100;
+    background:rgba(5,6,10,.82);backdrop-filter:blur(4px);
+    display:grid;place-items:center;padding:24px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;
+  }
+  .lightbox.open{opacity:1;pointer-events:auto}
+  .lightbox-inner{
+    position:relative;max-width:min(960px,100%);max-height:min(90vh,100%);
+    border:1px solid var(--border);border-radius:var(--radius);
+    background:var(--bg-2);box-shadow:0 40px 100px -20px rgba(0,0,0,.7);
+    overflow:hidden;
+  }
+  .lightbox-inner img,
+  .lightbox-inner video{
+    max-width:100%;max-height:min(82vh,900px);width:auto;height:auto;
+    object-fit:contain;display:block;margin:0 auto;background:#0a0b10;
+  }
+  .lightbox-inner img{
+    image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  .lightbox-inner video{width:100%;max-height:min(78vh,860px)}
+  .lightbox-inner.is-video{max-width:min(1080px,100%)}
+  .lightbox-close{
+    position:absolute;top:10px;right:10px;z-index:2;
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+    background:rgba(13,14,20,.85);color:var(--text);font-size:20px;line-height:1;
+    cursor:pointer;display:grid;place-items:center;
+  }
+  .lightbox-close:hover{border-color:var(--accent);color:var(--accent)}
+  .lightbox-cap{
+    padding:10px 14px;font-size:13px;color:var(--text-dim);text-align:center;
+    border-top:1px solid var(--border);
+  }
+
+  /* feature cards → short demo videos */
+  #features .card[data-feature]{
+    position:relative;cursor:default;transition:border-color .15s,transform .12s,box-shadow .15s;
+  }
+  #features .card[data-feature].has-video{
+    cursor:pointer;
+  }
+  #features .card[data-feature].has-video:hover{
+    border-color:var(--accent);transform:translateY(-2px);
+    box-shadow:0 14px 28px -16px rgba(88,230,201,.4);
+  }
+  #features .card[data-feature].has-video:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;
+  }
+  .feature-play{
+    position:absolute;top:14px;right:14px;
+    width:28px;height:28px;border-radius:999px;
+    display:none;place-items:center;
+    background:rgba(88,230,201,.14);border:1px solid rgba(88,230,201,.35);
+    color:var(--accent);font-size:11px;line-height:1;pointer-events:none;
+  }
+  #features .card.has-video .feature-play{display:grid}
 
   .section-head{text-align:center;max-width:600px;margin:0 auto 48px}
   .section-head .lede{margin:0 auto}
@@ -213,6 +332,7 @@
       <div class="nav-links">
         <a href="#about">About</a>
         <a href="#features">Features</a>
+        <a href="#gallery" data-nav-gallery hidden>Gallery</a>
         <a href="#whats-new">What's new</a>
         <a href="#beta">Beta</a>
         <a href="#support">Support</a>
@@ -240,18 +360,10 @@
     </div>
 
     <div class="hero-shot">
-      <div class="hero-shot-inner">
+      <div id="heroCarousel" class="shot-frame" data-folder="hero" data-effect="swipe" aria-label="Hero image carousel" role="region">
         <div class="fake-grid"></div>
-        <div class="fake-sprite">
-          <i class="d"></i><i class="d"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="d"></i><i class="d"></i>
-          <i class="d"></i><i class="a"></i><i class="a"></i><i class="c"></i><i class="c"></i><i class="a"></i><i class="a"></i><i class="d"></i>
-          <i class="a"></i><i class="a"></i><i class="c"></i><i class="c"></i><i class="c"></i><i class="c"></i><i class="a"></i><i class="a"></i>
-          <i class="a"></i><i class="a"></i><i class="a"></i><i class="b"></i><i class="b"></i><i class="a"></i><i class="a"></i><i class="a"></i>
-          <i class="d"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="a"></i><i class="d"></i>
-          <i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i>
-          <i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i><i class="a"></i><i class="d"></i><i class="d"></i>
-          <i class="d"></i><i class="c"></i><i class="c"></i><i class="d"></i><i class="d"></i><i class="c"></i><i class="c"></i><i class="d"></i>
-        </div>
+        <div class="carousel-track" data-track></div>
+        <div class="carousel-dots" data-dots></div>
       </div>
     </div>
   </section>
@@ -287,38 +399,62 @@
       <h2>Everything a pixel workflow needs</h2>
       <p class="lede">No plugins to hunt down, no export pipeline to wire up.</p>
     </div>
-    <div class="grid grid-3">
-      <div class="card">
+    <div class="grid grid-3" id="featureGrid">
+      <!-- data-feature must match media/features/<name>.mp4|webm (optional 01- prefix) -->
+      <div class="card" data-feature="layers" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-1">▤</div>
         <h3>Layers &amp; groups</h3>
         <p>Full layer stack with groups, blend modes, opacity and adjustment layers.</p>
       </div>
-      <div class="card">
+      <div class="card" data-feature="animation" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-2">▶</div>
         <h3>Frame animation</h3>
         <p>Frame-by-frame animation with onion skinning, right in the same canvas.</p>
       </div>
-      <div class="card">
+      <div class="card" data-feature="tools" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-3">✎</div>
         <h3>Full tool set</h3>
         <p>Brush, shapes, lasso, retouch and palette tools with per-tool settings.</p>
       </div>
-      <div class="card">
+      <div class="card" data-feature="panels" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-1">▦</div>
         <h3>Dockable panels</h3>
         <p>Rearrange tool, layers and preview panels into the layout you want.</p>
       </div>
-      <div class="card">
+      <div class="card" data-feature="export" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-2">⇩</div>
         <h3>PNG / GIF export</h3>
         <p>Export finished art or animations without leaving the browser.</p>
       </div>
-      <div class="card">
+      <div class="card" data-feature="single-file" role="button" tabindex="0">
+        <span class="feature-play" aria-hidden="true">▶</span>
         <div class="ico ico-3">⚡</div>
         <h3>Single-file, no install</h3>
         <p>One self-contained build — open it from a URL or straight off disk.</p>
       </div>
     </div>
+  </section>
+
+  <section id="gallery" class="wrap" hidden>
+    <div class="section-head">
+      <span class="eyebrow">Gallery</span>
+      <h2>Made in PixisEditor</h2>
+      <p class="lede">A rotating sample of pixel work — click a tile for full size.</p>
+    </div>
+    <div class="works-shot">
+      <div id="worksCarousel" class="shot-frame" data-folder="works" data-effect="pixels" data-pixel-size="20" aria-label="Works carousel" role="region">
+        <div class="fake-grid"></div>
+        <div class="carousel-track" data-track></div>
+        <canvas class="pixel-fx" data-pixel-fx></canvas>
+        <div class="carousel-dots" data-dots></div>
+      </div>
+    </div>
+    <div id="worksTiles" class="works-tiles" aria-label="Works thumbnails"></div>
   </section>
 
   <section id="whats-new" class="wrap tight">
@@ -433,6 +569,15 @@
 
 </main>
 
+<div id="lightbox" class="lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Media preview">
+  <div class="lightbox-inner" data-lightbox-inner>
+    <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">×</button>
+    <img data-lightbox-img alt="" hidden>
+    <video data-lightbox-video controls playsinline preload="metadata" hidden></video>
+    <div class="lightbox-cap" data-lightbox-cap></div>
+  </div>
+</div>
+
 <footer>
   <div class="wrap">
     <div class="footer-community">
@@ -460,37 +605,604 @@
 
 <script>
 (function () {
+  /* —— beta form —— */
   var form = document.getElementById("betaForm");
-  if (!form) return;
-  var note = document.getElementById("betaNote");
-  var errorEl = document.getElementById("betaError");
-  var thanks = document.getElementById("betaThanks");
-  var btn = form.querySelector("button");
-  var btnLabel = btn.textContent;
+  if (form) {
+    var note = document.getElementById("betaNote");
+    var errorEl = document.getElementById("betaError");
+    var thanks = document.getElementById("betaThanks");
+    var btn = form.querySelector("button");
+    var btnLabel = btn.textContent;
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    errorEl.hidden = true;
-    btn.disabled = true;
-    btn.textContent = "Sending…";
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      errorEl.hidden = true;
+      btn.disabled = true;
+      btn.textContent = "Sending…";
 
-    fetch(form.action, {
-      method: "POST",
-      headers: { Accept: "application/json" },
-      body: new FormData(form),
-    })
-      .then(function (res) {
-        if (!res.ok) throw new Error("bad status");
-        form.hidden = true;
-        note.hidden = true;
-        thanks.hidden = false;
+      fetch(form.action, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: new FormData(form),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error("bad status");
+          form.hidden = true;
+          note.hidden = true;
+          thanks.hidden = false;
+        })
+        .catch(function () {
+          errorEl.hidden = false;
+          btn.disabled = false;
+          btn.textContent = btnLabel;
+        });
+    });
+  }
+
+  /* —— media carousels ——
+     Folders: media/<folder>/…  listed in media/manifest.json
+     Edit manifest when adding/removing images (static host can't list dirs).
+  */
+  var MEDIA_BASE = "media";
+  var MANIFEST_URL = MEDIA_BASE + "/manifest.json";
+  var AUTO_MS = 4200;
+  var PAUSE_CLICK_MS = 4000;
+  var DRAG_THRESHOLD = 48;
+
+  function labelFromFile(file) {
+    return String(file || "")
+      .replace(/\.[^.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/^\d+\s*/, "")
+      .trim() || file;
+  }
+
+  function loadImage(src) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function buildSlides(track, urls, alts) {
+    track.innerHTML = "";
+    urls.forEach(function (src, i) {
+      var slide = document.createElement("div");
+      slide.className = "carousel-slide";
+      var img = document.createElement("img");
+      img.src = src;
+      img.alt = alts[i] || "";
+      img.draggable = false;
+      slide.appendChild(img);
+      track.appendChild(slide);
+    });
+  }
+
+  function buildDots(dotsEl, n, onPick) {
+    dotsEl.innerHTML = "";
+    for (var i = 0; i < n; i++) {
+      (function (idx) {
+        var s = document.createElement("span");
+        if (idx === 0) s.className = "on";
+        s.setAttribute("aria-hidden", "true");
+        dotsEl.appendChild(s);
+      })(i);
+    }
+  }
+
+  function setDots(dotsEl, index) {
+    var spans = dotsEl.querySelectorAll("span");
+    for (var i = 0; i < spans.length; i++) {
+      spans[i].classList.toggle("on", i === index);
+    }
+  }
+
+  /* Pixel dissolve: 20×20 blocks (configurable via data-pixel-size) */
+  function pixelTransition(canvas, fromImg, toImg, pixelSize, durationMs) {
+    return new Promise(function (resolve) {
+      var parent = canvas.parentElement;
+      var w = parent.clientWidth;
+      var h = parent.clientHeight;
+      if (w < 2 || h < 2) {
+        resolve();
+        return;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      var ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      var bg = "#14151f";
+
+      function drawContain(c, img) {
+        var iw = img.naturalWidth || img.width;
+        var ih = img.naturalHeight || img.height;
+        var scale = Math.min(w / iw, h / ih);
+        var dw = iw * scale;
+        var dh = ih * scale;
+        var dx = (w - dw) / 2;
+        var dy = (h - dh) / 2;
+        c.fillStyle = bg;
+        c.fillRect(0, 0, w, h);
+        c.drawImage(img, dx, dy, dw, dh);
+      }
+
+      drawContain(ctx, fromImg);
+      canvas.classList.add("active");
+
+      var cols = Math.ceil(w / pixelSize);
+      var rows = Math.ceil(h / pixelSize);
+      var cells = [];
+      for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < cols; x++) {
+          cells.push({ x: x * pixelSize, y: y * pixelSize });
+        }
+      }
+      for (var i = cells.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = cells[i];
+        cells[i] = cells[j];
+        cells[j] = tmp;
+      }
+
+      var off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      var octx = off.getContext("2d");
+      octx.imageSmoothingEnabled = false;
+      drawContain(octx, toImg);
+
+      var start = performance.now();
+      var total = cells.length;
+      var last = 0;
+      function frame(now) {
+        var t = Math.min(1, (now - start) / durationMs);
+        var ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        var revealed = Math.floor(ease * total);
+        for (var k = last; k < revealed; k++) {
+          var c = cells[k];
+          var pw = Math.min(pixelSize, w - c.x);
+          var ph = Math.min(pixelSize, h - c.y);
+          ctx.drawImage(off, c.x, c.y, pw, ph, c.x, c.y, pw, ph);
+        }
+        last = revealed;
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          canvas.classList.remove("active");
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function initSwipeCarousel(root, urls, alts) {
+    var track = root.querySelector("[data-track]");
+    var dots = root.querySelector("[data-dots]");
+    if (!track || !urls.length) return null;
+
+    buildSlides(track, urls, alts);
+    buildDots(dots, urls.length);
+    var index = 0;
+    var n = urls.length;
+    var pausedUntil = 0;
+    var timer = null;
+    var dragging = false;
+    var dragStartX = 0;
+    var dragDx = 0;
+    var pointerId = null;
+    var busy = false;
+
+    function go(to, instant) {
+      if (n < 2) return;
+      index = ((to % n) + n) % n;
+      if (instant) track.classList.add("no-anim");
+      track.style.transform = "translateX(" + (-index * 100) + "%)";
+      if (instant) {
+        void track.offsetWidth;
+        track.classList.remove("no-anim");
+      }
+      setDots(dots, index);
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      if (n < 2) return;
+      timer = setTimeout(function tick() {
+        if (Date.now() < pausedUntil || dragging || busy) {
+          timer = setTimeout(tick, 200);
+          return;
+        }
+        go(index + 1, false);
+        schedule();
+      }, AUTO_MS);
+    }
+
+    function pauseClick() {
+      pausedUntil = Date.now() + PAUSE_CLICK_MS;
+      schedule();
+    }
+
+    root.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      dragging = true;
+      dragStartX = e.clientX;
+      dragDx = 0;
+      pointerId = e.pointerId;
+      try { root.setPointerCapture(pointerId); } catch (_) {}
+      track.classList.add("no-anim");
+    });
+
+    root.addEventListener("pointermove", function (e) {
+      if (!dragging || e.pointerId !== pointerId) return;
+      dragDx = e.clientX - dragStartX;
+      var pct = (dragDx / root.clientWidth) * 100;
+      track.style.transform = "translateX(calc(" + (-index * 100) + "% + " + pct + "%))";
+    });
+
+    function endDrag(e) {
+      if (!dragging || (e && e.pointerId !== pointerId)) return;
+      dragging = false;
+      track.classList.remove("no-anim");
+      var dx = dragDx;
+      dragDx = 0;
+      if (Math.abs(dx) >= DRAG_THRESHOLD) {
+        go(index + (dx < 0 ? 1 : -1), false);
+        pausedUntil = Date.now() + PAUSE_CLICK_MS;
+      } else if (Math.abs(dx) < 6) {
+        pauseClick();
+        go(index, false);
+      } else {
+        go(index, false);
+      }
+      schedule();
+    }
+
+    root.addEventListener("pointerup", endDrag);
+    root.addEventListener("pointercancel", endDrag);
+    root.addEventListener("lostpointercapture", function () {
+      if (dragging) {
+        dragging = false;
+        track.classList.remove("no-anim");
+        go(index, false);
+        schedule();
+      }
+    });
+
+    go(0, true);
+    schedule();
+    return {
+      getIndex: function () { return index; },
+      go: go,
+      pause: pauseClick,
+    };
+  }
+
+  function initPixelCarousel(root, urls, alts, onIndex) {
+    var track = root.querySelector("[data-track]");
+    var dots = root.querySelector("[data-dots]");
+    var canvas = root.querySelector("[data-pixel-fx]");
+    var pixelSize = parseInt(root.getAttribute("data-pixel-size") || "20", 10) || 20;
+    if (!track || !urls.length) return null;
+
+    buildSlides(track, urls, alts);
+    buildDots(dots, urls.length);
+    track.classList.add("no-anim");
+
+    var index = 0;
+    var n = urls.length;
+    var pausedUntil = 0;
+    var timer = null;
+    var busy = false;
+    var imgs = [];
+    var dragging = false;
+    var dragStartX = 0;
+    var dragDx = 0;
+    var pointerId = null;
+
+    function showInstant(i) {
+      index = ((i % n) + n) % n;
+      track.style.transform = "translateX(" + (-index * 100) + "%)";
+      setDots(dots, index);
+      if (onIndex) onIndex(index);
+    }
+
+    function go(to) {
+      if (n < 2 || busy) return Promise.resolve();
+      var next = ((to % n) + n) % n;
+      if (next === index) return Promise.resolve();
+      busy = true;
+      var fromImg = imgs[index];
+      var toImg = imgs[next];
+      var run = canvas && fromImg && toImg
+        ? pixelTransition(canvas, fromImg, toImg, pixelSize, 700)
+        : Promise.resolve();
+      return run.then(function () {
+        showInstant(next);
+        busy = false;
+      });
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      if (n < 2) return;
+      timer = setTimeout(function tick() {
+        if (Date.now() < pausedUntil || dragging || busy) {
+          timer = setTimeout(tick, 200);
+          return;
+        }
+        go(index + 1).then(schedule);
+      }, AUTO_MS);
+    }
+
+    function pauseClick() {
+      pausedUntil = Date.now() + PAUSE_CLICK_MS;
+      schedule();
+    }
+
+    root.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      dragging = true;
+      dragStartX = e.clientX;
+      dragDx = 0;
+      pointerId = e.pointerId;
+      try { root.setPointerCapture(pointerId); } catch (_) {}
+    });
+
+    root.addEventListener("pointermove", function (e) {
+      if (!dragging || e.pointerId !== pointerId) return;
+      dragDx = e.clientX - dragStartX;
+    });
+
+    function endDrag(e) {
+      if (!dragging || (e && e.pointerId !== pointerId)) return;
+      dragging = false;
+      var dx = dragDx;
+      dragDx = 0;
+      if (Math.abs(dx) >= DRAG_THRESHOLD) {
+        pausedUntil = Date.now() + PAUSE_CLICK_MS;
+        go(index + (dx < 0 ? 1 : -1)).then(schedule);
+      } else if (Math.abs(dx) < 6) {
+        pauseClick();
+      } else {
+        schedule();
+      }
+    }
+
+    root.addEventListener("pointerup", endDrag);
+    root.addEventListener("pointercancel", endDrag);
+
+    return Promise.all(urls.map(loadImage))
+      .then(function (loaded) {
+        imgs = loaded;
+        showInstant(0);
+        schedule();
+        return {
+          getIndex: function () { return index; },
+          go: go,
+          pause: pauseClick,
+        };
       })
       .catch(function () {
-        errorEl.hidden = false;
-        btn.disabled = false;
-        btn.textContent = btnLabel;
+        showInstant(0);
+        schedule();
+        return {
+          getIndex: function () { return index; },
+          go: go,
+          pause: pauseClick,
+        };
       });
-  });
+  }
+
+  /* lightbox (image + video) */
+  var lb = document.getElementById("lightbox");
+  var lbInner = lb && lb.querySelector("[data-lightbox-inner]");
+  var lbImg = lb && lb.querySelector("[data-lightbox-img]");
+  var lbVideo = lb && lb.querySelector("[data-lightbox-video]");
+  var lbCap = lb && lb.querySelector("[data-lightbox-cap]");
+  var lbClose = lb && lb.querySelector("[data-lightbox-close]");
+
+  function stopVideo() {
+    if (!lbVideo) return;
+    try {
+      lbVideo.pause();
+      lbVideo.removeAttribute("src");
+      lbVideo.load();
+    } catch (_) {}
+    lbVideo.hidden = true;
+  }
+
+  function openLightbox(src, alt) {
+    if (!lb || !lbImg) return;
+    stopVideo();
+    if (lbInner) lbInner.classList.remove("is-video");
+    lbImg.hidden = false;
+    lbImg.src = src;
+    lbImg.alt = alt || "";
+    if (lbCap) lbCap.textContent = alt || "";
+    lb.setAttribute("aria-label", "Image preview");
+    lb.hidden = false;
+    lb.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(function () { lb.classList.add("open"); });
+    document.documentElement.style.overflow = "hidden";
+  }
+
+  function openVideoLightbox(src, title) {
+    if (!lb || !lbVideo) return;
+    if (lbImg) {
+      lbImg.hidden = true;
+      lbImg.removeAttribute("src");
+    }
+    if (lbInner) lbInner.classList.add("is-video");
+    lbVideo.hidden = false;
+    lbVideo.src = src;
+    lbVideo.currentTime = 0;
+    if (lbCap) lbCap.textContent = title || "";
+    lb.setAttribute("aria-label", title ? "Feature demo: " + title : "Feature demo");
+    lb.hidden = false;
+    lb.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(function () {
+      lb.classList.add("open");
+      var p = lbVideo.play();
+      if (p && typeof p.catch === "function") p.catch(function () {});
+    });
+    document.documentElement.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    if (!lb) return;
+    lb.classList.remove("open");
+    lb.setAttribute("aria-hidden", "true");
+    document.documentElement.style.overflow = "";
+    stopVideo();
+    setTimeout(function () {
+      if (!lb.classList.contains("open")) {
+        lb.hidden = true;
+        if (lbImg) {
+          lbImg.hidden = true;
+          lbImg.removeAttribute("src");
+        }
+        if (lbInner) lbInner.classList.remove("is-video");
+      }
+    }, 200);
+  }
+
+  if (lb) {
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb) closeLightbox();
+    });
+    if (lbClose) lbClose.addEventListener("click", closeLightbox);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLightbox();
+    });
+  }
+
+  /** Map media/features file → data-feature slug (strip ext + optional leading NN-) */
+  function featureSlug(file) {
+    return String(file || "")
+      .replace(/\.[^.]+$/, "")
+      .replace(/^\d+[-_\s]+/, "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+  }
+
+  function wireFeatureVideos(files) {
+    var map = {};
+    (files || []).forEach(function (f) {
+      map[featureSlug(f)] = mediaUrl("features", f);
+    });
+    var cards = document.querySelectorAll("#featureGrid .card[data-feature]");
+    for (var i = 0; i < cards.length; i++) {
+      (function (card) {
+        var id = (card.getAttribute("data-feature") || "").toLowerCase();
+        var src = map[id];
+        if (!src) {
+          card.classList.remove("has-video");
+          card.removeAttribute("aria-label");
+          return;
+        }
+        card.classList.add("has-video");
+        var titleEl = card.querySelector("h3");
+        var title = titleEl ? titleEl.textContent.trim() : id;
+        card.setAttribute("aria-label", "Play demo: " + title);
+        function play() {
+          openVideoLightbox(src, title);
+        }
+        card.addEventListener("click", play);
+        card.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            play();
+          }
+        });
+      })(cards[i]);
+    }
+  }
+
+  function buildTiles(container, urls, alts, worksApi) {
+    if (!container) return;
+    container.innerHTML = "";
+    urls.forEach(function (src, i) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "works-tile" + (i === 0 ? " is-active" : "");
+      btn.setAttribute("aria-label", "Open " + (alts[i] || "image"));
+      var img = document.createElement("img");
+      img.src = src;
+      img.alt = alts[i] || "";
+      img.loading = "lazy";
+      btn.appendChild(img);
+      btn.addEventListener("click", function () {
+        openLightbox(src, alts[i] || "");
+        if (worksApi && worksApi.go) worksApi.go(i);
+        var tiles = container.querySelectorAll(".works-tile");
+        for (var t = 0; t < tiles.length; t++) {
+          tiles[t].classList.toggle("is-active", t === i);
+        }
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function mediaUrl(folder, file) {
+    // encode each path segment (spaces in "Screenshot 2026-….png", etc.)
+    return MEDIA_BASE + "/" + encodeURIComponent(folder) + "/" + encodeURIComponent(file);
+  }
+
+  function folderUrls(folder, files) {
+    return (files || []).map(function (f) {
+      return mediaUrl(folder, f);
+    });
+  }
+
+  fetch(MANIFEST_URL, { cache: "no-cache" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("manifest");
+      return r.json();
+    })
+    .then(function (manifest) {
+      var heroFiles = manifest.hero || [];
+      var worksFiles = manifest.works || [];
+      var featureFiles = manifest.features || [];
+      var heroUrls = folderUrls("hero", heroFiles);
+      var worksUrls = folderUrls("works", worksFiles);
+      var heroAlts = heroFiles.map(labelFromFile);
+      var worksAlts = worksFiles.map(labelFromFile);
+
+      var heroRoot = document.getElementById("heroCarousel");
+      if (heroRoot && heroUrls.length) {
+        initSwipeCarousel(heroRoot, heroUrls, heroAlts);
+      }
+
+      var worksRoot = document.getElementById("worksCarousel");
+      var tilesEl = document.getElementById("worksTiles");
+      var gallerySec = document.getElementById("gallery");
+      var galleryNav = document.querySelector("[data-nav-gallery]");
+      var showGallery = !!(worksRoot && worksUrls.length);
+      if (gallerySec) gallerySec.hidden = !showGallery;
+      if (galleryNav) galleryNav.hidden = !showGallery;
+      if (showGallery) {
+        initPixelCarousel(worksRoot, worksUrls, worksAlts, function (idx) {
+          if (!tilesEl) return;
+          var tiles = tilesEl.querySelectorAll(".works-tile");
+          for (var t = 0; t < tiles.length; t++) {
+            tiles[t].classList.toggle("is-active", t === idx);
+          }
+        }).then(function (api) {
+          buildTiles(tilesEl, worksUrls, worksAlts, api);
+        });
+      }
+
+      wireFeatureVideos(featureFiles);
+    })
+    .catch(function (err) {
+      console.warn("[media] manifest load failed — open via local server, not file://", err);
+    });
 })();
 </script>
 
