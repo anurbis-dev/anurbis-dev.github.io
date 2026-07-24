@@ -467,6 +467,14 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.14.0 — 2026-07-24</h3>
+      <ul>
+        <li>Brush panel layout: tools (shape / dither pattern) → params → options; controls that do not apply stay visible but disabled so the layout does not jump.</li>
+        <li>**Intensity** (renamed from Strength): pencil and dither paint pressure, plus Smooth/retouch blend amount. **Density** is dither-only pattern fill and no longer doubles as pressure.</li>
+        <li>Smooth (blur) now blends with Intensity onto the active layer (default mid strength) instead of always fully replacing pixels.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.13.0 — 2026-07-24</h3>
       <ul>
         <li>Brush stroke Spacing for freehand tools and stamp — smooth lines at low values, dotted stamps when higher.</li>
@@ -503,16 +511,6 @@
         <li>Temporary eyedropper is a rebindable hold key with a live loupe that follows your pointer.</li>
         <li>Repaint can lock to the first color under the brush (hold Alt) so only matching pixels recolor.</li>
         <li>Split view: paint and use the context menu in either pane; better Move-tool pick/flip on sprites.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.10.0 — 2026-07-22</h3>
-      <ul>
-        <li>Embed one canvas as a layer inside another, like a reusable sprite — move it, rotate it, flip it, and give it its own independent animation, all while it stays linked back to the original so edits there show up everywhere it's used.</li>
-        <li>The Move tool now also works with regular paint layers, plus drag-to-rotate and quick flip shortcuts, and finally has a default keyboard shortcut.</li>
-        <li>New canvases can go up to 2048×2048 (up from 512×512).</li>
-        <li>Toolbar and panel customization now reliably survives saving/loading projects and switching layouts.</li>
-        <li>Panels can be collapsed with a quick modifier + middle-click, alongside the existing move/resize shortcuts.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
