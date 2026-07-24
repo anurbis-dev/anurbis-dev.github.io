@@ -10,9 +10,9 @@
  * Until IDs are non-empty, analytics.js is a no-op (no third-party scripts load).
  */
 window.PIXIS_ANALYTICS = {
-  umamiWebsiteId: "",
+  umamiWebsiteId: "997ff877-adf0-4531-b6c3-d9e0e8bf42e3",
   umamiSrc: "https://cloud.umami.is/script.js",
   /** Restrict auto pageviews to production host (avoids noise from localhost previews). */
   umamiDomains: "pixis.ink,www.pixis.ink",
-  clarityId: "",
+  clarityId: "xrjaug9ur9",
 };
