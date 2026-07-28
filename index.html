@@ -32,9 +32,14 @@
   img{max-width:100%;display:block}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 
-  /* pixel-grid backdrop */
+  /* pixel-grid backdrop + giant ripple FX (scroll parallax via transform) */
+  .pixel-bg,.pixel-bg-fx{
+    position:fixed;left:0;right:0;z-index:-1;
+    pointer-events:none;
+    top:-14vh;height:128vh;
+    will-change:transform;
+  }
   .pixel-bg{
-    position:fixed;inset:0;z-index:-1;
     background-image:
       linear-gradient(var(--border) 1px, transparent 1px),
       linear-gradient(90deg, var(--border) 1px, transparent 1px);
@@ -42,6 +47,12 @@
     opacity:.18;
     mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 90%);
   }
+  .pixel-bg-fx{
+    opacity:.78;
+    mask-image:radial-gradient(ellipse 85% 70% at 50% 15%, #000 35%, transparent 92%);
+  }
+  .pixel-bg-fx.is-paused{opacity:0;transition:opacity .12s ease}
+  .pixel-bg-fx canvas{display:block;width:100%;height:100%}
 
   header{
     position:sticky;top:0;z-index:50;
@@ -93,11 +104,19 @@
     .brand-mark.v-paint.is-playing i.bm-on{animation:none!important}
   }
 
-  .nav-panel{display:flex;align-items:center;gap:28px;flex:1;justify-content:flex-end;min-width:0}
-  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--text-dim);flex-wrap:wrap;justify-content:flex-end}
-  .nav-links a{text-decoration:none;transition:color .15s}
+  .nav-panel{
+    display:flex;align-items:center;gap:clamp(6px,1.2vw,28px);
+    flex:1;justify-content:flex-end;min-width:0;
+    overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .nav-panel::-webkit-scrollbar{display:none}
+  .nav-links{display:flex;gap:clamp(6px,1.2vw,28px);font-size:14px;color:var(--text-dim);flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+  .nav-links a{text-decoration:none;transition:color .15s;white-space:nowrap;flex-shrink:0}
   .nav-links a:hover{color:var(--text)}
-  .nav-cta{display:flex;gap:10px;flex-shrink:0}
+  .nav-cta{display:flex;gap:clamp(6px,1vw,10px);flex-shrink:0;white-space:nowrap}
+  .nav-label-short{display:none}
+  /* Pinned CTAs stay in the bar when the drawer takes over */
+  .nav-pinned{display:none;align-items:center;gap:6px;flex-shrink:0}
   .nav-toggle{
     display:none;align-items:center;justify-content:center;
     width:44px;height:44px;margin:0;padding:0;
@@ -420,9 +439,29 @@
     .footer-links{justify-content:center}
   }
 
-  @media (max-width:720px){
-    nav{padding:10px 0}
+  /* One-line denser nav — tablet/desktop stay filled, no empty hamburger bar */
+  @media (max-width:1180px){
+    .nav-links{font-size:13px}
+    .nav-cta .btn-sm{padding:7px 12px;font-size:12px}
+  }
+  @media (max-width:1040px){
+    .nav-links{font-size:12px}
+    .nav-cta .btn-sm{padding:6px 10px;font-size:12px}
+    .nav-label-full{display:none}
+    .nav-label-short{display:inline}
+  }
+  @media (max-width:820px){
+    .brand{font-size:15px;gap:8px}
+    .nav-links{font-size:11px;gap:clamp(6px,1vw,12px)}
+    .nav-cta .btn-sm{padding:5px 8px;font-size:11px}
+  }
+
+  /* Phone only: drawer + pinned Sponsor/Try so the bar isn't logo ——— ☰ */
+  @media (max-width:640px){
+    nav{padding:10px 0;justify-content:flex-start}
     .brand{font-size:16px}
+    .nav-pinned{display:inline-flex;margin-left:auto}
+    .nav-pinned .btn-sm{padding:6px 10px;font-size:12px}
     .nav-toggle{display:inline-flex}
     .nav-panel{
       display:none;
@@ -438,20 +477,26 @@
     .nav-panel.open{display:flex}
     .nav-links{
       flex-direction:column;align-items:stretch;gap:2px;
-      justify-content:flex-start;flex-wrap:nowrap;
+      justify-content:flex-start;flex-wrap:nowrap;font-size:15px;
     }
     .nav-links a{
       display:block;padding:12px 14px;border-radius:8px;
-      font-size:15px;color:var(--text);
+      font-size:15px;color:var(--text);white-space:normal;
     }
     .nav-links a:hover,
     .nav-links a:active{background:rgba(88,230,201,.08);color:var(--accent)}
-    .nav-cta{
-      flex-direction:column;gap:8px;
-      margin-top:8px;padding-top:10px;
-      border-top:1px solid var(--border);
-    }
-    .nav-cta .btn{width:100%;justify-content:center;padding:12px 16px;font-size:14px}
+    /* CTAs pinned outside — no duplicates in drawer */
+    .nav-cta{display:none}
+    .nav-label-full{display:inline}
+    .nav-label-short{display:none}
+  }
+
+  @media (max-width:400px){
+    .nav-pinned .nav-sponsor-text{display:none}
+    .nav-pinned .btn-sm{padding:6px 8px}
+  }
+
+  @media (max-width:720px){
     .hero h1 br{display:none}
     .lede{font-size:16px}
     .hero-ctas{flex-direction:column;align-items:stretch;gap:10px}
@@ -482,13 +527,32 @@
       padding-top:env(safe-area-inset-top);
     }
   }
+
+  /* Hero Join the beta — soft pulse (chosen design B) */
+  .btn-join-beta{
+    animation:join-beta-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes join-beta-pulse{
+    0%,100%{
+      border-color:var(--border);
+      box-shadow:0 0 0 0 rgba(88,230,201,0);
+    }
+    50%{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(88,230,201,.12), 0 0 18px rgba(88,230,201,.28);
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .btn-join-beta{animation:none}
+  }
 </style>
 <script src="/analytics-config.js"></script>
 <script src="/analytics.js"></script>
 </head>
 <body>
 
-<div class="pixel-bg"></div>
+<div class="pixel-bg" id="pixelBg" aria-hidden="true"></div>
+<div class="pixel-bg-fx" id="pixelBgFx" aria-hidden="true"><canvas id="pxBgCanvas"></canvas></div>
 
 <div class="nav-backdrop" id="navBackdrop" hidden></div>
 <header>
@@ -498,23 +562,27 @@
         <span class="brand-mark v-paint" id="navBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
         PixisEditor
       </a>
-      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navPanel" aria-label="Open menu">
-        <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
-      </button>
       <div class="nav-panel" id="navPanel">
         <div class="nav-links">
           <a href="#about">About</a>
           <a href="#features">Features</a>
           <a href="#gallery" data-nav-gallery hidden>Gallery</a>
-          <a href="#whats-new">What's new</a>
+          <a href="#whats-new"><span class="nav-label-full">What's new</span><span class="nav-label-short">News</span></a>
           <a href="#beta">Beta</a>
           <a href="#support">Support</a>
         </div>
         <div class="nav-cta">
-          <a class="btn btn-ghost btn-sm" href="https://github.com/sponsors/anurbis-dev" data-pixis-event="sponsor" data-pixis-location="nav" target="_blank" rel="noopener"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor on GitHub</a>
-          <a class="btn btn-primary btn-sm" href="/app/" data-pixis-event="try_pixis" data-pixis-location="nav">Try Pixis Now</a>
+          <a class="btn btn-ghost btn-sm" href="https://github.com/sponsors/anurbis-dev" data-pixis-event="sponsor" data-pixis-location="nav" target="_blank" rel="noopener"><span class="sponsor-heart" aria-hidden="true">♥</span> <span class="nav-label-full">Sponsor on GitHub</span><span class="nav-label-short">Sponsor</span></a>
+          <a class="btn btn-primary btn-sm" href="/app/" data-pixis-event="try_pixis" data-pixis-location="nav"><span class="nav-label-full">Try Pixis Now</span><span class="nav-label-short">Try Pixis</span></a>
         </div>
       </div>
+      <div class="nav-pinned">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/sponsors/anurbis-dev" data-pixis-event="sponsor" data-pixis-location="nav_pinned" target="_blank" rel="noopener" aria-label="Sponsor on GitHub"><span class="sponsor-heart" aria-hidden="true">♥</span> <span class="nav-sponsor-text">Sponsor</span></a>
+        <a class="btn btn-primary btn-sm" href="/app/" data-pixis-event="try_pixis" data-pixis-location="nav_pinned">Try Pixis</a>
+      </div>
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navPanel" aria-label="Open menu">
+        <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
     </nav>
   </div>
 </header>
@@ -530,7 +598,7 @@
     </p>
     <div class="hero-ctas">
       <a class="btn btn-primary" href="/app/" data-pixis-event="try_pixis" data-pixis-location="hero">Try Pixis Now</a>
-      <a class="btn btn-ghost" href="#beta" data-pixis-event="join_beta" data-pixis-location="hero">Join the beta</a>
+      <a class="btn btn-ghost btn-join-beta" href="#beta" data-pixis-event="join_beta" data-pixis-location="hero">Join the beta</a>
     </div>
 
     <div class="hero-shot">
@@ -804,7 +872,7 @@
       if (e.key === "Escape") closeNav();
     });
     window.addEventListener("resize", function () {
-      if (window.matchMedia("(min-width:721px)").matches) closeNav();
+      if (window.matchMedia("(min-width:641px)").matches) closeNav();
     });
   }
 
@@ -1500,6 +1568,227 @@
     .catch(function (err) {
       console.warn("[media] manifest load failed — open via local server, not file://", err);
     });
+})();
+
+/* —— giant ripple bg (chosen C) + scroll parallax; pause on resize —— */
+(function () {
+  var canvas = document.getElementById("pxBgCanvas");
+  var fxEl = document.getElementById("pixelBgFx");
+  var gridEl = document.getElementById("pixelBg");
+  if (!canvas || !fxEl) return;
+
+  var ctx = canvas.getContext("2d", { alpha: true });
+  var COLORS = [
+    "#58e6c9", "#ff6b9d", "#ffd166",
+    "#7bf0d8", "#ff9ec0", "#ffe08a",
+    "#6bb6ff", "#c084fc", "#a8f0c0",
+  ];
+  var raf = 0;
+  var running = false;
+  var pausedResize = false;
+  var dpr = 1;
+  var W = 0, H = 0;
+  var last = 0;
+  var layer = null;
+  var resizeTimer = 0;
+  var scrollRaf = 0;
+
+  var reduced =
+    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function hexToRgb(hex) {
+    var n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function pickColor() {
+    return COLORS[(Math.random() * COLORS.length) | 0];
+  }
+  function rand(a, b) {
+    return a + Math.random() * (b - a);
+  }
+
+  function clear() {
+    ctx.clearRect(0, 0, W, H);
+  }
+
+  function makeGiantLayer() {
+    var cell = Math.max(80, Math.round(Math.min(W, H) / 10));
+    return {
+      cell: cell,
+      cols: Math.ceil(W / cell) + 1,
+      rows: Math.ceil(H / cell) + 1,
+      waves: [],
+      spawnEvery: 1.05,
+      acc: rand(0.2, 0.8),
+      maxWaves: 4,
+      maxR: [2.8, 6.5],
+      speed: [1.8, 3.0],
+      peak: [0.48, 0.72],
+      band: 0.9,
+      gap: 4,
+      alphaMul: 1.2,
+    };
+  }
+
+  function spawnWave(L) {
+    L.waves.push({
+      cx: (Math.random() * L.cols) | 0,
+      cy: (Math.random() * L.rows) | 0,
+      r: 0,
+      maxR: rand(L.maxR[0], L.maxR[1]),
+      speed: rand(L.speed[0], L.speed[1]),
+      color: pickColor(),
+      peak: rand(L.peak[0], L.peak[1]) * L.alphaMul,
+    });
+    while (L.waves.length > L.maxWaves) L.waves.shift();
+  }
+
+  function drawWave(L, wave) {
+    var band = L.band;
+    var fade = 1 - wave.r / (wave.maxR + 1.1);
+    if (fade <= 0) return;
+    var cell = L.cell;
+    var gap = L.gap;
+    var rMax = Math.ceil(wave.r + band + 1);
+    var rMin = Math.max(0, Math.floor(wave.r - band - 1));
+    var c0 = Math.max(0, wave.cx - rMax);
+    var c1 = Math.min(L.cols - 1, wave.cx + rMax);
+    var row0 = Math.max(0, wave.cy - rMax);
+    var row1 = Math.min(L.rows - 1, wave.cy + rMax);
+    var rgb = hexToRgb(wave.color);
+    for (var r = row0; r <= row1; r++) {
+      for (var c = c0; c <= c1; c++) {
+        var dist = Math.hypot(c - wave.cx, r - wave.cy);
+        if (dist < rMin || dist > rMax) continue;
+        var b = Math.abs(dist - wave.r);
+        if (b > band) continue;
+        var a = (1 - b / band) * wave.peak * fade;
+        if (a < 0.03) continue;
+        ctx.fillStyle = "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a + ")";
+        ctx.fillRect(c * cell + gap, r * cell + gap, cell - gap * 2, cell - gap * 2);
+      }
+    }
+  }
+
+  function tick(dt) {
+    if (!layer || pausedResize) return;
+    layer.acc += dt;
+    while (layer.acc >= layer.spawnEvery) {
+      layer.acc -= layer.spawnEvery;
+      spawnWave(layer);
+    }
+    clear();
+    var next = [];
+    for (var w = 0; w < layer.waves.length; w++) {
+      var wave = layer.waves[w];
+      wave.r += wave.speed * dt;
+      if (wave.r > wave.maxR + 1.3) continue;
+      drawWave(layer, wave);
+      next.push(wave);
+    }
+    layer.waves = next;
+  }
+
+  function initLayer(seed) {
+    layer = makeGiantLayer();
+    if (seed) {
+      spawnWave(layer);
+      spawnWave(layer);
+    }
+  }
+
+  function applySize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    /* taller buffer matches CSS 128vh for parallax headroom */
+    W = window.innerWidth;
+    H = Math.ceil(window.innerHeight * 1.28);
+    canvas.width = Math.max(1, (W * dpr) | 0);
+    canvas.height = Math.max(1, (H * dpr) | 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function frame(ts) {
+    if (!running) return;
+    if (!last) last = ts;
+    var dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    if (!pausedResize) tick(dt);
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (reduced || running) return;
+    running = true;
+    last = 0;
+    raf = requestAnimationFrame(frame);
+  }
+
+  function stopLoop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+
+  function pauseForResize() {
+    pausedResize = true;
+    fxEl.classList.add("is-paused");
+    stopLoop();
+    clear();
+  }
+
+  function resumeAfterResize() {
+    applySize();
+    initLayer(true);
+    pausedResize = false;
+    fxEl.classList.remove("is-paused");
+    if (!reduced) start();
+    applyParallax();
+  }
+
+  function onResize() {
+    pauseForResize();
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      resizeTimer = 0;
+      resumeAfterResize();
+    }, 180);
+  }
+
+  /* scroll parallax: grid slower, FX faster */
+  function applyParallax() {
+    if (reduced) {
+      if (gridEl) gridEl.style.transform = "";
+      fxEl.style.transform = "";
+      return;
+    }
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var maxShift = Math.min(140, window.innerHeight * 0.14);
+    var t = Math.min(maxShift, y * 0.14);
+    if (gridEl) gridEl.style.transform = "translate3d(0," + (-t * 0.45).toFixed(1) + "px,0)";
+    fxEl.style.transform = "translate3d(0," + (-t).toFixed(1) + "px,0)";
+  }
+
+  function onScroll() {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(function () {
+      scrollRaf = 0;
+      applyParallax();
+    });
+  }
+
+  window.addEventListener("resize", onResize, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  if (reduced) {
+    applySize();
+    clear();
+    return;
+  }
+
+  applySize();
+  initLayer(true);
+  applyParallax();
+  start();
 })();
 </script>
 
