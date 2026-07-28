@@ -639,6 +639,14 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.17.0 — 2026-07-28</h3>
+      <ul>
+        <li>Selection shows two outlines: a frame around the bounds and a gold contour of the actual pixels; colors and mask opacity are adjustable in Settings → Appearance.</li>
+        <li>Select/Move marquee: Shift adds and Ctrl (Cmd) subtracts, same as Lasso and Colour range; the existing selection stays visible while you drag.</li>
+        <li>Ctrl+click a panel (without dragging) fits its height to the content at the current width — no more oversized empty panels.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.16.0 — 2026-07-28</h3>
       <ul>
         <li>Floating color palettes: drag a palette tab onto the canvas for a small swatches-only window; drop the primary color on a float to add a swatch there.</li>
@@ -667,21 +675,6 @@
         <li>Brush panel layout: tools (shape / dither pattern) → params → options; controls that do not apply stay visible but disabled so the layout does not jump.</li>
         <li>**Intensity** (renamed from Strength): pencil and dither paint pressure, plus Smooth/retouch blend amount. **Density** is dither-only pattern fill and no longer doubles as pressure.</li>
         <li>Smooth (blur) now blends with Intensity onto the active layer (default mid strength) instead of always fully replacing pixels.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.13.0 — 2026-07-24</h3>
-      <ul>
-        <li>Brush stroke Spacing for freehand tools and stamp — smooth lines at low values, dotted stamps when higher.</li>
-        <li>Dither brush overhaul: stroke-locked pattern phase, more geometric presets, live pattern cursor, sticky mirror flip, and hold-to-erase under the pattern mask.</li>
-        <li>Line, rectangle, and ellipse previews match the final stroke pixel-for-pixel (size, shape, symmetry).</li>
-        <li>Process Recorder skips idle pauses so the timeline only counts active drawing time.</li>
-        <li>Canvases that reuse the same sprite stay correct after you edit the source and switch tabs.</li>
-        <li>Layer/frame thumbnails and stamp capture include adjustments and layer effects.</li>
-        <li>Stamp: Esc resets live rotation to 0°.</li>
-        <li>Icon editor: Options tab (mirror and chrome), plus icons for detachable Tool sections.</li>
-        <li>Eyedropper locks the sampled color on click; the brush cursor updates as soon as the color changes.</li>
-        <li>Selection handles: hover scale and click-to-flip; Move tool auto-select, Shift multi-select, and multi-layer drag fixes.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
