@@ -1149,8 +1149,18 @@
 
     buildSlides(track, urls, alts);
     buildDots(dots, urls.length);
-    var index = 0;
     var n = urls.length;
+    var loop = n > 1;
+    if (loop) {
+      // clone edge slides so advancing past the end keeps sliding the same
+      // direction instead of animating backwards through every slide to slot 0
+      var firstEl = track.children[0];
+      var lastEl = track.children[n - 1];
+      track.appendChild(firstEl.cloneNode(true));
+      track.insertBefore(lastEl.cloneNode(true), firstEl);
+    }
+    var index = 0;
+    var pos = loop ? 1 : 0;
     var pausedUntil = 0;
     var timer = null;
     var dragging = false;
@@ -1159,17 +1169,44 @@
     var pointerId = null;
     var busy = false;
 
-    function go(to, instant) {
-      if (n < 2) return;
-      index = ((to % n) + n) % n;
+    function render(instant) {
       if (instant) track.classList.add("no-anim");
-      track.style.transform = "translateX(" + (-index * 100) + "%)";
+      track.style.transform = "translateX(" + (-pos * 100) + "%)";
       if (instant) {
         void track.offsetWidth;
         track.classList.remove("no-anim");
       }
       setDots(dots, index);
     }
+
+    // A click/drag mid-transition adds .no-anim, which cancels the running
+    // transition without firing transitionend — the snap-back below would
+    // then never run and pos would stay stuck on a clone slot, drifting
+    // further out of range (blank track) on every step after that. Anything
+    // that's about to read/change pos calls this first as a safety net.
+    function normalize() {
+      if (!loop) return;
+      if (pos === 0) {
+        pos = n;
+        render(true);
+      } else if (pos === n + 1) {
+        pos = 1;
+        render(true);
+      }
+    }
+
+    function step(dir) {
+      if (n < 2) return;
+      normalize();
+      index = ((index + dir) % n + n) % n;
+      pos += dir;
+      render(false);
+    }
+
+    root.addEventListener("transitionend", function (e) {
+      if (e.target !== track || e.propertyName !== "transform") return;
+      normalize();
+    });
 
     function schedule() {
       clearTimeout(timer);
@@ -1179,7 +1216,7 @@
           timer = setTimeout(tick, 200);
           return;
         }
-        go(index + 1, false);
+        step(1);
         schedule();
       }, AUTO_MS);
     }
@@ -1191,6 +1228,7 @@
 
     root.addEventListener("pointerdown", function (e) {
       if (e.button != null && e.button !== 0) return;
+      normalize();
       dragging = true;
       dragStartX = e.clientX;
       dragDx = 0;
@@ -1203,7 +1241,7 @@
       if (!dragging || e.pointerId !== pointerId) return;
       dragDx = e.clientX - dragStartX;
       var pct = (dragDx / root.clientWidth) * 100;
-      track.style.transform = "translateX(calc(" + (-index * 100) + "% + " + pct + "%))";
+      track.style.transform = "translateX(calc(" + (-pos * 100) + "% + " + pct + "%))";
     });
 
     function endDrag(e) {
@@ -1213,13 +1251,13 @@
       var dx = dragDx;
       dragDx = 0;
       if (Math.abs(dx) >= DRAG_THRESHOLD) {
-        go(index + (dx < 0 ? 1 : -1), false);
+        step(dx < 0 ? 1 : -1);
         pausedUntil = Date.now() + PAUSE_CLICK_MS;
       } else if (Math.abs(dx) < 6) {
         pauseClick();
-        go(index, false);
+        render(false);
       } else {
-        go(index, false);
+        render(false);
       }
       schedule();
     }
@@ -1230,16 +1268,15 @@
       if (dragging) {
         dragging = false;
         track.classList.remove("no-anim");
-        go(index, false);
+        render(false);
         schedule();
       }
     });
 
-    go(0, true);
+    render(true);
     schedule();
     return {
       getIndex: function () { return index; },
-      go: go,
       pause: pauseClick,
     };
   }
