@@ -707,6 +707,16 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.23.0 - 2026-07-30</h3>
+      <ul>
+        <li>New canvas dialog is redesigned: all size presets fit on one row, and reopening a closed canvas now shows clickable thumbnails instead of a dropdown. You can also delete a canvas straight from its tab's right-click menu.</li>
+        <li>Inserting a canvas as a sprite layer now lets you pick several canvases at once from a thumbnail grid, added in a single undo step.</li>
+        <li>Panel move, collapse, and resize gestures are reworked: middle-click-drag anywhere on a panel moves it, middle-click alone collapses/expands it, and resize now has 8 zones with edge-snapping on every side. "Fit to content" moved into the panel's right-click menu.</li>
+        <li>Fixed strokes painted while holding a temporary tool hotkey replaying with the wrong tool in Process Recorder playback.</li>
+        <li>Fixed a rare stray mark still appearing at the start of a two-finger touch gesture, and added palm-rejection so resting your hand on the screen no longer draws.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.22.0 - 2026-07-30</h3>
       <ul>
         <li>Animation panel now has full playback transport: pause/resume, step to the previous or next frame, and a button to cycle playback mode (forward/reverse/ping-pong) - arrow keys step frames while hovering the panel.</li>
@@ -729,14 +739,6 @@
         <li>Smudge tool now properly drags color along your stroke instead of blending an averaged tip color.</li>
         <li>Touch screens: the topbar can be revealed with a tap when auto-hide is on, and a stray dot no longer appears when starting a two-finger zoom/pan gesture right after touching down.</li>
         <li>Removed layer/group notes (the small note icon and its popup).</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.19.0 - 2026-07-29</h3>
-      <ul>
-        <li>Symmetry axes: turn on horizontal/vertical mirror guides that span the canvas, drag them to move the mirror origin, and double-click to re-center. Axis color and opacity are configurable in Settings -&gt; Appearance.</li>
-        <li>Gradient tool now mirrors correctly with symmetry on, including on empty or shared regions.</li>
-        <li>Fixed the cursor sometimes getting stuck after leaving a symmetry guide.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
