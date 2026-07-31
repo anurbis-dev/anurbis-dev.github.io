@@ -707,6 +707,22 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.24.0 - 2026-07-31</h3>
+      <ul>
+        <li>Animation and Frames panels are merged into one: playback controls (play/pause, step, mode) and FPS now live right inside the frame list, with a compact horizontal strip layout when docked to the top or bottom of the window.</li>
+        <li>The canvas now follows whichever frame you have selected while editing, not just during playback - stepping through frames with the arrow keys or clicking a frame updates what you see and paint on.</li>
+        <li>The frame-link icon turns red when the selected layer(s) are linked to the current frame, and linking/unlinking now applies to every selected layer at once, including layers nested inside a group.</li>
+        <li>Deleting or merging layers no longer deletes empty animation frames along with them.</li>
+        <li>Shift-drag a frame or layer to drop a copy instead of moving the original.</li>
+        <li>The current-frame playback highlight color and ring thickness are now configurable in Settings.</li>
+        <li>Panels are now moved with right-click-drag instead of middle-click-drag; middle-click keeps its role of scrolling panel content.</li>
+        <li>Selecting with lasso, mask, or colour-range no longer disturbs layer effects (outline/shadow) just by clicking - pixels only lift once you actually move or transform the selection.</li>
+        <li>Select/Move and paste now respect symmetry guides: moving or pasting content keeps its mirrored counterpart in sync instead of leaving a stale copy behind.</li>
+        <li>Outline effect reworked with a new "Both" mode (outer + inner ring at once), and fixed rings incorrectly appearing inside enclosed holes or hollow shapes.</li>
+        <li>Fixed sizing and show/hide glitches for undocked (floating) Color and Brush panels.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.23.0 - 2026-07-30</h3>
       <ul>
         <li>New canvas dialog is redesigned: all size presets fit on one row, and reopening a closed canvas now shows clickable thumbnails instead of a dropdown. You can also delete a canvas straight from its tab's right-click menu.</li>
@@ -727,18 +743,6 @@
       <h3>1.21.0 - 2026-07-30</h3>
       <ul>
         <li>Demo is fully open now: every panel (Brush presets, Stamp presets, Atlas browser, Preview, Process recorder) is unlocked, including Atlas browser's import. Only saving/loading a project file and exporting (PNG/sequence/sprite sheet/GIF) require the full version.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.20.0 - 2026-07-30</h3>
-      <ul>
-        <li>Pixel grid lines now auto-adjust color and opacity for contrast against any canvas background, including saturated/colored ones; a new Grid opacity setting lets you push it further.</li>
-        <li>Click the active Color &amp; Palette tab again to hide its swatches; click again to bring them back.</li>
-        <li>Palette tabs can be renamed with F2, and on touch/pen you can now drag a tab to merge palettes or drop it on the canvas to open a floating window.</li>
-        <li>Fixed detached panel sections and floating palettes showing as locked in the demo even when their source panel was free.</li>
-        <li>Smudge tool now properly drags color along your stroke instead of blending an averaged tip color.</li>
-        <li>Touch screens: the topbar can be revealed with a tap when auto-hide is on, and a stray dot no longer appears when starting a two-finger zoom/pan gesture right after touching down.</li>
-        <li>Removed layer/group notes (the small note icon and its popup).</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
