@@ -35,9 +35,43 @@
   }
   .brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; margin-bottom:14px; border-bottom:1px solid var(--border-soft);}
   .brand-mark{
-    width:34px; height:34px; border-radius:9px; flex:none;
-    background:conic-gradient(from 220deg, var(--accent), #1a8f6f, var(--mint), var(--accent));
+    width:34px; height:34px; border-radius:9px; flex:none; padding:5px; overflow:hidden;
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:2px;
+    background:var(--panel-2);
     box-shadow:0 0 0 1px rgba(255,255,255,.06) inset, 0 6px 16px -6px rgba(47,217,168,.55);
+  }
+  .brand-mark i{background:var(--border); border-radius:1px; display:block; min-width:0; min-height:0; transform-origin:center;}
+  .brand-mark i:nth-child(1){background:#4ce8bd;}
+  .brand-mark i:nth-child(3){background:#fb6f97;}
+  .brand-mark i:nth-child(5){background:#ffcc5c;}
+  .brand-mark i:nth-child(7){background:#fb6f97;}
+  .brand-mark i:nth-child(9){background:#4ce8bd;}
+  .brand-mark.v-paint.is-playing i.bm-on{
+    animation-name:var(--bm-name, bm-paint-in);
+    animation-duration:var(--bm-dur, .55s);
+    animation-timing-function:ease;
+    animation-delay:var(--bm-delay, 0s);
+    animation-fill-mode:both;
+  }
+  @keyframes bm-paint-in{
+    0%{opacity:0;transform:scale(.35)}
+    55%{opacity:1;transform:scale(1.18)}
+    100%{opacity:1;transform:scale(1)}
+  }
+  @keyframes bm-paint-out-in{
+    0%{opacity:1;transform:scale(1)}
+    18%{opacity:0;transform:scale(.28)}
+    42%{opacity:0;transform:scale(.28)}
+    78%{opacity:1;transform:scale(1.14)}
+    100%{opacity:1;transform:scale(1)}
+  }
+  @keyframes bm-paint-blink{
+    0%,100%{opacity:1;transform:scale(1)}
+    35%{opacity:0;transform:scale(.22)}
+    65%{opacity:0;transform:scale(.22)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .brand-mark.v-paint.is-playing i.bm-on{animation:none!important}
   }
   .brand-text{display:flex; flex-direction:column; gap:1px;}
   .brand-text b{font-size:14.5px; letter-spacing:.2px;}
@@ -110,7 +144,7 @@
 
   <nav class="sidebar">
     <div class="brand">
-      <div class="brand-mark"></div>
+      <span class="brand-mark v-paint" id="docsBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
     </div>
 
@@ -389,6 +423,70 @@
       img.src = posterSrc;
     });
   });
+})();
+
+// Animated sidebar logo — same "paint burst" as the landing page nav mark and
+// the editor's Tools panel header, ported 1:1 so all three stay in sync.
+(function () {
+  var mark = document.getElementById("docsBrandMark");
+  if (!mark) return;
+  var burstTimer, idleTimer;
+  var MODES = ["in", "out-in", "blink"];
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function clearCells(cells) {
+    cells.forEach(function (c) {
+      c.classList.remove("bm-on");
+      c.style.removeProperty("--bm-name");
+      c.style.removeProperty("--bm-dur");
+      c.style.removeProperty("--bm-delay");
+      c.style.animation = "none";
+    });
+  }
+  function playBurst() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var cells = Array.prototype.slice.call(mark.querySelectorAll("i"));
+    if (!cells.length) return;
+    clearTimeout(burstTimer);
+    mark.classList.remove("is-playing");
+    clearCells(cells);
+    void mark.offsetWidth;
+    var mode = pick(MODES);
+    var order = shuffle(cells.map(function (_, i) { return i; }));
+    var step = rand(32, 70);
+    var baseDur = rand(440, 700);
+    var animName = mode === "in" ? "bm-paint-in" : mode === "out-in" ? "bm-paint-out-in" : "bm-paint-blink";
+    var maxEnd = 0;
+    order.forEach(function (idx, rank) {
+      var cell = cells[idx];
+      var delay = rank * step + rand(0, 24);
+      var dur = baseDur + rand(-40, 70);
+      cell.style.removeProperty("animation");
+      cell.style.setProperty("--bm-name", animName);
+      cell.style.setProperty("--bm-dur", dur + "ms");
+      cell.style.setProperty("--bm-delay", delay + "ms");
+      cell.classList.add("bm-on");
+      maxEnd = Math.max(maxEnd, delay + dur);
+    });
+    mark.classList.add("is-playing");
+    burstTimer = setTimeout(function () {
+      mark.classList.remove("is-playing");
+      clearCells(cells);
+    }, maxEnd + 40);
+  }
+  function scheduleNext() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { playBurst(); scheduleNext(); }, rand(5000, 13000));
+  }
+  setTimeout(function () { playBurst(); scheduleNext(); }, rand(1200, 2800));
 })();
 </script>
 </body>
