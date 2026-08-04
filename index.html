@@ -707,6 +707,17 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.26.0 - 2026-08-04</h3>
+      <ul>
+        <li><strong>Frame Actions</strong>: group your animation frames into named actions like "Idle" or "Walk" right on the Animation panel - add, rename, reorder, and color-code them, then click one to solo it for playback, export, or a quick review.</li>
+        <li>New branded splash screen when the app starts, showing the current version.</li>
+        <li>Bucket, Gradient, and Colour Range can now sample colors from every visible layer at once (not just the active one) while still painting only on the layer you're working on; their settings now live inside the Brush panel instead of a separate section.</li>
+        <li>The gradient tool's "limit to region" option (previously "limit to color") now also fills fully enclosed transparent holes inside the shape.</li>
+        <li>Fixed panel resizing accidentally kicking in after the window was made narrower.</li>
+        <li>Fixed undo wasting a step on actions that didn't actually change anything, like an empty gradient click or using the eyedropper.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.25.0 - 2026-08-03</h3>
       <ul>
         <li>Editing now shows only the layers linked to the frame you're on (just like playback) - click any layer in the Layers panel to switch back to seeing the whole stack.</li>
@@ -744,13 +755,6 @@
         <li>Panel move, collapse, and resize gestures are reworked: middle-click-drag anywhere on a panel moves it, middle-click alone collapses/expands it, and resize now has 8 zones with edge-snapping on every side. "Fit to content" moved into the panel's right-click menu.</li>
         <li>Fixed strokes painted while holding a temporary tool hotkey replaying with the wrong tool in Process Recorder playback.</li>
         <li>Fixed a rare stray mark still appearing at the start of a two-finger touch gesture, and added palm-rejection so resting your hand on the screen no longer draws.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.22.0 - 2026-07-30</h3>
-      <ul>
-        <li>Animation panel now has full playback transport: pause/resume, step to the previous or next frame, and a button to cycle playback mode (forward/reverse/ping-pong) - arrow keys step frames while hovering the panel.</li>
-        <li>Fixed touch/pinch gestures on Android Chrome that could leave a stray mark or cancel a palette-tab drag before it started.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
