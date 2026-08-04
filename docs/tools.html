@@ -87,9 +87,18 @@
   .tool-name-row{min-width:0; flex:1; display:flex; flex-direction:column; gap:5px;}
   .tool-name{font-size:14px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .tool-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin:0;}
-  .tool-demo{margin-top:12px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-soft);}
+  .tool-demo{margin-top:12px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-soft); position:relative;}
   .tool-demo img{display:block; width:100%; height:auto; background:#070a0f;}
   .tool-demo-cap{font-size:11px; color:var(--text-faint); padding:7px 10px; background:var(--panel-2); border-top:1px solid var(--border-soft);}
+  .tool-demo-hint{
+    position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:5px;
+    font-size:10.5px; font-weight:600; color:var(--text); letter-spacing:.01em;
+    background:color-mix(in srgb, var(--panel-2) 82%, transparent); border:1px solid var(--border-soft);
+    border-radius:20px; padding:3px 9px 3px 7px; pointer-events:none;
+    opacity:.9; transition:opacity .15s ease;
+  }
+  .tool-demo-hint::before{content:"▶"; font-size:8px; color:var(--accent);}
+  .tool-demo:hover .tool-demo-hint{opacity:0;}
 
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
   @media (max-width:960px){ .sidebar{display:none;} .main{padding:32px 22px;} .tool-grid{column-count:2;} }
@@ -152,7 +161,7 @@
           <div class="tool-name-row"><span class="tool-name">Pencil</span><span class="kbd">B</span></div>
         </div>
         <p class="tool-desc">Basic pixel painting with the current color. Has a pixel-perfect mode (removes stray diagonal pixel pairs at stroke corners).</p>
-        <div class="tool-demo"><img src="assets/demo/pencil.png" alt="Pencil stroke demo"><div class="tool-demo-cap">Freehand stroke with the current color</div></div>
+        <div class="tool-demo"><img src="assets/demo/pencil.png" data-demo-gif="assets/demo/pencil.gif" alt="Pencil stroke demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Freehand stroke with the current color</div></div>
       </div>
 
       <div class="tool-card">
@@ -225,7 +234,7 @@
           <div class="tool-name-row"><span class="tool-name">Dither brush</span><span class="kbd">;</span></div>
         </div>
         <p class="tool-desc">Paints with an ordered (Bayer) or geometric pattern instead of a solid fill. Density sets the share of painted cells, Alt flips the pattern horizontally.</p>
-        <div class="tool-demo"><img src="assets/demo/dither.png" alt="Dither brush demo"><div class="tool-demo-cap">Ordered pattern instead of a solid stroke</div></div>
+        <div class="tool-demo"><img src="assets/demo/dither.png" data-demo-gif="assets/demo/dither.gif" alt="Dither brush demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Ordered pattern instead of a solid stroke</div></div>
       </div>
 
     </div>
@@ -240,7 +249,7 @@
           <div class="tool-name-row"><span class="tool-name">Bucket fill</span><span class="kbd">F</span></div>
         </div>
         <p class="tool-desc">Fills the contiguous area matching the clicked pixel's color (threshold — Tolerance). Has an "all matching pixels" mode instead of just the contiguous region.</p>
-        <div class="tool-demo"><img src="assets/demo/bucket.png" alt="Bucket fill demo"><div class="tool-demo-cap">Clicking a transparent area fills the whole contiguous region</div></div>
+        <div class="tool-demo"><img src="assets/demo/bucket.png" data-demo-gif="assets/demo/bucket.gif" alt="Bucket fill demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Clicking a transparent area fills the whole contiguous region</div></div>
       </div>
 
       <div class="tool-card">
@@ -249,7 +258,7 @@
           <div class="tool-name-row"><span class="tool-name">Gradient fill</span><span class="kbd">G</span></div>
         </div>
         <p class="tool-desc">Draws a gradient from the primary color to secondary stops along the drag direction. "Limit to region" constrains the fill to the area under the start point (like Bucket); Shift snaps the angle to 45° steps.</p>
-        <div class="tool-demo"><img src="assets/demo/gradient.png" alt="Gradient fill demo"><div class="tool-demo-cap">Diagonal drag, "limit to region" off</div></div>
+        <div class="tool-demo"><img src="assets/demo/gradient.png" data-demo-gif="assets/demo/gradient.gif" alt="Gradient fill demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Diagonal drag, "limit to region" off</div></div>
       </div>
 
       <div class="tool-card">
@@ -288,7 +297,7 @@
           <div class="tool-name-row"><span class="tool-name">Select / move</span><span class="kbd">M</span></div>
         </div>
         <p class="tool-desc">Rectangular area (mint frame + gold pixel outline). Drag inside to move, drag a handle to resize/rotate, arrow keys nudge by 1px.</p>
-        <div class="tool-demo"><img src="assets/demo/select.png" alt="Select marquee demo"><div class="tool-demo-cap">Active selection frame with handles and a rotate stick</div></div>
+        <div class="tool-demo"><img src="assets/demo/select.png" data-demo-gif="assets/demo/select.gif" alt="Select marquee demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Active selection frame with handles and a rotate stick</div></div>
       </div>
 
       <div class="tool-card">
@@ -297,7 +306,7 @@
           <div class="tool-name-row"><span class="tool-name">Lasso select</span><span class="kbd">Q</span></div>
         </div>
         <p class="tool-desc">A freeform area following the drag path; the boundary closes automatically on release. Switch to Select (M) to move it.</p>
-        <div class="tool-demo"><img src="assets/demo/lasso.png" alt="Lasso select demo"><div class="tool-demo-cap">Freeform path, auto-closes on release</div></div>
+        <div class="tool-demo"><img src="assets/demo/lasso.png" data-demo-gif="assets/demo/lasso.gif" alt="Lasso select demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Freeform path, auto-closes on release</div></div>
       </div>
 
       <div class="tool-card">
@@ -351,5 +360,36 @@
     <footer>Icons and screenshots — real PixisEditor v1.26.0 interface (chrome-devtools, 614% zoom, 40×40 document).</footer>
   </main>
 </div>
+<script>
+// Hover-to-play tool demos: swap the static poster PNG for a looping GIF capture
+// of the real tool in use while the pointer is over the .tool-demo block, revert
+// on mouse-leave. Preloads the GIF first so a missing/slow file never flashes a
+// broken image — the poster just stays put until (and unless) it's ready.
+(function () {
+  document.querySelectorAll(".tool-demo img[data-demo-gif]").forEach(function (img) {
+    var demo = img.closest(".tool-demo");
+    var gifSrc = img.getAttribute("data-demo-gif");
+    var posterSrc = img.getAttribute("src");
+    if (!demo || !gifSrc) return;
+    var ready = false, loading = false, hovered = false;
+    function playIfHovered() {
+      if (hovered) img.src = gifSrc;
+    }
+    demo.addEventListener("mouseenter", function () {
+      hovered = true;
+      if (ready) { img.src = gifSrc; return; }
+      if (loading) return;
+      loading = true;
+      var pre = new Image();
+      pre.onload = function () { ready = true; playIfHovered(); };
+      pre.src = gifSrc;
+    });
+    demo.addEventListener("mouseleave", function () {
+      hovered = false;
+      img.src = posterSrc;
+    });
+  });
+})();
+</script>
 </body>
 </html>
