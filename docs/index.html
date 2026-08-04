@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PixisEditor — Manual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0c1017; --bg-alt:#10151d; --panel:#141a24; --panel-2:#181f2b;
+    --border:#232c3a; --border-soft:#1c2430;
+    --text:#dbe3ee; --text-dim:#8b96a8; --text-faint:#5c667a;
+    --accent:#2fd9a8; --accent-soft:rgba(47,217,168,.14); --accent-line:rgba(47,217,168,.35);
+    --gold:#e0b64a; --mint:#57e0c2;
+    --radius:14px; --radius-sm:9px;
+    --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(47,217,168,.07), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(87,224,194,.05), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:var(--font); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  .layout{display:flex; min-height:100vh;}
+
+  /* ---- sidebar ---- */
+  .sidebar{
+    width:246px; flex:none; padding:28px 18px; border-right:1px solid var(--border-soft);
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    background:linear-gradient(180deg, var(--bg-alt), var(--bg));
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; margin-bottom:14px; border-bottom:1px solid var(--border-soft);}
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px; flex:none;
+    background:conic-gradient(from 220deg, var(--accent), #1a8f6f, var(--mint), var(--accent));
+    box-shadow:0 0 0 1px rgba(255,255,255,.06) inset, 0 6px 16px -6px rgba(47,217,168,.55);
+  }
+  .brand-text{display:flex; flex-direction:column; gap:1px;}
+  .brand-text b{font-size:14.5px; letter-spacing:.2px;}
+  .brand-text span{font-size:11.5px; color:var(--text-dim);}
+  .nav-group{margin:4px 0 18px;}
+  .nav-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); padding:0 10px; margin:0 0 6px;}
+  .nav-link{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--radius-sm);
+    font-size:13.5px; color:var(--text-dim); text-decoration:none; margin-bottom:2px;
+  }
+  .nav-link .dot{width:5px;height:5px;border-radius:50%;background:var(--text-faint); flex:none;}
+  .nav-link:hover{background:var(--panel); color:var(--text);}
+  .nav-link.active{background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .nav-link.active .dot{background:var(--accent);}
+  .nav-link.soon{opacity:.45; cursor:default;}
+  .nav-link.soon:hover{background:none; color:var(--text-dim);}
+  .nav-foot{padding:14px 10px 0; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-soft); margin-top:10px;}
+
+  /* ---- main ---- */
+  .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
+  .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 10px;}
+  h1{font-size:34px; margin:0 0 12px; letter-spacing:-.01em;}
+  .lede{font-size:16px; color:var(--text-dim); max-width:640px; margin:0 0 34px;}
+  h2{font-size:20px; margin:56px 0 6px; letter-spacing:-.005em;}
+  .section-sub{color:var(--text-dim); font-size:14px; margin:0 0 22px; max-width:640px;}
+
+  .stat-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:8px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; min-width:120px;}
+  .stat b{display:block; font-size:22px; color:var(--accent);}
+  .stat span{font-size:12px; color:var(--text-dim);}
+
+  /* ---- hotspot map ---- */
+  .hotspot-wrap{
+    position:relative; border-radius:var(--radius); overflow:hidden;
+    border:1px solid var(--border); background:#070a0f;
+  }
+  .hotspot-wrap img{display:block; width:100%; height:auto;}
+  .dot{
+    position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px;
+    border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:12.5px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 4px rgba(47,217,168,.18), 0 4px 10px -2px rgba(0,0,0,.6);
+    border:1.5px solid rgba(255,255,255,.35);
+  }
+  .dot::after{
+    content:""; position:absolute; inset:-8px; border-radius:50%;
+    border:1.5px solid var(--accent-line); animation:pulse 2.6s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.7); opacity:.9;} 100%{transform:scale(1.5); opacity:0;}}
+
+  .legend{display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; margin-top:22px;}
+  .legend-item{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);}
+  .legend-num{
+    flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .legend-item b{display:block; font-size:13.5px; margin-bottom:2px;}
+  .legend-item p{margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+
+  /* ---- link cards ---- */
+  .card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .card{
+    display:block; text-decoration:none; padding:18px 18px 16px; border-radius:var(--radius);
+    background:var(--panel); border:1px solid var(--border); transition:border-color .15s, transform .15s;
+  }
+  .card:hover{border-color:var(--accent-line); transform:translateY(-1px);}
+  .card .ico{font-size:20px; margin-bottom:10px; display:block;}
+  .card b{display:block; font-size:14.5px; margin-bottom:4px;}
+  .card p{margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+  .card.soon{opacity:.5; cursor:default;}
+  .card.soon:hover{border-color:var(--border); transform:none;}
+  .badge-soon{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); border:1px solid var(--border); border-radius:5px; padding:2px 6px; margin-left:6px; vertical-align:middle;}
+
+  footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
+  @media (max-width:900px){ .sidebar{display:none;} .main{padding:32px 22px;} .legend{grid-template-columns:1fr;} .card-grid{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Getting started</p>
+      <a class="nav-link active" href="index.html"><span class="dot"></span>Interface overview</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Tools</p>
+      <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
+      <a class="nav-link soon">Fills &amp; shapes</a>
+      <a class="nav-link soon">Selection</a>
+      <a class="nav-link soon">Other tools</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Panels</p>
+      <a class="nav-link soon">Color &amp; Palette</a>
+      <a class="nav-link soon">Layers</a>
+      <a class="nav-link soon">Animation</a>
+      <a class="nav-link soon">Presets &amp; Atlas</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Canvas workflow</p>
+      <a class="nav-link soon">Navigation (pan/zoom)</a>
+      <a class="nav-link soon">Panel docking</a>
+      <a class="nav-link soon">Hotkeys</a>
+    </div>
+
+    <div class="nav-foot">v1.26.0 · built from the real interface</div>
+  </nav>
+
+  <main class="main">
+    <p class="eyebrow">PixisEditor · Manual</p>
+    <h1>How the editor works</h1>
+    <p class="lede">An illustrated reference for tools, panels and gestures — with screenshots of the real interface, not abstract descriptions. The section is filled in gradually.</p>
+
+    <div class="stat-row">
+      <div class="stat"><b>22</b><span>toolbar tools</span></div>
+      <div class="stat"><b>9</b><span>panels</span></div>
+      <div class="stat"><b>1</b><span>section ready · more in progress</span></div>
+    </div>
+
+    <h2>Interface map</h2>
+    <p class="section-sub">The editor's main zones on first launch. Hover a number in the legend — it explains what lives in that area.</p>
+
+    <div class="hotspot-wrap">
+      <img src="assets/overview.png" alt="PixisEditor interface overview" width="1601" height="1000">
+      <div class="dot" style="left:29.9%; top:5.5%;">1</div>
+      <div class="dot" style="left:6.7%; top:5.5%;">2</div>
+      <div class="dot" style="left:91.3%; top:5.5%;">3</div>
+      <div class="dot" style="left:74.3%; top:5.5%;">4</div>
+      <div class="dot" style="left:25.0%; top:81%;">5</div>
+      <div class="dot" style="left:18.1%; top:22.5%;">6</div>
+      <div class="dot" style="left:49.2%; top:50%;">7</div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-num">1</div><div><b>Tools — toolbar</b><p>22 tools for painting, filling, shapes, selection and transform. Right-click an icon to quickly assign a hotkey.</p></div></div>
+      <div class="legend-item"><div class="legend-num">2</div><div><b>Tool Settings</b><p>Color and palette, active brush settings (size, intensity, dither pattern, etc.) — the context changes with the selected tool.</p></div></div>
+      <div class="legend-item"><div class="legend-num">3</div><div><b>Layers</b><p>List of layers and groups, adjustments (🎚), effects (ƒx), visibility/lock, drag to reorder and opacity.</p></div></div>
+      <div class="legend-item"><div class="legend-num">4</div><div><b>Preview</b><p>A live mirror of the document composite with its own zoom/pan — hides the grid, cursors and selection outlines.</p></div></div>
+      <div class="legend-item"><div class="legend-num">5</div><div><b>Animation</b><p>Frame list, frame actions (named frame groups) and playback transport.</p></div></div>
+      <div class="legend-item"><div class="legend-num">6</div><div><b>Stamp library</b><p>Saved stamps for reuse; can be dragged onto the canvas for a one-off application.</p></div></div>
+      <div class="legend-item"><div class="legend-num">7</div><div><b>Canvas</b><p>The document's working area. Pan — middle mouse button, zoom — right button (vertical drag) or wheel.</p></div></div>
+    </div>
+
+    <h2>Sections</h2>
+    <p class="section-sub">Documentation is built up piece by piece — icons and descriptions come from the real interface, not abstract mockups.</p>
+    <div class="card-grid">
+      <a class="card" href="tools.html"><span class="ico">🧰</span><b>All tools</b><p>22 tools: brushes, fills, shapes, selection, utilities — with icon, hotkey and a canvas example.</p></a>
+      <a class="card soon"><span class="ico">🎨</span><b>Color &amp; Palette<span class="badge-soon">soon</span></b><p>Swatches, palettes, HSV picker, extract.</p></a>
+      <a class="card soon"><span class="ico">🗂️</span><b>Layers<span class="badge-soon">soon</span></b><p>Groups, adjustments, outline/shadow effects.</p></a>
+      <a class="card soon"><span class="ico">🎞️</span><b>Animation<span class="badge-soon">soon</span></b><p>Frames, frame actions, transport.</p></a>
+      <a class="card soon"><span class="ico">🧭</span><b>Canvas navigation<span class="badge-soon">soon</span></b><p>Pan/zoom, split-view, tiled preview.</p></a>
+      <a class="card soon"><span class="ico">⌨️</span><b>Hotkeys<span class="badge-soon">soon</span></b><p>Full keyboard shortcut reference.</p></a>
+    </div>
+
+    <footer>PixisEditor Manual — generated from the real UI (chrome-devtools screenshots, v1.26.0). Updated incrementally.</footer>
+  </main>
+</div>
+</body>
+</html>
