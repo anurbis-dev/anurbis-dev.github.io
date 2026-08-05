@@ -1,0 +1,158 @@
+/* ==== PixisEditor Manual — shared page chrome ====
+   Sidebar nav, brand mark (+ paint-burst animation), and the mobile
+   hamburger header/drawer (mirrors the pixis.ink landing page's mobile
+   nav). Single source of truth linked by every docs/manual/*.html page —
+   edit here once instead of re-fixing the same rules on each page.
+   Pairs with assets/chrome.js. */
+
+*{scrollbar-width:thin; scrollbar-color:var(--border) transparent;}
+*::-webkit-scrollbar{width:8px; height:8px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+*::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+.layout{display:flex; min-height:100vh;}
+
+
+/* ---- sidebar ---- */
+.sidebar{
+  width:246px; flex:none; padding:28px 18px; border-right:1px solid var(--border-soft);
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  background:linear-gradient(180deg, var(--bg-alt), var(--bg));
+}
+.brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; margin-bottom:14px; border-bottom:1px solid var(--border-soft);}
+.brand-mark{
+  width:34px; height:34px; border-radius:9px; flex:none; padding:5px; overflow:hidden;
+  display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:2px;
+  background:var(--panel-2);
+  box-shadow:0 0 0 1px rgba(255,255,255,.06) inset, 0 6px 16px -6px rgba(47,217,168,.55);
+}
+.brand-mark i{background:var(--border); border-radius:1px; display:block; min-width:0; min-height:0; transform-origin:center;}
+.brand-mark i:nth-child(1){background:#4ce8bd;}
+.brand-mark i:nth-child(3){background:#fb6f97;}
+.brand-mark i:nth-child(5){background:#ffcc5c;}
+.brand-mark i:nth-child(7){background:#fb6f97;}
+.brand-mark i:nth-child(9){background:#4ce8bd;}
+.brand-mark.v-paint.is-playing i.bm-on{
+  animation-name:var(--bm-name, bm-paint-in);
+  animation-duration:var(--bm-dur, .55s);
+  animation-timing-function:ease;
+  animation-delay:var(--bm-delay, 0s);
+  animation-fill-mode:both;
+}
+@keyframes bm-paint-in{
+  0%{opacity:0;transform:scale(.35)}
+  55%{opacity:1;transform:scale(1.18)}
+  100%{opacity:1;transform:scale(1)}
+}
+@keyframes bm-paint-out-in{
+  0%{opacity:1;transform:scale(1)}
+  18%{opacity:0;transform:scale(.28)}
+  42%{opacity:0;transform:scale(.28)}
+  78%{opacity:1;transform:scale(1.14)}
+  100%{opacity:1;transform:scale(1)}
+}
+@keyframes bm-paint-blink{
+  0%,100%{opacity:1;transform:scale(1)}
+  35%{opacity:0;transform:scale(.22)}
+  65%{opacity:0;transform:scale(.22)}
+}
+@media (prefers-reduced-motion: reduce){
+  .brand-mark.v-paint.is-playing i.bm-on{animation:none!important}
+}
+.brand-text{display:flex; flex-direction:column; gap:1px;}
+.brand-text b{font-size:14.5px; letter-spacing:.2px;}
+.brand-text span{font-size:11.5px; color:var(--text-dim);}
+.nav-group{margin:4px 0 18px;}
+.nav-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); padding:0 10px; margin:0 0 6px;}
+.nav-link{
+  display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--radius-sm);
+  font-size:13.5px; color:var(--text-dim); text-decoration:none; margin-bottom:2px;
+}
+.nav-link .dot{width:5px;height:5px;border-radius:50%;background:var(--text-faint); flex:none;}
+.nav-link:hover{background:var(--panel); color:var(--text);}
+.nav-link.active{background:var(--accent-soft); color:var(--accent); font-weight:600;}
+.nav-link.active .dot{background:var(--accent);}
+.nav-link.soon{opacity:.45; cursor:default;}
+.nav-link.soon:hover{background:none; color:var(--text-dim);}
+.nav-foot{padding:14px 10px 0; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-soft); margin-top:10px;}
+.nav-back{display:flex; align-items:center; gap:6px; padding:8px 10px; margin:14px 0 0; border-radius:var(--radius-sm); border:1px solid var(--border-soft); font-size:12px; color:var(--text-dim); text-decoration:none;}
+.nav-back:hover{color:var(--accent); border-color:var(--accent-line);}
+
+/* ---- pinned header buttons (mirrors the landing page's nav-pinned CTAs) ---- */
+.btn{display:inline-flex; align-items:center; gap:6px; border-radius:8px; font-weight:600; text-decoration:none; border:1px solid transparent; white-space:nowrap; -webkit-tap-highlight-color:transparent;}
+.btn-ghost{border-color:var(--border); color:var(--text);}
+.btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+.btn-primary{background:var(--accent); color:#06231a;}
+.btn-primary:hover{background:var(--mint);}
+.heart{
+  display:inline-block; color:#ff3b5c; font-size:13px; line-height:1; transform-origin:center;
+  animation:sponsor-heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes sponsor-heartbeat{
+  0%, 100%{ transform:scale(1); }
+  12%{ transform:scale(1.22); }
+  24%{ transform:scale(1); }
+  36%{ transform:scale(1.14); }
+  48%, 100%{ transform:scale(1); }
+}
+@media (prefers-reduced-motion: reduce){
+  .heart{ animation:none; }
+}
+
+/* ---- mobile header + drawer nav ---- */
+.mobile-header{display:none;}
+.nav-backdrop{display:none; position:fixed; inset:0; z-index:50; background:rgba(5,6,10,.55); backdrop-filter:blur(2px);}
+.nav-backdrop.open{display:block;}
+body.nav-open{overflow:hidden;}
+
+@media (max-width:900px){
+  .mobile-header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    position:sticky; top:0; z-index:60; padding:10px 16px;
+    background:rgba(12,16,23,.92); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .mobile-header .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; min-width:0;}
+  .mobile-header .brand-mark{
+    width:22px; height:22px; padding:0; margin:0; border-radius:0; background:none; box-shadow:none; flex:none;
+  }
+  .mobile-header .brand b{font-size:16px; font-weight:700; letter-spacing:.2px;}
+
+  .mobile-right{display:flex; align-items:center; gap:12px; flex:none;}
+  .mobile-cta{display:flex; align-items:center; gap:6px;}
+  .mobile-cta .btn{padding:6px 10px; font-size:12px;}
+
+  .nav-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:44px; height:44px; padding:0; margin:0;
+    border:1px solid var(--border); border-radius:8px;
+    background:var(--panel); color:var(--text); cursor:pointer; flex:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .nav-toggle:hover{border-color:var(--accent); color:var(--accent);}
+  .nav-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .nav-toggle-bars{position:relative; width:18px; height:14px; pointer-events:none;}
+  .nav-toggle-bars span{position:absolute; left:0; right:0; height:2px; border-radius:1px; background:currentColor; top:50%; margin-top:-1px; transition:transform .2s ease, opacity .15s ease;}
+  .nav-toggle-bars span:nth-child(1){transform:translateY(-6px);}
+  .nav-toggle-bars span:nth-child(3){transform:translateY(6px);}
+  .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(1){transform:rotate(45deg);}
+  .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(2){opacity:0;}
+  .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(3){transform:rotate(-45deg);}
+
+  .sidebar{
+    display:block; position:fixed; top:0; left:0; right:0; width:auto; height:auto; max-height:85vh;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    border-right:0; border-bottom:1px solid var(--border-soft); border-radius:0 0 14px 14px;
+    box-shadow:0 24px 48px -16px rgba(0,0,0,.65);
+    transform:translateY(-110%); transition:transform .22s ease; z-index:55;
+    padding-top:70px;
+  }
+  .sidebar.open{transform:translateY(0);}
+  .sidebar .brand{display:none;}
+  .main{padding:32px 22px;}
+}
+@media (max-width:400px){
+  .mobile-cta .cta-text{display:none;}
+  .mobile-cta .btn{padding:6px 8px;}
+}
