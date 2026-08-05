@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Color &amp; Palette — PixisEditor Manual</title>
+<title>Layers — PixisEditor Manual</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="assets/chrome.css">
 <style>
@@ -73,6 +73,13 @@
   .info-card ul{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-dim); line-height:1.7;}
   .info-card ul li b{display:inline; font-size:12.5px; color:var(--text); margin:0;}
 
+  .state-row{display:flex; gap:14px; flex-wrap:wrap; margin:0 0 8px;}
+  .state-chip{display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--panel); border:1px solid var(--border); border-radius:999px; font-size:12.5px; color:var(--text-dim);}
+  .state-chip i{font-style:normal; font-weight:800; width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; background:var(--panel-2); border:1px solid var(--border-soft);}
+  .state-chip.bright i{color:var(--text); background:#1f2b26; border-color:var(--accent-line);}
+  .state-chip.bypass i{color:#e08ab0; background:#2a1c24; border-color:#4a2a38;}
+  .state-chip.muted i{color:var(--text-faint);}
+
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
 
   @media (max-width:900px){
@@ -107,8 +114,8 @@
 
     <div class="nav-group">
       <p class="nav-label">Panels</p>
-      <a class="nav-link active" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
-      <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
+      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
+      <a class="nav-link active" href="layers.html"><span class="dot"></span>Layers</a>
       <a class="nav-link soon">Animation</a>
       <a class="nav-link soon">Presets &amp; Atlas</a>
     </div>
@@ -125,84 +132,93 @@
 
   <main class="main">
     <p class="eyebrow">Panels</p>
-    <h1>Color &amp; Palette</h1>
-    <p class="lede">Primary/secondary color, alpha, the active palette's swatch grid, and the tab strip for switching or managing multiple palettes at once — all in one collapsible section of the Tool Settings panel.</p>
+    <h1>Layers</h1>
+    <p class="lede">The layer stack, folders, non-destructive adjustments and effects — plus the drag gestures that pack opacity, reordering and duplication onto a single row without any extra UI.</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
-    <h2>The panel section</h2>
-    <p class="section-sub">Docked at the top of the left Tool Settings panel; visible for every color-using tool (brushes, fills, text, eyedropper).</p>
+    <h2>The panel</h2>
+    <p class="section-sub">A folder ("Details") holding a nested layer, plus two sibling layers — one locked, one with reduced opacity — to show every row state at once.</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
-        <img src="assets/panels/color-palette/overview.png" alt="Color & Palette panel section" width="279" height="480">
-        <div class="dot" style="left:11.5%; top:14.3%;">1</div>
-        <div class="dot" style="left:60.7%; top:14.3%;">2</div>
-        <div class="dot" style="left:50.9%; top:28.2%;">3</div>
-        <div class="dot" style="left:50.9%; top:63.4%;">4</div>
-        <div class="dot" style="left:50.9%; top:94.8%;">5</div>
+        <img src="assets/panels/layers/overview.png" alt="Layers panel" width="368" height="450">
+        <div class="dot" style="left:50%; top:18.1%;">1</div>
+        <div class="dot" style="left:15.6%; top:43.1%;">2</div>
+        <div class="dot" style="left:46.8%; top:43.1%;">3</div>
+        <div class="dot" style="left:69.1%; top:43.1%;">4</div>
+        <div class="dot" style="left:77.6%; top:43.1%;">5</div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>Color swatch</b><p>Current primary color. Click opens the HSV picker; drag the swatch straight onto the palette grid to add it as a new entry.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>Alpha</b><p>Opacity applied on top of the color itself, independent of any per-layer opacity.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Palette tabs</b><p>One tab per loaded palette. The active tab's colors are what's shown in the grid below.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>Swatch grid</b><p>All colors of the active palette (multiple palettes can also be shown merged, see tab gestures below).</p></div></div>
-        <div class="legend-item"><div class="legend-num">5</div><div><b>Toolbar</b><p>New palette, export/import, extract-from-image, and Lospec import — see the reference table below.</p></div></div>
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Toolbar</b><p>Add layer / new folder / duplicate / delete / merge down / import reference image / insert canvas as sprite layer — left to right.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Visibility &amp; Lock</b><p>👁 toggles visibility (Ctrl+click isolates it, hiding everything else); 🔒 blocks painting on that layer (or moving, for a reference layer). Both drag across rows to mass-toggle.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Layer / folder row</b><p>Drag horizontally for opacity, vertically to reorder; hold <b>Shift</b> while dragging to drop a copy. Double-click the name (or F2) to rename.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>🎚 Adjustments</b><p>Blend mode, brightness/contrast/hue/saturation, and tint (color × amount, multiply) — non-destructive, applied on top of the layer's pixels.</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>ƒx Layer effects</b><p>Opens the effects popover for this layer (below). Middle-click either icon to mass-toggle every adjustment/effect on that layer without deleting them.</p></div></div>
       </div>
     </div>
 
-    <h2>HSV picker</h2>
-    <p class="section-sub">Opens as a popover from the color swatch — saturation/value square, hue strip, alpha, and a hex field.</p>
-    <div class="shot-row">
-      <div class="hotspot-wrap">
-        <img src="assets/panels/color-palette/hsv-picker.png" alt="HSV color picker popover" width="278" height="352">
-        <div class="dot" style="left:51.1%; top:35.9%;">1</div>
-        <div class="dot" style="left:51.1%; top:69.3%;">2</div>
-        <div class="dot" style="left:51.1%; top:77.5%;">3</div>
-        <div class="dot" style="left:51.1%; top:89.2%;">4</div>
-      </div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>Saturation / value square</b><p>Drag to set the color; the ring handle marks the current position.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>Hue strip</b><p>Picks the base hue the square is built around.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Alpha</b><p>Same alpha value as the panel row outside the popover — the two stay in sync.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>Hex field</b><p>Type or paste a hex code directly; the swatch preview updates live.</p></div></div>
-      </div>
+    <p class="section-sub" style="margin-top:14px;">Both icons share the same three states, at a glance:</p>
+    <div class="state-row">
+      <div class="state-chip bright"><i>ƒx</i>Bright — has content, enabled</div>
+      <div class="state-chip bypass"><i>ƒx</i>Pink — has content, fully bypassed</div>
+      <div class="state-chip muted"><i>ƒx</i>Muted — empty, nothing to toggle</div>
     </div>
 
-    <h2>Gestures</h2>
-    <p class="section-sub">Both the swatch grid and the tab strip carry several actions beyond a plain click — none of them are labeled in the UI, so they're easy to miss.</p>
+    <h2>Layer effects popover</h2>
+    <p class="section-sub">Click ƒx on any layer to open a stack of non-destructive effects — instances can repeat (e.g. two Outlines) and reorder by dragging the ⠿ grip.</p>
+    <div class="shot-row">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/layers/fx-popover.png" alt="Layer effects popover with an Outline effect" width="326" height="184">
+        <div class="dot" style="left:89.7%; top:17.6%;">1</div>
+        <div class="dot" style="left:50%; top:43.6%;">2</div>
+        <div class="dot" style="left:11.6%; top:88.1%;">3</div>
+        <div class="dot" style="left:29.6%; top:88.1%;">4</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Add effect (+)</b><p>Opens a menu to add <b>Outline</b> or <b>Shadow</b>. Adding the same type again stacks a second instance.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Effect stack row</b><p>Checkbox enables/disables just this instance; ⠿ drags to reorder within the stack; × removes it.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Position (Outline)</b><p>Cycles Outside / Inside / Both. Below the row (not pictured): color, alpha, and thickness sliders.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Double outline</b><p>Adds a second ring with its own thickness, color and alpha, independent of the first.</p></div></div>
+      </div>
+    </div>
+    <p class="section-sub">Shadow effect: offset X/Y, color and alpha — same non-destructive stack, no separate popover.</p>
+
+    <h2>Gestures &amp; shortcuts</h2>
     <div class="info-grid">
       <div class="info-card">
-        <b>Swatch grid (a single color chip)</b>
+        <b>Layer row</b>
         <ul>
-          <li>Click — set as primary color</li>
-          <li>Drag — reorder within the palette, or drop onto another swatch to replace it</li>
-          <li>Hold (long-press) — remove the swatch</li>
-          <li>Right-click — assign a hotkey to that exact color</li>
+          <li>Drag horizontally — set opacity</li>
+          <li>Drag vertically — reorder (also moves in/out of folders)</li>
+          <li>Shift+drag — drop a copy (paint/sprite layers only)</li>
+          <li>Double-click name, or F2 — rename</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Palette tab</b>
+        <b>Visibility &amp; lock icons</b>
         <ul>
-          <li>Click — select as the active palette</li>
-          <li>Shift+click — add/remove that palette's colors from the merged grid view</li>
-          <li>Drag onto another tab — merge the two palettes</li>
-          <li>Drag onto the canvas — open the palette as a floating window</li>
-          <li>Hold (long-press) — delete the palette</li>
-          <li>F2 / double-click — rename</li>
+          <li>Click — toggle for that row</li>
+          <li>Ctrl+click the eye — isolate (show only this layer + its ancestors)</li>
+          <li>Drag across several icons — mass-toggle them together</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Toolbar (bottom row)</b>
+        <b>Keyboard</b>
         <ul>
-          <li><b>New palette</b> — creates an empty palette and a matching tab</li>
-          <li><b>Export</b> — saves the active palette to a file; right-click exports every loaded palette at once</li>
-          <li><b>Import</b> — loads a palette file (Lospec .hex, GIMP .gpl, etc.) as a new tab</li>
-          <li><b>Extract palette from image</b> — pulls unique colors out of a file, the current canvas, or a single layer</li>
-          <li><b>Import from Lospec</b> — fetches a published palette straight from lospec.com by slug/URL</li>
+          <li><b>Shift+G</b> — new folder from the current selection, grouped in place</li>
+          <li><b>Ctrl+E</b> — merge down (active layer, or a multi-selection, into the layer(s) below)</li>
+          <li><b>F</b> — frame the active layer (expands its folder path, scrolls it into view)</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>ƒx / 🎚 icons</b>
+        <ul>
+          <li>Click — open the popover for that layer</li>
+          <li>Middle-click — mass-toggle the entire stack on/off, without deleting anything</li>
         </ul>
       </div>
     </div>
 
-    <footer>Icons and screenshots — real PixisEditor v1.27.2 interface (chrome-devtools, native panel size).</footer>
+    <footer>Icons and screenshots — real PixisEditor interface (chrome-devtools, native panel size).</footer>
   </main>
 </div>
 </body>
