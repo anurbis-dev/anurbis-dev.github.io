@@ -712,6 +712,18 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.27.3 - 2026-08-05</h3>
+      <ul>
+        <li>Select, Lasso, and Colour Range now share one transform frame - switch between them without losing your selection; move, resize, and rotate work with any of those tools active.</li>
+        <li>Hold Alt or Ctrl while moving a selection to flip it horizontally or vertically (live preview, applied on release).</li>
+        <li>Marquee and lasso replace/add keep only solid (opaque) pixels, so empty holes are dropped from the selection.</li>
+        <li>Fixed free-transform bugs: enlarging no longer leaves paint outside the frame; resize and flip on a rotated selection keep the angle; undo, blur, tool switch, and edit shortcuts no longer leave a half-finished move or resize stuck.</li>
+        <li>Shift-add and Ctrl-subtract on the marquee again use the full selection shape (not only painted pixels), and starting those modifiers from inside the frame draws a new marquee instead of moving.</li>
+        <li>Trackpad two-finger horizontal swipe on the canvas undoes/redoes (same idea as the touch three-finger swipe); toggle in Settings -&gt; Gestures.</li>
+        <li>Fixed Split View: a second pointer on the other pane no longer corrupts zoom and pan of the pane you are drawing on.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.27.0 - 2026-08-04</h3>
       <ul>
         <li>New illustrated manual with real screenshots of every tool - open it from the <strong>Manual</strong> button in the Gestures &amp; Help window (❔). Hover any tool's picture on the tools page to see a short clip of it in action.</li>
@@ -742,22 +754,6 @@
         <li>You can now drag a stamp straight from the Stamp library onto the canvas to place it once.</li>
         <li>Fixed the selection marquee not adding/subtracting correctly when Shift/Ctrl-dragging from inside an existing selection.</li>
         <li>Animation panel is now always available (no minimum frame/layer count), and Add Frame inserts right after your current frame instead of at the end.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.24.0 - 2026-07-31</h3>
-      <ul>
-        <li>Animation and Frames panels are merged into one: playback controls (play/pause, step, mode) and FPS now live right inside the frame list, with a compact horizontal strip layout when docked to the top or bottom of the window.</li>
-        <li>The canvas now follows whichever frame you have selected while editing, not just during playback - stepping through frames with the arrow keys or clicking a frame updates what you see and paint on.</li>
-        <li>The frame-link icon turns red when the selected layer(s) are linked to the current frame, and linking/unlinking now applies to every selected layer at once, including layers nested inside a group.</li>
-        <li>Deleting or merging layers no longer deletes empty animation frames along with them.</li>
-        <li>Shift-drag a frame or layer to drop a copy instead of moving the original.</li>
-        <li>The current-frame playback highlight color and ring thickness are now configurable in Settings.</li>
-        <li>Panels are now moved with right-click-drag instead of middle-click-drag; middle-click keeps its role of scrolling panel content.</li>
-        <li>Selecting with lasso, mask, or colour-range no longer disturbs layer effects (outline/shadow) just by clicking - pixels only lift once you actually move or transform the selection.</li>
-        <li>Select/Move and paste now respect symmetry guides: moving or pasting content keeps its mirrored counterpart in sync instead of leaving a stale copy behind.</li>
-        <li>Outline effect reworked with a new "Both" mode (outer + inner ring at once), and fixed rings incorrectly appearing inside enclosed holes or hollow shapes.</li>
-        <li>Fixed sizing and show/hide glitches for undocked (floating) Color and Brush panels.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
