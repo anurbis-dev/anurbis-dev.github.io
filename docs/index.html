@@ -16,6 +16,11 @@
     --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;}
+  *{scrollbar-width:thin; scrollbar-color:var(--border) transparent;}
+  *::-webkit-scrollbar{width:8px; height:8px;}
+  *::-webkit-scrollbar-track{background:transparent;}
+  *::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  *::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
   html,body{margin:0;padding:0;}
   body{
     background:
@@ -90,6 +95,8 @@
   .nav-link.soon{opacity:.45; cursor:default;}
   .nav-link.soon:hover{background:none; color:var(--text-dim);}
   .nav-foot{padding:14px 10px 0; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-soft); margin-top:10px;}
+  .nav-back{display:flex; align-items:center; gap:6px; padding:8px 10px; margin:14px 0 0; border-radius:var(--radius-sm); border:1px solid var(--border-soft); font-size:12px; color:var(--text-dim); text-decoration:none;}
+  .nav-back:hover{color:var(--accent); border-color:var(--accent-line);}
 
   /* ---- main ---- */
   .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
@@ -147,17 +154,106 @@
   .badge-soon{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); border:1px solid var(--border); border-radius:5px; padding:2px 6px; margin-left:6px; vertical-align:middle;}
 
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
-  @media (max-width:900px){ .sidebar{display:none;} .main{padding:32px 22px;} .legend{grid-template-columns:1fr;} .card-grid{grid-template-columns:1fr 1fr;} }
+
+  /* ---- mobile header + drawer nav (adapted from the pixis.ink landing page) ---- */
+  .mobile-header{display:none;}
+  .nav-backdrop{display:none; position:fixed; inset:0; z-index:50; background:rgba(5,6,10,.55); backdrop-filter:blur(2px);}
+  .nav-backdrop.open{display:block;}
+  body.nav-open{overflow:hidden;}
+
+  @media (max-width:900px){
+    .mobile-header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      position:sticky; top:0; z-index:60; padding:10px 14px;
+      background:rgba(12,16,23,.92); backdrop-filter:blur(8px);
+      border-bottom:1px solid var(--border-soft);
+    }
+    .mobile-header .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; min-width:0;}
+    .mobile-right{display:flex; align-items:center; gap:6px; flex:none;}
+    .mobile-cta{display:flex; align-items:center; gap:6px;}
+    .mobile-cta .btn{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:8px; font-size:12px; font-weight:600;
+      text-decoration:none; border:1px solid transparent; white-space:nowrap; -webkit-tap-highlight-color:transparent;
+    }
+    .mobile-cta .btn-ghost{border-color:var(--border); color:var(--text);}
+    .mobile-cta .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+    .mobile-cta .btn-primary{background:var(--accent); color:#06231a;}
+    .mobile-cta .btn-primary:hover{background:var(--mint);}
+    .mobile-cta .heart{color:#fb6f97; font-size:13px; line-height:1;}
+    .mobile-header .brand-mark{
+      width:22px; height:22px; padding:0; margin:0; border-radius:0; background:none; box-shadow:none; flex:none;
+      display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:2px;
+    }
+    .mobile-header .brand-mark i{background:var(--border); border-radius:1px; display:block;}
+    .mobile-header .brand-mark i:nth-child(1){background:#4ce8bd;}
+    .mobile-header .brand-mark i:nth-child(3){background:#fb6f97;}
+    .mobile-header .brand-mark i:nth-child(5){background:#ffcc5c;}
+    .mobile-header .brand-mark i:nth-child(7){background:#fb6f97;}
+    .mobile-header .brand-mark i:nth-child(9){background:#4ce8bd;}
+    .mobile-header .brand b{font-size:16px; font-weight:700; letter-spacing:.2px;}
+
+    .nav-toggle{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:44px; height:44px; padding:0; margin:0;
+      border:1px solid var(--border); border-radius:8px;
+      background:var(--panel); color:var(--text); cursor:pointer; flex:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .nav-toggle:hover{border-color:var(--accent); color:var(--accent);}
+    .nav-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+    .nav-toggle-bars{position:relative; width:18px; height:14px; pointer-events:none;}
+    .nav-toggle-bars span{position:absolute; left:0; right:0; height:2px; border-radius:1px; background:currentColor; top:50%; margin-top:-1px; transition:transform .2s ease, opacity .15s ease;}
+    .nav-toggle-bars span:nth-child(1){transform:translateY(-6px);}
+    .nav-toggle-bars span:nth-child(3){transform:translateY(6px);}
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(1){transform:rotate(45deg);}
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(2){opacity:0;}
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(3){transform:rotate(-45deg);}
+
+    .sidebar{
+      display:block; position:fixed; top:0; left:0; right:0; width:auto; height:auto; max-height:85vh;
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      border-right:0; border-bottom:1px solid var(--border-soft); border-radius:0 0 14px 14px;
+      box-shadow:0 24px 48px -16px rgba(0,0,0,.65);
+      transform:translateY(-110%); transition:transform .22s ease; z-index:55;
+      padding-top:70px;
+    }
+    .sidebar.open{transform:translateY(0);}
+    .sidebar .brand{display:none;}
+    .main{padding:32px 22px;}
+    .legend{grid-template-columns:1fr;}
+    .card-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:400px){
+    .mobile-cta .cta-text{display:none;}
+    .mobile-cta .btn{padding:6px 8px;}
+  }
 </style>
 </head>
 <body>
+<div class="nav-backdrop" id="navBackdrop" hidden></div>
+<header class="mobile-header">
+  <a class="brand" href="../index.html">
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    <b>PixisEditor</b>
+  </a>
+  <div class="mobile-right">
+    <div class="mobile-cta">
+      <a class="btn btn-ghost" href="https://github.com/sponsors/anurbis-dev" target="_blank" rel="noopener" aria-label="Sponsor on GitHub"><span class="heart" aria-hidden="true">♥</span><span class="cta-text">Sponsor</span></a>
+      <a class="btn btn-primary" href="/app/">Try Pixis</a>
+    </div>
+    <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="docsSidebar" aria-label="Open menu">
+      <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+  </div>
+</header>
 <div class="layout">
 
-  <nav class="sidebar">
-    <div class="brand">
+  <nav class="sidebar" id="docsSidebar">
+    <a class="brand" href="../index.html" style="text-decoration:none;color:inherit;">
       <span class="brand-mark v-paint" id="docsBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
-    </div>
+    </a>
 
     <div class="nav-group">
       <p class="nav-label">Getting started</p>
@@ -174,7 +270,7 @@
 
     <div class="nav-group">
       <p class="nav-label">Panels</p>
-      <a class="nav-link soon">Color &amp; Palette</a>
+      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
       <a class="nav-link soon">Layers</a>
       <a class="nav-link soon">Animation</a>
       <a class="nav-link soon">Presets &amp; Atlas</a>
@@ -187,7 +283,8 @@
       <a class="nav-link soon">Hotkeys</a>
     </div>
 
-    <div class="nav-foot">v1.26.0 · built from the real interface</div>
+    <a class="nav-back" href="../index.html">← Back to pixis.ink</a>
+    <div class="nav-foot">v1.27.2 · built from the real interface</div>
   </nav>
 
   <main class="main">
@@ -198,7 +295,7 @@
     <div class="stat-row">
       <div class="stat"><b>22</b><span>toolbar tools</span></div>
       <div class="stat"><b>9</b><span>panels</span></div>
-      <div class="stat"><b>1</b><span>section ready · more in progress</span></div>
+      <div class="stat"><b>2</b><span>sections ready · more in progress</span></div>
     </div>
 
     <h2>Interface map</h2>
@@ -229,17 +326,51 @@
     <p class="section-sub">Documentation is built up piece by piece — icons and descriptions come from the real interface, not abstract mockups.</p>
     <div class="card-grid">
       <a class="card" href="tools.html"><span class="ico">🧰</span><b>All tools</b><p>22 tools: brushes, fills, shapes, selection, utilities — with icon, hotkey and a canvas example.</p></a>
-      <a class="card soon"><span class="ico">🎨</span><b>Color &amp; Palette<span class="badge-soon">soon</span></b><p>Swatches, palettes, HSV picker, extract.</p></a>
+      <a class="card" href="color-palette.html"><span class="ico">🎨</span><b>Color &amp; Palette</b><p>Swatches, palettes, HSV picker, extract.</p></a>
       <a class="card soon"><span class="ico">🗂️</span><b>Layers<span class="badge-soon">soon</span></b><p>Groups, adjustments, outline/shadow effects.</p></a>
       <a class="card soon"><span class="ico">🎞️</span><b>Animation<span class="badge-soon">soon</span></b><p>Frames, frame actions, transport.</p></a>
       <a class="card soon"><span class="ico">🧭</span><b>Canvas navigation<span class="badge-soon">soon</span></b><p>Pan/zoom, split-view, tiled preview.</p></a>
       <a class="card soon"><span class="ico">⌨️</span><b>Hotkeys<span class="badge-soon">soon</span></b><p>Full keyboard shortcut reference.</p></a>
     </div>
 
-    <footer>PixisEditor Manual — generated from the real UI (chrome-devtools screenshots, v1.26.0). Updated incrementally.</footer>
+    <footer>PixisEditor Manual — generated from the real UI (chrome-devtools screenshots, v1.27.2). Updated incrementally.</footer>
   </main>
 </div>
 <script>
+// Mobile drawer nav — hamburger toggle for the sidebar, adapted from the
+// pixis.ink landing page's mobile nav (same open/close/backdrop/Escape/resize behavior).
+(function () {
+  var navToggle = document.getElementById("navToggle");
+  var navPanel = document.getElementById("docsSidebar");
+  var navBackdrop = document.getElementById("navBackdrop");
+  if (!navToggle || !navPanel) return;
+  function setNavOpen(open) {
+    navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    navPanel.classList.toggle("open", open);
+    document.body.classList.toggle("nav-open", open);
+    if (navBackdrop) {
+      navBackdrop.classList.toggle("open", open);
+      if (open) navBackdrop.removeAttribute("hidden");
+      else navBackdrop.setAttribute("hidden", "");
+    }
+  }
+  function closeNav() { setNavOpen(false); }
+  navToggle.addEventListener("click", function () {
+    setNavOpen(navToggle.getAttribute("aria-expanded") !== "true");
+  });
+  if (navBackdrop) navBackdrop.addEventListener("click", closeNav);
+  navPanel.querySelectorAll("a").forEach(function (a) {
+    a.addEventListener("click", closeNav);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeNav();
+  });
+  window.addEventListener("resize", function () {
+    if (window.matchMedia("(min-width:901px)").matches) closeNav();
+  });
+})();
+
 // Animated sidebar logo — same "paint burst" as the landing page nav mark and
 // the editor's Tools panel header, ported 1:1 so all three stay in sync.
 (function () {

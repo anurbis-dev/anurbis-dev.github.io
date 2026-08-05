@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Tools — PixisEditor Manual</title>
+<title>Color &amp; Palette — PixisEditor Manual</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{
@@ -104,42 +104,43 @@
   .backlink{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); text-decoration:none; margin-bottom:22px;}
   .backlink:hover{color:var(--accent);}
   h2{font-size:19px; margin:46px 0 4px; letter-spacing:-.005em; display:flex; align-items:center; gap:10px;}
-  h2 .count{font-size:11.5px; font-weight:600; color:var(--text-faint); background:var(--panel); border:1px solid var(--border); padding:2px 8px; border-radius:20px;}
   .section-sub{color:var(--text-dim); font-size:13.5px; margin:0 0 20px; max-width:640px;}
 
-  .kbd{
-    display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px;
-    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text);
-    background:var(--panel-2); border:1px solid var(--border); border-bottom-width:2px; border-radius:6px;
+  /* ---- two-column shot + legend, like the interface-overview hotspot map ---- */
+  .shot-row{display:grid; grid-template-columns:minmax(0,300px) 1fr; gap:26px; align-items:start;}
+  .hotspot-wrap{
+    position:relative; border-radius:var(--radius); overflow:hidden;
+    border:1px solid var(--border); background:#070a0f; flex:none;
   }
-  .kbd.none{color:var(--text-faint); font-family:var(--font); font-size:10.5px; font-weight:500; border-style:dashed;}
+  .hotspot-wrap img{display:block; width:100%; height:auto;}
+  .dot{
+    position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px;
+    border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 4px rgba(47,217,168,.18), 0 4px 10px -2px rgba(0,0,0,.6);
+    border:1.5px solid rgba(255,255,255,.35);
+  }
+  .dot::after{
+    content:""; position:absolute; inset:-8px; border-radius:50%;
+    border:1.5px solid var(--accent-line); animation:pulse 2.6s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.7); opacity:.9;} 100%{transform:scale(1.5); opacity:0;}}
 
-  .tool-grid{column-count:3; column-gap:14px;}
-  .tool-card{
-    break-inside:avoid; margin:0 0 14px; padding:16px 16px 15px; border-radius:var(--radius);
-    background:var(--panel); border:1px solid var(--border);
+  .legend{display:flex; flex-direction:column; gap:10px;}
+  .legend-item{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);}
+  .legend-num{
+    flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
   }
-  .tool-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
-  .tool-ico{
-    width:44px; height:44px; border-radius:10px; flex:none; background:var(--panel-2); border:1px solid var(--border-soft);
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
-  }
-  .tool-ico img{width:34px; height:34px; object-fit:contain;}
-  .tool-name-row{min-width:0; flex:1; display:flex; flex-direction:column; gap:5px;}
-  .tool-name{font-size:14px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .tool-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin:0;}
-  .tool-demo{margin-top:12px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-soft); position:relative;}
-  .tool-demo img{display:block; width:100%; height:auto; background:#070a0f;}
-  .tool-demo-cap{font-size:11px; color:var(--text-faint); padding:7px 10px; background:var(--panel-2); border-top:1px solid var(--border-soft);}
-  .tool-demo-hint{
-    position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:5px;
-    font-size:10.5px; font-weight:600; color:var(--text); letter-spacing:.01em;
-    background:color-mix(in srgb, var(--panel-2) 82%, transparent); border:1px solid var(--border-soft);
-    border-radius:20px; padding:3px 9px 3px 7px; pointer-events:none;
-    opacity:.9; transition:opacity .15s ease;
-  }
-  .tool-demo-hint::before{content:"▶"; font-size:8px; color:var(--accent);}
-  .tool-demo:hover .tool-demo-hint{opacity:0;}
+  .legend-item b{display:block; font-size:13.5px; margin-bottom:2px;}
+  .legend-item p{margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+
+  /* ---- gesture / toolbar reference cards ---- */
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .info-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .info-card b{display:block; font-size:14px; margin-bottom:8px;}
+  .info-card ul{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-dim); line-height:1.7;}
+  .info-card ul li b{display:inline; font-size:12.5px; color:var(--text); margin:0;}
 
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
 
@@ -209,9 +210,9 @@
     .sidebar.open{transform:translateY(0);}
     .sidebar .brand{display:none;}
     .main{padding:32px 22px;}
-    .tool-grid{column-count:2;}
+    .shot-row{grid-template-columns:1fr;}
+    .info-grid{grid-template-columns:1fr;}
   }
-  @media (max-width:640px){ .tool-grid{column-count:1;} }
   @media (max-width:400px){
     .mobile-cta .cta-text{display:none;}
     .mobile-cta .btn{padding:6px 8px;}
@@ -250,7 +251,7 @@
 
     <div class="nav-group">
       <p class="nav-label">Tools</p>
-      <a class="nav-link active" href="tools.html"><span class="dot"></span>All tools</a>
+      <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
       <a class="nav-link soon">Fills &amp; shapes</a>
       <a class="nav-link soon">Selection</a>
       <a class="nav-link soon">Other tools</a>
@@ -258,7 +259,7 @@
 
     <div class="nav-group">
       <p class="nav-label">Panels</p>
-      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
+      <a class="nav-link active" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
       <a class="nav-link soon">Layers</a>
       <a class="nav-link soon">Animation</a>
       <a class="nav-link soon">Presets &amp; Atlas</a>
@@ -276,218 +277,85 @@
   </nav>
 
   <main class="main">
-    <p class="eyebrow">Tools</p>
-    <h1>22 toolbar tools</h1>
-    <p class="lede">Icon, default hotkey and a short description for every tool. The six most visual ones include a real canvas example (614% zoom, 40×40 document).</p>
+    <p class="eyebrow">Panels</p>
+    <h1>Color &amp; Palette</h1>
+    <p class="lede">Primary/secondary color, alpha, the active palette's swatch grid, and the tab strip for switching or managing multiple palettes at once — all in one collapsible section of the Tool Settings panel.</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
-    <h2>Brushes &amp; retouching <span class="count">10</span></h2>
-    <p class="section-sub">Direct painting and pixel editing under the cursor. All support Size / Spacing / Intensity from the Brush panel where applicable.</p>
-    <div class="tool-grid">
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/pencil.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Pencil</span><span class="kbd">B</span></div>
-        </div>
-        <p class="tool-desc">Basic pixel painting with the current color. Has a pixel-perfect mode (removes stray diagonal pixel pairs at stroke corners).</p>
-        <div class="tool-demo"><img src="assets/demo/pencil.png" data-demo-gif="assets/demo/pencil.gif" alt="Pencil stroke demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Freehand stroke with the current color</div></div>
+    <h2>The panel section</h2>
+    <p class="section-sub">Docked at the top of the left Tool Settings panel; visible for every color-using tool (brushes, fills, text, eyedropper).</p>
+    <div class="shot-row">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/color-palette/overview.png" alt="Color & Palette panel section" width="279" height="480">
+        <div class="dot" style="left:11.5%; top:14.3%;">1</div>
+        <div class="dot" style="left:60.7%; top:14.3%;">2</div>
+        <div class="dot" style="left:50.9%; top:28.2%;">3</div>
+        <div class="dot" style="left:50.9%; top:63.4%;">4</div>
+        <div class="dot" style="left:50.9%; top:94.8%;">5</div>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/repaint.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Repaint</span><span class="kbd">R</span></div>
-        </div>
-        <p class="tool-desc">Recolors already-painted pixels without touching transparent ones. Alt limits it to replacing only the color under the first click.</p>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Color swatch</b><p>Current primary color. Click opens the HSV picker; drag the swatch straight onto the palette grid to add it as a new entry.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Alpha</b><p>Opacity applied on top of the color itself, independent of any per-layer opacity.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Palette tabs</b><p>One tab per loaded palette. The active tab's colors are what's shown in the grid below.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Swatch grid</b><p>All colors of the active palette (multiple palettes can also be shown merged, see tab gestures below).</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>Toolbar</b><p>New palette, export/import, extract-from-image, and Lospec import — see the reference table below.</p></div></div>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/eraser.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Eraser</span><span class="kbd">E</span></div>
-        </div>
-        <p class="tool-desc">Erases pixels to transparency using the brush mask (shape, size, spacing — same as Pencil).</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/blur.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Smooth</span><span class="kbd">Shift+S</span></div>
-        </div>
-        <p class="tool-desc">Soft brush — blurs edges by Blur radius. Shift on Pencil temporarily switches to Smooth without changing tools.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/smudge.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Smudge</span><span class="kbd">S</span></div>
-        </div>
-        <p class="tool-desc">Smears pixels along the stroke direction, like a finger through wet paint.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/dodge.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Dodge</span><span class="kbd">D</span></div>
-        </div>
-        <p class="tool-desc">Lightens pixels under the brush proportionally to Intensity.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/burn.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Burn</span><span class="kbd none">unassigned</span></div>
-        </div>
-        <p class="tool-desc">Darkens pixels under the brush — the opposite of Dodge.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/clone.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Clone</span><span class="kbd">C</span></div>
-        </div>
-        <p class="tool-desc">Stamp cloning: Shift+click sets the source, further strokes copy pixels offset from that source.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/sharpen.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Sharpen</span><span class="kbd">J</span></div>
-        </div>
-        <p class="tool-desc">Increases local contrast under the brush — the reverse of Smooth.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/dither.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Dither brush</span><span class="kbd">;</span></div>
-        </div>
-        <p class="tool-desc">Paints with an ordered (Bayer) or geometric pattern instead of a solid fill. Density sets the share of painted cells, Alt flips the pattern horizontally.</p>
-        <div class="tool-demo"><img src="assets/demo/dither.png" data-demo-gif="assets/demo/dither.gif" alt="Dither brush demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Ordered pattern instead of a solid stroke</div></div>
-      </div>
-
     </div>
 
-    <h2>Fills &amp; shapes <span class="count">5</span></h2>
-    <p class="section-sub">Fill an area or draw geometry in one gesture instead of pixel by pixel.</p>
-    <div class="tool-grid">
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/bucket.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Bucket fill</span><span class="kbd">F</span></div>
-        </div>
-        <p class="tool-desc">Fills the contiguous area matching the clicked pixel's color (threshold — Tolerance). Has an "all matching pixels" mode instead of just the contiguous region.</p>
-        <div class="tool-demo"><img src="assets/demo/bucket.png" data-demo-gif="assets/demo/bucket.gif" alt="Bucket fill demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Clicking a transparent area fills the whole contiguous region</div></div>
+    <h2>HSV picker</h2>
+    <p class="section-sub">Opens as a popover from the color swatch — saturation/value square, hue strip, alpha, and a hex field.</p>
+    <div class="shot-row">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/color-palette/hsv-picker.png" alt="HSV color picker popover" width="278" height="352">
+        <div class="dot" style="left:51.1%; top:35.9%;">1</div>
+        <div class="dot" style="left:51.1%; top:69.3%;">2</div>
+        <div class="dot" style="left:51.1%; top:77.5%;">3</div>
+        <div class="dot" style="left:51.1%; top:89.2%;">4</div>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/gradient.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Gradient fill</span><span class="kbd">G</span></div>
-        </div>
-        <p class="tool-desc">Draws a gradient from the primary color to secondary stops along the drag direction. "Limit to region" constrains the fill to the area under the start point (like Bucket); Shift snaps the angle to 45° steps.</p>
-        <div class="tool-demo"><img src="assets/demo/gradient.png" data-demo-gif="assets/demo/gradient.gif" alt="Gradient fill demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Diagonal drag, "limit to region" off</div></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Saturation / value square</b><p>Drag to set the color; the ring handle marks the current position.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Hue strip</b><p>Picks the base hue the square is built around.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Alpha</b><p>Same alpha value as the panel row outside the popover — the two stay in sync.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Hex field</b><p>Type or paste a hex code directly; the swatch preview updates live.</p></div></div>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/line.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Line</span><span class="kbd">L</span></div>
-        </div>
-        <p class="tool-desc">A straight line between the press and release points.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/rect.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Rectangle</span><span class="kbd">U</span></div>
-        </div>
-        <p class="tool-desc">A rectangle spanning the drag's diagonal. "Filled shape" in the Brush section toggles outline vs. fill.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/ellipse.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Ellipse</span><span class="kbd">O</span></div>
-        </div>
-        <p class="tool-desc">An ellipse inscribed in the drag's bounding box. Same "filled shape" toggle as Rectangle.</p>
-      </div>
-
     </div>
 
-    <h2>Selection <span class="count">3</span></h2>
-    <p class="section-sub">Shift always adds to the current selection, Ctrl (Cmd on Mac) subtracts; a plain drag replaces it.</p>
-    <div class="tool-grid">
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/select.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Select / move</span><span class="kbd">M</span></div>
-        </div>
-        <p class="tool-desc">Rectangular area (mint frame + gold pixel outline). Drag inside to move, drag a handle to resize/rotate, arrow keys nudge by 1px.</p>
-        <div class="tool-demo"><img src="assets/demo/select.png" data-demo-gif="assets/demo/select.gif" alt="Select marquee demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Active selection frame with handles and a rotate stick</div></div>
+    <h2>Gestures</h2>
+    <p class="section-sub">Both the swatch grid and the tab strip carry several actions beyond a plain click — none of them are labeled in the UI, so they're easy to miss.</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>Swatch grid (a single color chip)</b>
+        <ul>
+          <li>Click — set as primary color</li>
+          <li>Drag — reorder within the palette, or drop onto another swatch to replace it</li>
+          <li>Hold (long-press) — remove the swatch</li>
+          <li>Right-click — assign a hotkey to that exact color</li>
+        </ul>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/lasso.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Lasso select</span><span class="kbd">Q</span></div>
-        </div>
-        <p class="tool-desc">A freeform area following the drag path; the boundary closes automatically on release. Switch to Select (M) to move it.</p>
-        <div class="tool-demo"><img src="assets/demo/lasso.png" data-demo-gif="assets/demo/lasso.gif" alt="Lasso select demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Freeform path, auto-closes on release</div></div>
+      <div class="info-card">
+        <b>Palette tab</b>
+        <ul>
+          <li>Click — select as the active palette</li>
+          <li>Shift+click — add/remove that palette's colors from the merged grid view</li>
+          <li>Drag onto another tab — merge the two palettes</li>
+          <li>Drag onto the canvas — open the palette as a floating window</li>
+          <li>Hold (long-press) — delete the palette</li>
+          <li>F2 / double-click — rename</li>
+        </ul>
       </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/colourRange.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Colour range select</span><span class="kbd">W</span></div>
-        </div>
-        <p class="tool-desc">Selects pixels by the clicked color (threshold — Tolerance, same mechanism as Bucket). Clicking a transparent pixel is ignored.</p>
+      <div class="info-card">
+        <b>Toolbar (bottom row)</b>
+        <ul>
+          <li><b>New palette</b> — creates an empty palette and a matching tab</li>
+          <li><b>Export</b> — saves the active palette to a file; right-click exports every loaded palette at once</li>
+          <li><b>Import</b> — loads a palette file (Lospec .hex, GIMP .gpl, etc.) as a new tab</li>
+          <li><b>Extract palette from image</b> — pulls unique colors out of a file, the current canvas, or a single layer</li>
+          <li><b>Import from Lospec</b> — fetches a published palette straight from lospec.com by slug/URL</li>
+        </ul>
       </div>
-
     </div>
 
-    <h2>Utilities &amp; transform <span class="count">4</span></h2>
-    <p class="section-sub">Don't paint directly — they sample the canvas, place presets, or move what's already drawn.</p>
-    <div class="tool-grid">
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/eyedropper.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Eyedropper</span><span class="kbd">I</span></div>
-        </div>
-        <p class="tool-desc">Click samples the pixel under the cursor as the primary color. A temporary mode (modifier, Ctrl by default) switches to it from any color tool and switches back on release.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/stamp.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Stamp</span><span class="kbd">N</span></div>
-        </div>
-        <p class="tool-desc">Stamps a saved image from the Stamp library panel. Dragging a stamp from the panel onto the canvas applies it once without switching tools.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/text.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Text</span><span class="kbd">T</span></div>
-        </div>
-        <p class="tool-desc">Rasterized bitmap-font text (built-in Pixis 5×7 / 3×5 or an imported JSON font). Click sets the top-left corner, supports multi-line text.</p>
-      </div>
-
-      <div class="tool-card">
-        <div class="tool-head">
-          <div class="tool-ico"><img src="assets/icons/sprite-transform.png" alt=""></div>
-          <div class="tool-name-row"><span class="tool-name">Move</span><span class="kbd">V</span></div>
-        </div>
-        <p class="tool-desc">Move/transform: drag moves the layer (paint or sprite), the rotate modifier turns a sprite layer, Shift+H/V flips it, Ctrl+Alt+drag duplicates in place.</p>
-      </div>
-
-    </div>
-
-    <footer>Icons and screenshots — real PixisEditor v1.27.2 interface (chrome-devtools, 614% zoom, 40×40 document).</footer>
+    <footer>Icons and screenshots — real PixisEditor v1.27.2 interface (chrome-devtools, native panel size).</footer>
   </main>
 </div>
 <script>
@@ -522,36 +390,6 @@
   });
   window.addEventListener("resize", function () {
     if (window.matchMedia("(min-width:961px)").matches) closeNav();
-  });
-})();
-
-// Hover-to-play tool demos: swap the static poster PNG for a looping GIF capture
-// of the real tool in use while the pointer is over the .tool-demo block, revert
-// on mouse-leave. Preloads the GIF first so a missing/slow file never flashes a
-// broken image — the poster just stays put until (and unless) it's ready.
-(function () {
-  document.querySelectorAll(".tool-demo img[data-demo-gif]").forEach(function (img) {
-    var demo = img.closest(".tool-demo");
-    var gifSrc = img.getAttribute("data-demo-gif");
-    var posterSrc = img.getAttribute("src");
-    if (!demo || !gifSrc) return;
-    var ready = false, loading = false, hovered = false;
-    function playIfHovered() {
-      if (hovered) img.src = gifSrc;
-    }
-    demo.addEventListener("mouseenter", function () {
-      hovered = true;
-      if (ready) { img.src = gifSrc; return; }
-      if (loading) return;
-      loading = true;
-      var pre = new Image();
-      pre.onload = function () { ready = true; playIfHovered(); };
-      pre.src = gifSrc;
-    });
-    demo.addEventListener("mouseleave", function () {
-      hovered = false;
-      img.src = posterSrc;
-    });
   });
 })();
 
