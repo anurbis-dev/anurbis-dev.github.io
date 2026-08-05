@@ -24,6 +24,7 @@ html{scrollbar-gutter: stable;}
 .sidebar{
   width:246px; flex:none; padding:28px 18px; border-right:1px solid var(--border-soft);
   position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto;
+  overscroll-behavior:contain;
   background:linear-gradient(180deg, var(--bg-alt), var(--bg));
 }
 /* Brand now lives in the site header (below) at every width, so the

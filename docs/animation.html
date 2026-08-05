@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Layers — PixisEditor Manual</title>
+<title>Animation — PixisEditor Manual</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="assets/chrome.css">
 <style>
@@ -80,6 +80,12 @@
   .state-chip.bypass i{color:#e08ab0; background:#2a1c24; border-color:#4a2a38;}
   .state-chip.muted i{color:var(--text-faint);}
 
+  .kbd{
+    display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--border); border-bottom-width:2px; border-radius:6px;
+  }
+
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
 
   @media (max-width:900px){
@@ -115,8 +121,8 @@
     <div class="nav-group">
       <p class="nav-label">Panels</p>
       <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
-      <a class="nav-link active" href="layers.html"><span class="dot"></span>Layers</a>
-      <a class="nav-link" href="animation.html"><span class="dot"></span>Animation</a>
+      <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
+      <a class="nav-link active" href="animation.html"><span class="dot"></span>Animation</a>
       <a class="nav-link" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
     </div>
 
@@ -132,88 +138,106 @@
 
   <main class="main">
     <p class="eyebrow">Panels</p>
-    <h1>Layers</h1>
-    <p class="lede">The layer stack, folders, non-destructive adjustments and effects — plus the drag gestures that pack opacity, reordering and duplication onto a single row without any extra UI.</p>
+    <h1>Animation</h1>
+    <p class="lede">A shared frame strip that any layer can link into, named frame actions to hold several logical animations (walk, idle, attack…) on that one strip, and a transport with Forward / Reverse / Ping-pong playback.</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
     <h2>The panel</h2>
-    <p class="section-sub">A folder ("Details") holding a nested layer, plus two sibling layers — one locked, one with reduced opacity — to show every row state at once.</p>
+    <p class="section-sub">Two layers, four frames — a named action ("Walk") covering the last three, Frame 3 held for 3 units instead of 1.</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
-        <img src="assets/panels/layers/overview.png" alt="Layers panel" width="368" height="450">
-        <div class="dot" style="left:50%; top:18.1%;">1</div>
-        <div class="dot" style="left:15.6%; top:43.1%;">2</div>
-        <div class="dot" style="left:46.8%; top:43.1%;">3</div>
-        <div class="dot" style="left:69.1%; top:43.1%;">4</div>
-        <div class="dot" style="left:77.6%; top:43.1%;">5</div>
+        <img src="assets/panels/animation/overview.png" alt="Animation panel" width="450" height="512">
+        <div class="dot" style="left:7.7%; top:15.9%;">1</div>
+        <div class="dot" style="left:45.7%; top:25.1%;">2</div>
+        <div class="dot" style="left:50%; top:48.9%;">3</div>
+        <div class="dot" style="left:71%; top:61.9%;">4</div>
+        <div class="dot" style="left:81.5%; top:36%;">5</div>
+        <div class="dot" style="left:18.1%; top:86.4%;">6</div>
+        <div class="dot" style="left:50%; top:94.1%;">7</div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>Toolbar</b><p>Add layer / new folder / duplicate / delete / merge down / import reference image / insert canvas as sprite layer — left to right.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>Visibility &amp; Lock</b><p>👁 toggles visibility (Ctrl+click isolates it, hiding everything else); 🔒 blocks painting on that layer (or moving, for a reference layer). Both drag across rows to mass-toggle.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Layer / folder row</b><p>Drag horizontally for opacity, vertically to reorder; hold <b>Shift</b> while dragging to drop a copy. Double-click the name (or F2) to rename.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>🎚 Adjustments</b><p>Blend mode, brightness/contrast/hue/saturation, and tint (color × amount, multiply) — non-destructive, applied on top of the layer's pixels.</p></div></div>
-        <div class="legend-item"><div class="legend-num">5</div><div><b>ƒx Layer effects</b><p>Opens the effects popover for this layer (below). Middle-click either icon to mass-toggle every adjustment/effect on that layer without deleting them.</p></div></div>
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Frame toolbar</b><p>Add / Duplicate / Delete frame, and 🔗 Link — links every selected paint layer (folders expand to their nested paint layers) to every selected frame; turns red ("unlink") once the whole selection is already linked.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Frame actions bar</b><p>＋ creates a named action from the current selection; 🏷 assigns/unassigns frames to the active one. Chips scope Play/export to just their frames — see states below.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Frame row</b><p>Same row component as Layers: 👁 visibility, a colored dot when the frame belongs to an action, drag horizontally for opacity / vertically to reorder, Shift+drag to copy, double-click (or F2) to rename.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Duration</b><p>Hold units at the current FPS (1–999, default 1). Frame 3 here is set to 3 — it stays on screen 3× longer than the others during playback.</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>Linked-layer count</b><p>Click selects those layers in the Layers panel; Ctrl+click unlinks every layer from the frame(s) in one step. Frame 1 shows 2 (both layers), the rest show 1 (just the layer active when they were added).</p></div></div>
+        <div class="legend-item"><div class="legend-num">6</div><div><b>Transport</b><p>⏮/⏭ step through visible frames; ▶ plays/stops; the mode button cycles Forward → Reverse → Ping-pong.</p></div></div>
+        <div class="legend-item"><div class="legend-num">7</div><div><b>FPS</b><p>Playback speed, 1–30 (default 6) — multiplied by each frame's own duration to get its hold time.</p></div></div>
       </div>
     </div>
 
-    <p class="section-sub" style="margin-top:14px;">Both icons share the same three states, at a glance:</p>
+    <p class="section-sub" style="margin-top:14px;">Frame-action chips, at a glance:</p>
     <div class="state-row">
-      <div class="state-chip bright"><i>ƒx</i>Bright — has content, enabled</div>
-      <div class="state-chip bypass"><i>ƒx</i>Pink — has content, fully bypassed</div>
-      <div class="state-chip muted"><i>ƒx</i>Muted — empty, nothing to toggle</div>
+      <div class="state-chip bright"><i>All</i>No scope — Play/export use the full timeline</div>
+      <div class="state-chip bright"><i>●</i>Named, active — scoped to just this action's frames</div>
+      <div class="state-chip bypass"><i>◐</i>Folded — every member frame hidden from the list (re-click to bring back)</div>
     </div>
 
-    <h2>Layer effects popover</h2>
-    <p class="section-sub">Click ƒx on any layer to open a stack of non-destructive effects — instances can repeat (e.g. two Outlines) and reorder by dragging the ⠿ grip.</p>
-    <div class="shot-row">
-      <div class="hotspot-wrap">
-        <img src="assets/panels/layers/fx-popover.png" alt="Layer effects popover with an Outline effect" width="326" height="184">
-        <div class="dot" style="left:89.7%; top:17.6%;">1</div>
-        <div class="dot" style="left:50%; top:43.6%;">2</div>
-        <div class="dot" style="left:11.6%; top:88.1%;">3</div>
-        <div class="dot" style="left:29.6%; top:88.1%;">4</div>
+    <h2>Playback modes</h2>
+    <p class="section-sub">Click the mode button (next to ▶) to cycle. Needs at least 2 project frames, and at least one visible frame with a linked layer, to start playing at all.</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>→ Forward</b>
+        <ul>
+          <li>Default. Plays frame 1…N, loops back to 1.</li>
+        </ul>
       </div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>Add effect (+)</b><p>Opens a menu to add <b>Outline</b> or <b>Shadow</b>. Adding the same type again stacks a second instance.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>Effect stack row</b><p>Checkbox enables/disables just this instance; ⠿ drags to reorder within the stack; × removes it.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Position (Outline)</b><p>Cycles Outside / Inside / Both. Below the row (not pictured): color, alpha, and thickness sliders.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>Double outline</b><p>Adds a second ring with its own thickness, color and alpha, independent of the first.</p></div></div>
+      <div class="info-card">
+        <b>← Reverse</b>
+        <ul>
+          <li>Plays N…1, loops back to N.</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>↔ Ping-pong</b>
+        <ul>
+          <li>Plays forward to the end, then backward to the start, repeating — no jump cut at the loop point.</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Playing a named action</b>
+        <ul>
+          <li>Select just that chip (plain click when nothing else is selected, or Ctrl+click to solo it) before pressing ▶ — Play/export follow the active scope, not the full timeline.</li>
+        </ul>
       </div>
     </div>
-    <p class="section-sub">Shadow effect: offset X/Y, color and alpha — same non-destructive stack, no separate popover.</p>
 
     <h2>Gestures &amp; shortcuts</h2>
     <div class="info-grid">
       <div class="info-card">
-        <b>Layer row</b>
+        <b>Frame row</b>
         <ul>
-          <li>Drag horizontally — set opacity</li>
-          <li>Drag vertically — reorder (also moves in/out of folders)</li>
-          <li>Shift+drag — drop a copy (paint/sprite layers only)</li>
+          <li>Drag horizontally — set this frame's opacity (applied when it's the focused frame)</li>
+          <li>Drag vertically — reorder</li>
+          <li>Shift+drag — drop a copy instead of moving</li>
           <li>Double-click name, or F2 — rename</li>
+          <li>Drag across several eyes — mass-toggle visibility</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Visibility &amp; lock icons</b>
+        <b>Linked-layer badge</b>
         <ul>
-          <li>Click — toggle for that row</li>
-          <li>Ctrl+click the eye — isolate (show only this layer + its ancestors)</li>
-          <li>Drag across several icons — mass-toggle them together</li>
+          <li>Click — select those layers in the Layers panel</li>
+          <li>Ctrl+click — unlink every layer from the selected frame(s)</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Frame-action chip</b>
+        <ul>
+          <li>Click — solo this action (or, if it's the only one selected already, toggle fold/unfold)</li>
+          <li>Shift+click — add/remove from the play/export scope</li>
+          <li>Ctrl+click — exclusive solo (disables every other action)</li>
+          <li>Ctrl+Shift+click — add to the solo set without dropping the others</li>
+          <li>Hold (~500ms) — delete the action (member frames stay, just unassigned)</li>
+          <li>Drag — reorder the chip strip</li>
         </ul>
       </div>
       <div class="info-card">
         <b>Keyboard</b>
         <ul>
-          <li><b>Shift+G</b> — new folder from the current selection, grouped in place</li>
-          <li><b>Ctrl+E</b> — merge down (active layer, or a multi-selection, into the layer(s) below)</li>
-          <li><b>F</b> — frame the active layer (expands its folder path, scrolls it into view)</li>
-        </ul>
-      </div>
-      <div class="info-card">
-        <b>ƒx / 🎚 icons</b>
-        <ul>
-          <li>Click — open the popover for that layer</li>
-          <li>Middle-click — mass-toggle the entire stack on/off, without deleting anything</li>
+          <li><span class="kbd">P</span> — play / stop</li>
+          <li><span class="kbd">←</span> / <span class="kbd">→</span> — previous / next visible frame</li>
+          <li>Add / duplicate / delete frame, frame actions, and the mode cycle have no default hotkey — toolbar/pointer only.</li>
         </ul>
       </div>
     </div>
