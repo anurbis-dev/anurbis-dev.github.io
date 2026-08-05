@@ -20,7 +20,12 @@
     --radius:10px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  *{scrollbar-width:thin; scrollbar-color:var(--border) transparent;}
+  *::-webkit-scrollbar{width:8px; height:8px;}
+  *::-webkit-scrollbar-track{background:transparent;}
+  *::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  *::-webkit-scrollbar-thumb:hover{background:var(--text-dim);}
+  html{scroll-behavior:smooth; scrollbar-gutter: stable;}
   body{
     background:var(--bg);
     color:var(--text);
