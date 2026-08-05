@@ -1,15 +1,21 @@
 /* ==== PixisEditor Manual — shared page chrome ====
-   Sidebar nav, brand mark (+ paint-burst animation), and the mobile
-   hamburger header/drawer (mirrors the pixis.ink landing page's mobile
-   nav). Single source of truth linked by every docs/manual/*.html page —
-   edit here once instead of re-fixing the same rules on each page.
-   Pairs with assets/chrome.js. */
+   Sidebar nav, brand mark (+ paint-burst animation), and the sticky site
+   header (mirrors the pixis.ink landing page's header at every width; below
+   900px it also grows a hamburger + drawer for the sidebar). Single source
+   of truth linked by every docs/manual/*.html page — edit here once instead
+   of re-fixing the same rules on each page. Pairs with assets/chrome.js. */
 
 *{scrollbar-width:thin; scrollbar-color:var(--border) transparent;}
 *::-webkit-scrollbar{width:8px; height:8px;}
 *::-webkit-scrollbar-track{background:transparent;}
 *::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
 *::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+/* Reserve the scrollbar's gutter even when it's not needed (or hidden by
+   body.nav-open{overflow:hidden} while the mobile drawer is open) — without
+   this, the page width grows by the scrollbar's ~8px the moment it
+   disappears, and the sticky header's right-aligned buttons visibly jump
+   over by that much, then jump back when it reappears. */
+html{scrollbar-gutter: stable;}
 
 .layout{display:flex; min-height:100vh;}
 
@@ -17,9 +23,13 @@
 /* ---- sidebar ---- */
 .sidebar{
   width:246px; flex:none; padding:28px 18px; border-right:1px solid var(--border-soft);
-  position:sticky; top:0; height:100vh; overflow-y:auto;
+  position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto;
   background:linear-gradient(180deg, var(--bg-alt), var(--bg));
 }
+/* Brand now lives in the site header (below) at every width, so the
+   sidebar's own copy (with the "Illustrated manual" subtitle) stays hidden
+   everywhere, not just on mobile. */
+.sidebar .brand{display:none;}
 .brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; margin-bottom:14px; border-bottom:1px solid var(--border-soft);}
 .brand-mark{
   width:34px; height:34px; border-radius:9px; flex:none; padding:5px; overflow:hidden;
@@ -75,7 +85,6 @@
 .nav-link.active .dot{background:var(--accent);}
 .nav-link.soon{opacity:.45; cursor:default;}
 .nav-link.soon:hover{background:none; color:var(--text-dim);}
-.nav-foot{padding:14px 10px 0; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-soft); margin-top:10px;}
 .nav-back{display:flex; align-items:center; gap:6px; padding:8px 10px; margin:14px 0 0; border-radius:var(--radius-sm); border:1px solid var(--border-soft); font-size:12px; color:var(--text-dim); text-decoration:none;}
 .nav-back:hover{color:var(--accent); border-color:var(--accent-line);}
 
@@ -100,27 +109,35 @@
   .heart{ animation:none; }
 }
 
-/* ---- mobile header + drawer nav ---- */
-.mobile-header{display:none;}
+/* ---- site header (mirrors the pixis.ink landing page's header, at every
+   width — not just mobile; the drawer/hamburger below is mobile-only) ---- */
+:root{ --header-h:56px; }
+.mobile-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  position:sticky; top:0; z-index:60; padding:10px 16px;
+  background:rgba(12,16,23,.92); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border-soft);
+}
+.mobile-header .brand{display:flex; align-items:center; gap:10px; padding:0; margin:0; border-bottom:0; text-decoration:none; color:inherit; min-width:0;}
+.mobile-header .brand-mark{
+  width:22px; height:22px; padding:0; margin:0; border-radius:0; background:none; box-shadow:none; flex:none;
+}
+.mobile-header .brand b{font-size:18px; font-weight:700; letter-spacing:.2px;}
+
+.mobile-right{display:flex; align-items:center; gap:12px; flex:none;}
+.mobile-cta{display:flex; align-items:center; gap:6px;}
+.mobile-cta .btn{padding:8px 14px; font-size:13px;}
+
+/* Hamburger + drawer only exist below the sidebar breakpoint — above it the
+   sidebar is a permanent column, nothing to toggle. */
+.nav-toggle{display:none;}
 .nav-backdrop{display:none; position:fixed; inset:0; z-index:50; background:rgba(5,6,10,.55); backdrop-filter:blur(2px);}
 .nav-backdrop.open{display:block;}
 body.nav-open{overflow:hidden;}
 
 @media (max-width:900px){
-  .mobile-header{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    position:sticky; top:0; z-index:60; padding:10px 16px;
-    background:rgba(12,16,23,.92); backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .mobile-header .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; min-width:0;}
-  .mobile-header .brand-mark{
-    width:22px; height:22px; padding:0; margin:0; border-radius:0; background:none; box-shadow:none; flex:none;
-  }
-  .mobile-header .brand b{font-size:16px; font-weight:700; letter-spacing:.2px;}
-
-  .mobile-right{display:flex; align-items:center; gap:12px; flex:none;}
-  .mobile-cta{display:flex; align-items:center; gap:6px;}
+  .mobile-header .brand{gap:8px;}
+  .mobile-header .brand b{font-size:16px;}
   .mobile-cta .btn{padding:6px 10px; font-size:12px;}
 
   .nav-toggle{
@@ -149,7 +166,6 @@ body.nav-open{overflow:hidden;}
     padding-top:70px;
   }
   .sidebar.open{transform:translateY(0);}
-  .sidebar .brand{display:none;}
   .main{padding:32px 22px;}
 }
 @media (max-width:400px){

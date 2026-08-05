@@ -1,8 +1,9 @@
 // PixisEditor Manual — shared page chrome behavior.
-// Injects the mobile hamburger header + backdrop, wires the drawer
-// toggle, and plays the animated brand-mark "paint burst" on any
-// .brand-mark.v-paint element found on the page. Single source of truth
-// linked by every docs/manual/*.html page. Pairs with assets/chrome.css.
+// Injects the sticky site header (visible at every width) + the mobile
+// drawer backdrop, wires the hamburger/drawer toggle, and plays the
+// animated brand-mark "paint burst" on any .brand-mark.v-paint element
+// found on the page. Single source of truth linked by every
+// docs/manual/*.html page. Pairs with assets/chrome.css.
 window.ManualChrome = (function () {
   "use strict";
 
@@ -11,7 +12,7 @@ window.ManualChrome = (function () {
       '<div class="nav-backdrop" id="navBackdrop" hidden></div>' +
       '<header class="mobile-header">' +
         '<a class="brand" href="' + homeHref + '">' +
-          '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>' +
+          '<span class="brand-mark v-paint" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>' +
           '<b>PixisEditor</b>' +
         '</a>' +
         '<div class="mobile-right">' +
@@ -124,9 +125,21 @@ window.ManualChrome = (function () {
 
   function init(opts) {
     opts = opts || {};
-    injectHeader(opts.home ? "../index.html" : "index.html");
-    wireDrawer();
-    initPaintMarks();
+    // Inject the header synchronously, before the rest of the body is
+    // parsed/painted (this script tag sits right after <body>), so the
+    // header never "pops in" late and shoves the page content down.
+    injectHeader(opts.home ? "https://pixis.ink/" : "index.html");
+    // wireDrawer/initPaintMarks need #docsSidebar (part of .layout, parsed
+    // after this script tag) — defer them until the rest of the DOM exists.
+    function ready() {
+      wireDrawer();
+      initPaintMarks();
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", ready);
+    } else {
+      ready();
+    }
   }
 
   return { init: init };

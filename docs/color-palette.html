@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Color &amp; Palette — PixisEditor Manual</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/chrome.css">
 <style>
   :root{
     --bg:#0c1017; --bg-alt:#10151d; --panel:#141a24; --panel-2:#181f2b;
@@ -16,11 +17,6 @@
     --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;}
-  *{scrollbar-width:thin; scrollbar-color:var(--border) transparent;}
-  *::-webkit-scrollbar{width:8px; height:8px;}
-  *::-webkit-scrollbar-track{background:transparent;}
-  *::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
-  *::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
   html,body{margin:0;padding:0;}
   body{
     background:
@@ -31,71 +27,6 @@
     -webkit-font-smoothing:antialiased;
   }
   a{color:inherit;}
-  .layout{display:flex; min-height:100vh;}
-
-  .sidebar{
-    width:246px; flex:none; padding:28px 18px; border-right:1px solid var(--border-soft);
-    position:sticky; top:0; height:100vh; overflow-y:auto;
-    background:linear-gradient(180deg, var(--bg-alt), var(--bg));
-  }
-  .brand{display:flex; align-items:center; gap:10px; padding:0 8px 22px; margin-bottom:14px; border-bottom:1px solid var(--border-soft);}
-  .brand-mark{
-    width:34px; height:34px; border-radius:9px; flex:none; padding:5px; overflow:hidden;
-    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:2px;
-    background:var(--panel-2);
-    box-shadow:0 0 0 1px rgba(255,255,255,.06) inset, 0 6px 16px -6px rgba(47,217,168,.55);
-  }
-  .brand-mark i{background:var(--border); border-radius:1px; display:block; min-width:0; min-height:0; transform-origin:center;}
-  .brand-mark i:nth-child(1){background:#4ce8bd;}
-  .brand-mark i:nth-child(3){background:#fb6f97;}
-  .brand-mark i:nth-child(5){background:#ffcc5c;}
-  .brand-mark i:nth-child(7){background:#fb6f97;}
-  .brand-mark i:nth-child(9){background:#4ce8bd;}
-  .brand-mark.v-paint.is-playing i.bm-on{
-    animation-name:var(--bm-name, bm-paint-in);
-    animation-duration:var(--bm-dur, .55s);
-    animation-timing-function:ease;
-    animation-delay:var(--bm-delay, 0s);
-    animation-fill-mode:both;
-  }
-  @keyframes bm-paint-in{
-    0%{opacity:0;transform:scale(.35)}
-    55%{opacity:1;transform:scale(1.18)}
-    100%{opacity:1;transform:scale(1)}
-  }
-  @keyframes bm-paint-out-in{
-    0%{opacity:1;transform:scale(1)}
-    18%{opacity:0;transform:scale(.28)}
-    42%{opacity:0;transform:scale(.28)}
-    78%{opacity:1;transform:scale(1.14)}
-    100%{opacity:1;transform:scale(1)}
-  }
-  @keyframes bm-paint-blink{
-    0%,100%{opacity:1;transform:scale(1)}
-    35%{opacity:0;transform:scale(.22)}
-    65%{opacity:0;transform:scale(.22)}
-  }
-  @media (prefers-reduced-motion: reduce){
-    .brand-mark.v-paint.is-playing i.bm-on{animation:none!important}
-  }
-  .brand-text{display:flex; flex-direction:column; gap:1px;}
-  .brand-text b{font-size:14.5px; letter-spacing:.2px;}
-  .brand-text span{font-size:11.5px; color:var(--text-dim);}
-  .nav-group{margin:4px 0 18px;}
-  .nav-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); padding:0 10px; margin:0 0 6px;}
-  .nav-link{
-    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--radius-sm);
-    font-size:13.5px; color:var(--text-dim); text-decoration:none; margin-bottom:2px;
-  }
-  .nav-link .dot{width:5px;height:5px;border-radius:50%;background:var(--text-faint); flex:none;}
-  .nav-link:hover{background:var(--panel); color:var(--text);}
-  .nav-link.active{background:var(--accent-soft); color:var(--accent); font-weight:600;}
-  .nav-link.active .dot{background:var(--accent);}
-  .nav-link.soon{opacity:.45; cursor:default;}
-  .nav-link.soon:hover{background:none; color:var(--text-dim);}
-  .nav-foot{padding:14px 10px 0; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border-soft); margin-top:10px;}
-  .nav-back{display:flex; align-items:center; gap:6px; padding:8px 10px; margin:14px 0 0; border-radius:var(--radius-sm); border:1px solid var(--border-soft); font-size:12px; color:var(--text-dim); text-decoration:none;}
-  .nav-back:hover{color:var(--accent); border-color:var(--accent-line);}
 
   .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
   .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 10px;}
@@ -144,98 +75,15 @@
 
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
 
-  /* ---- mobile header + drawer nav (adapted from the pixis.ink landing page) ---- */
-  .mobile-header{display:none;}
-  .nav-backdrop{display:none; position:fixed; inset:0; z-index:50; background:rgba(5,6,10,.55); backdrop-filter:blur(2px);}
-  .nav-backdrop.open{display:block;}
-  body.nav-open{overflow:hidden;}
-
-  @media (max-width:960px){
-    .mobile-header{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      position:sticky; top:0; z-index:60; padding:10px 14px;
-      background:rgba(12,16,23,.92); backdrop-filter:blur(8px);
-      border-bottom:1px solid var(--border-soft);
-    }
-    .mobile-header .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; min-width:0;}
-    .mobile-right{display:flex; align-items:center; gap:6px; flex:none;}
-    .mobile-cta{display:flex; align-items:center; gap:6px;}
-    .mobile-cta .btn{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:8px; font-size:12px; font-weight:600;
-      text-decoration:none; border:1px solid transparent; white-space:nowrap; -webkit-tap-highlight-color:transparent;
-    }
-    .mobile-cta .btn-ghost{border-color:var(--border); color:var(--text);}
-    .mobile-cta .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
-    .mobile-cta .btn-primary{background:var(--accent); color:#06231a;}
-    .mobile-cta .btn-primary:hover{background:var(--mint);}
-    .mobile-cta .heart{color:#fb6f97; font-size:13px; line-height:1;}
-    .mobile-header .brand-mark{
-      width:22px; height:22px; padding:0; margin:0; border-radius:0; background:none; box-shadow:none; flex:none;
-      display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:2px;
-    }
-    .mobile-header .brand-mark i{background:var(--border); border-radius:1px; display:block;}
-    .mobile-header .brand-mark i:nth-child(1){background:#4ce8bd;}
-    .mobile-header .brand-mark i:nth-child(3){background:#fb6f97;}
-    .mobile-header .brand-mark i:nth-child(5){background:#ffcc5c;}
-    .mobile-header .brand-mark i:nth-child(7){background:#fb6f97;}
-    .mobile-header .brand-mark i:nth-child(9){background:#4ce8bd;}
-    .mobile-header .brand b{font-size:16px; font-weight:700; letter-spacing:.2px;}
-
-    .nav-toggle{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:44px; height:44px; padding:0; margin:0;
-      border:1px solid var(--border); border-radius:8px;
-      background:var(--panel); color:var(--text); cursor:pointer; flex:none;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .nav-toggle:hover{border-color:var(--accent); color:var(--accent);}
-    .nav-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-    .nav-toggle-bars{position:relative; width:18px; height:14px; pointer-events:none;}
-    .nav-toggle-bars span{position:absolute; left:0; right:0; height:2px; border-radius:1px; background:currentColor; top:50%; margin-top:-1px; transition:transform .2s ease, opacity .15s ease;}
-    .nav-toggle-bars span:nth-child(1){transform:translateY(-6px);}
-    .nav-toggle-bars span:nth-child(3){transform:translateY(6px);}
-    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(1){transform:rotate(45deg);}
-    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(2){opacity:0;}
-    .nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(3){transform:rotate(-45deg);}
-
-    .sidebar{
-      display:block; position:fixed; top:0; left:0; right:0; width:auto; height:auto; max-height:85vh;
-      overflow-y:auto; -webkit-overflow-scrolling:touch;
-      border-right:0; border-bottom:1px solid var(--border-soft); border-radius:0 0 14px 14px;
-      box-shadow:0 24px 48px -16px rgba(0,0,0,.65);
-      transform:translateY(-110%); transition:transform .22s ease; z-index:55;
-      padding-top:70px;
-    }
-    .sidebar.open{transform:translateY(0);}
-    .sidebar .brand{display:none;}
-    .main{padding:32px 22px;}
+  @media (max-width:900px){
     .shot-row{grid-template-columns:1fr;}
     .info-grid{grid-template-columns:1fr;}
-  }
-  @media (max-width:400px){
-    .mobile-cta .cta-text{display:none;}
-    .mobile-cta .btn{padding:6px 8px;}
   }
 </style>
 </head>
 <body>
-<div class="nav-backdrop" id="navBackdrop" hidden></div>
-<header class="mobile-header">
-  <a class="brand" href="index.html">
-    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-    <b>PixisEditor</b>
-  </a>
-  <div class="mobile-right">
-    <div class="mobile-cta">
-      <a class="btn btn-ghost" href="https://github.com/sponsors/anurbis-dev" target="_blank" rel="noopener" aria-label="Sponsor on GitHub"><span class="heart" aria-hidden="true">♥</span><span class="cta-text">Sponsor</span></a>
-      <a class="btn btn-primary" href="/app/">Try Pixis</a>
-    </div>
-    <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="docsSidebar" aria-label="Open menu">
-      <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
-    </button>
-  </div>
-</header>
+<script src="assets/chrome.js"></script>
+<script>ManualChrome.init({ home: false });</script>
 <div class="layout">
 
   <nav class="sidebar" id="docsSidebar">
@@ -272,8 +120,7 @@
       <a class="nav-link soon">Hotkeys</a>
     </div>
 
-    <a class="nav-back" href="../index.html">← Back to pixis.ink</a>
-    <div class="nav-foot">v1.27.2 · built from the real interface</div>
+    <a class="nav-back" href="https://pixis.ink/">← Back to pixis.ink</a>
   </nav>
 
   <main class="main">
@@ -358,104 +205,5 @@
     <footer>Icons and screenshots — real PixisEditor v1.27.2 interface (chrome-devtools, native panel size).</footer>
   </main>
 </div>
-<script>
-// Mobile drawer nav — hamburger toggle for the sidebar, adapted from the
-// pixis.ink landing page's mobile nav (same open/close/backdrop/Escape/resize behavior).
-(function () {
-  var navToggle = document.getElementById("navToggle");
-  var navPanel = document.getElementById("docsSidebar");
-  var navBackdrop = document.getElementById("navBackdrop");
-  if (!navToggle || !navPanel) return;
-  function setNavOpen(open) {
-    navToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-    navPanel.classList.toggle("open", open);
-    document.body.classList.toggle("nav-open", open);
-    if (navBackdrop) {
-      navBackdrop.classList.toggle("open", open);
-      if (open) navBackdrop.removeAttribute("hidden");
-      else navBackdrop.setAttribute("hidden", "");
-    }
-  }
-  function closeNav() { setNavOpen(false); }
-  navToggle.addEventListener("click", function () {
-    setNavOpen(navToggle.getAttribute("aria-expanded") !== "true");
-  });
-  if (navBackdrop) navBackdrop.addEventListener("click", closeNav);
-  navPanel.querySelectorAll("a").forEach(function (a) {
-    a.addEventListener("click", closeNav);
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeNav();
-  });
-  window.addEventListener("resize", function () {
-    if (window.matchMedia("(min-width:961px)").matches) closeNav();
-  });
-})();
-
-// Animated sidebar logo — same "paint burst" as the landing page nav mark and
-// the editor's Tools panel header, ported 1:1 so all three stay in sync.
-(function () {
-  var mark = document.getElementById("docsBrandMark");
-  if (!mark) return;
-  var burstTimer, idleTimer;
-  var MODES = ["in", "out-in", "blink"];
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-  function shuffle(arr) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = a[i]; a[i] = a[j]; a[j] = t;
-    }
-    return a;
-  }
-  function clearCells(cells) {
-    cells.forEach(function (c) {
-      c.classList.remove("bm-on");
-      c.style.removeProperty("--bm-name");
-      c.style.removeProperty("--bm-dur");
-      c.style.removeProperty("--bm-delay");
-      c.style.animation = "none";
-    });
-  }
-  function playBurst() {
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    var cells = Array.prototype.slice.call(mark.querySelectorAll("i"));
-    if (!cells.length) return;
-    clearTimeout(burstTimer);
-    mark.classList.remove("is-playing");
-    clearCells(cells);
-    void mark.offsetWidth;
-    var mode = pick(MODES);
-    var order = shuffle(cells.map(function (_, i) { return i; }));
-    var step = rand(32, 70);
-    var baseDur = rand(440, 700);
-    var animName = mode === "in" ? "bm-paint-in" : mode === "out-in" ? "bm-paint-out-in" : "bm-paint-blink";
-    var maxEnd = 0;
-    order.forEach(function (idx, rank) {
-      var cell = cells[idx];
-      var delay = rank * step + rand(0, 24);
-      var dur = baseDur + rand(-40, 70);
-      cell.style.removeProperty("animation");
-      cell.style.setProperty("--bm-name", animName);
-      cell.style.setProperty("--bm-dur", dur + "ms");
-      cell.style.setProperty("--bm-delay", delay + "ms");
-      cell.classList.add("bm-on");
-      maxEnd = Math.max(maxEnd, delay + dur);
-    });
-    mark.classList.add("is-playing");
-    burstTimer = setTimeout(function () {
-      mark.classList.remove("is-playing");
-      clearCells(cells);
-    }, maxEnd + 40);
-  }
-  function scheduleNext() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(function () { playBurst(); scheduleNext(); }, rand(5000, 13000));
-  }
-  setTimeout(function () { playBurst(); scheduleNext(); }, rand(1200, 2800));
-})();
-</script>
 </body>
 </html>
