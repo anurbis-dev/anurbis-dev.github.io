@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Presets &amp; Atlas — PixisEditor Manual</title>
+<title>Canvas Navigation — PixisEditor Manual</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="assets/chrome.css">
 <style>
@@ -39,6 +39,7 @@
 
   /* ---- two-column shot + legend, like the interface-overview hotspot map ---- */
   .shot-row{display:grid; grid-template-columns:minmax(0,300px) 1fr; gap:26px; align-items:start;}
+  .shot-row.wide{grid-template-columns:minmax(0,520px) 1fr;}
   .hotspot-wrap{
     position:relative; border-radius:var(--radius); overflow:hidden;
     border:1px solid var(--border); background:#070a0f; flex:none;
@@ -72,11 +73,12 @@
   .info-card b{display:block; font-size:14px; margin-bottom:8px;}
   .info-card ul{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-dim); line-height:1.7;}
   .info-card ul li b{display:inline; font-size:12.5px; color:var(--text); margin:0;}
+  .info-card code{background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-family:var(--mono); font-size:11.5px; color:var(--mint);}
 
   footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
 
   @media (max-width:900px){
-    .shot-row{grid-template-columns:1fr;}
+    .shot-row, .shot-row.wide{grid-template-columns:1fr;}
     .info-grid{grid-template-columns:1fr;}
   }
 </style>
@@ -110,12 +112,12 @@
       <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
       <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
       <a class="nav-link" href="animation.html"><span class="dot"></span>Animation</a>
-      <a class="nav-link active" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
+      <a class="nav-link" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
     </div>
 
     <div class="nav-group">
       <p class="nav-label">Canvas workflow</p>
-      <a class="nav-link" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
+      <a class="nav-link active" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
       <a class="nav-link" href="panel-docking.html"><span class="dot"></span>Panel docking</a>
       <a class="nav-link" href="hotkeys.html"><span class="dot"></span>Hotkeys</a>
     </div>
@@ -124,94 +126,107 @@
   </nav>
 
   <main class="main">
-    <p class="eyebrow">Panels</p>
-    <h1>Presets &amp; Atlas</h1>
-    <p class="lede">Two small preset libraries — Brush presets and the Stamp library — plus the Atlas browser, which turns an imported sprite sheet into a searchable grid of ready-to-stamp sprites.</p>
+    <p class="eyebrow">Canvas workflow</p>
+    <h1>Canvas Navigation</h1>
+    <p class="lede">Pan, zoom and rotate the document; split the canvas into two independently-viewed panes; preview a tileable sprite by repeating the canvas edge-to-edge.</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
-    <h2>Brush presets</h2>
-    <p class="section-sub">Snapshots of a tool's full settings — size, shape, color, alpha — one click to reapply. Every brush-capable tool can be saved except Stamp, which has its own library below.</p>
+    <h2>Pan &amp; zoom</h2>
+    <p class="section-sub">The zoom/rotate handle docks to the canvas's bottom-right corner and doubles as the live zoom readout.</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
-        <img src="assets/panels/presets-atlas/brush-presets.png" alt="Brush presets panel" width="345" height="195">
-        <div class="dot" style="left:20%; top:38%;">1</div>
-        <div class="dot" style="left:56%; top:38%;">2</div>
-        <div class="dot" style="left:38%; top:75%;">3</div>
+        <img src="assets/panels/canvas-navigation/corner-handle.png" alt="Canvas corner zoom/rotate handle" width="182" height="170">
+        <div class="dot" style="left:71.7%; top:72.2%;">1</div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>＋ Save</b><p>Captures the active tool's full settings (size, shape, spacing, strength, color, alpha) as a new preset.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>↑ / ↓ Export / Import</b><p>Save the whole library to a JSON file, or load one back in — for sharing a brush set between projects or machines.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Preset chip</b><p>Icon = the tool it belongs to; the number badge is that preset's brush size. Click applies it (switches tool + restores every saved setting).</p></div></div>
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Corner handle</b><p>Drag vertically to zoom (up = in), horizontally to rotate the view. Double-click to reset zoom-to-fit, rotation and pan in one step. The percentage is the live zoom readout.</p></div></div>
       </div>
     </div>
 
-    <h2>Stamp library</h2>
-    <p class="section-sub">Saved pixel blocks instead of settings — crop a selection or the whole canvas, then reuse it as a stamp anywhere, in any project.</p>
+    <h2>Reset &amp; view menu</h2>
+    <p class="section-sub">Right-click the canvas for the same reset plus the grid and tiling toggles, each with its default hotkey.</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
-        <img src="assets/panels/presets-atlas/stamp-library.png" alt="Stamp library panel" width="345" height="225">
-        <div class="dot" style="left:20%; top:31%;">1</div>
-        <div class="dot" style="left:56%; top:31%;">2</div>
-        <div class="dot" style="left:35%; top:62%;">3</div>
+        <img src="assets/panels/canvas-navigation/context-menu.png" alt="Canvas right-click context menu" width="273" height="443">
+        <div class="dot" style="left:49.9%; top:40.2%;">1</div>
+        <div class="dot" style="left:49.9%; top:54.7%;">2</div>
+        <div class="dot" style="left:49.9%; top:69.1%;">3</div>
+        <div class="dot" style="left:49.9%; top:78.7%;">4</div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>＋ Save</b><p>Bakes the active pixel selection (or, with none, the whole canvas) into a stamp, cropped to its opaque bounds.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>↑ / ↓ Export / Import</b><p>Same JSON round-trip as Brush presets, kept as a separate file/library.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Stamp chip</b><p>Click selects it as the current stamp brush. Drag it straight onto the canvas to place a copy without switching tools first.</p></div></div>
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Grid — Alt+G</b><p>Toggles the pixel grid overlay.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Tiled X / Tiled Y — Shift+X / Shift+Y</b><p>Repeats the canvas edge-to-edge along that axis (see Tiled preview below). Independent toggles — either, both or neither.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Reset view</b><p>Same as double-clicking the corner handle — zoom-to-fit, rotation and pan back to defaults.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Split view</b><p>Opens the second pane described below. Toggling again (or right-clicking either pane) closes it.</p></div></div>
       </div>
     </div>
 
-    <h2>Atlas browser</h2>
-    <p class="section-sub">Import a sprite sheet (TexturePacker, Aseprite, LibGDX/Spine, Unity, Godot, a Pixis sheet, or a plain uniform grid) and every sprite becomes a searchable, stampable tile.</p>
-    <div class="shot-row">
+    <h2>Split view</h2>
+    <p class="section-sub">Splits the canvas area into two panes on the same document — each keeps its own pan, zoom and rotation, so you can work zoomed-in on one side while the other shows the full picture.</p>
+    <div class="shot-row wide">
       <div class="hotspot-wrap">
-        <img src="assets/panels/presets-atlas/atlas-browser.png" alt="Atlas browser panel" width="450" height="645">
-        <div class="dot" style="left:7.5%; top:12.5%;">1</div>
-        <div class="dot" style="left:27.5%; top:12.5%;">2</div>
-        <div class="dot" style="left:47%; top:12.5%;">3</div>
-        <div class="dot" style="left:69%; top:12.5%;">4</div>
-        <div class="dot" style="left:7.5%; top:35%;">5</div>
-        <div class="dot" style="left:9%; top:59%;">6</div>
+        <img src="assets/panels/canvas-navigation/split-view.png" alt="Split canvas view with two independently zoomed panes" width="2011" height="1500">
+        <div class="dot" style="left:8.3%; top:50.8%;">1</div>
+        <div class="dot" style="left:69.3%; top:52.2%;">2</div>
+        <div class="dot" style="left:35.2%; top:50.5%;">3</div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-num">1</div><div><b>↓ Import atlas</b><p>Opens File → Sprite atlas… — pick the sheet image (+ its JSON/.atlas/.plist/.tres metadata where the format needs one).</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>✕ Remove atlas</b><p>Drops the active atlas from this session (import is session-only — nothing is written to the project).</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>⭐ Add to stamp library</b><p>Promotes the selected sprite into the Stamp library above, so it survives after the atlas is removed.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>BG</b><p>Strips a flat background color from each sprite on import (useful for sheets exported without alpha).</p></div></div>
-        <div class="legend-item"><div class="legend-num">5</div><div><b>Atlas select / Filter / Grid</b><p>Switch between several imported atlases; filter sprites by name, tag or <code>#rrggbb</code>; Grid W/H/margin/spacing is only used for a plain image with no metadata (uniform-grid import).</p></div></div>
-        <div class="legend-item"><div class="legend-num">6</div><div><b>Sprite grid</b><p>Click a tile to activate it as the current stamp brush (equivalent to selecting Stamp + that pixel block) — pixels are extracted lazily, on first view.</p></div></div>
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Pane A</b><p>Same document, own viewport — here left at the default zoom-to-fit.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Pane B</b><p>Zoomed in independently; a stroke painted in either pane updates the document (and the other pane) immediately.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Separator</b><p>Drag to resize the split (10%–90%). Double-click to flip between a vertical and a horizontal split.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Tiled preview</h2>
+    <p class="section-sub">With Tiled X and Tiled Y both on, the view repeats the canvas in every direction around the real document (outlined) — the fastest way to check a seamless texture or tile without exporting.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/canvas-navigation/tiled-preview.png" alt="Canvas tiled preview repeating the document edge-to-edge" width="2402" height="1275">
+        <div class="dot" style="left:6.75%; top:84.9%;">1</div>
+        <div class="dot" style="left:50%; top:45%;">2</div>
+        <div class="dot" style="left:81.4%; top:59.8%;">3</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Tiled X / Tiled Y — VIEW panel</b><p>Same toggles as the context menu, kept in Tool Settings → VIEW for quick access while painting.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Document bounds</b><p>The real canvas — only pixels inside this outline are ever exported or saved.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Repeated copy</b><p>A live mirror of the document, not separate pixels — paint near an edge and the seam updates in every copy as you draw.</p></div></div>
       </div>
     </div>
 
     <h2>Gestures &amp; shortcuts</h2>
     <div class="info-grid">
       <div class="info-card">
-        <b>Any preset chip (brush or stamp)</b>
+        <b>Mouse, on the canvas</b>
         <ul>
-          <li>Click — apply / activate</li>
-          <li>Drag — reorder within its library</li>
-          <li>Hold (~500ms) — remove</li>
-          <li>Right-click — assign a hotkey to that specific preset</li>
+          <li>Middle-button drag — pan</li>
+          <li>Right-button drag (vertical) — zoom</li>
+          <li>Wheel — zoom</li>
+          <li>Right-click, no drag — context menu (reset view, split view, grid/tiling)</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Stamp chip only</b>
+        <b>Corner handle</b>
         <ul>
-          <li>Drag onto the canvas — places a copy there directly, restoring the previous tool afterward</li>
+          <li>Drag vertical — zoom</li>
+          <li>Drag horizontal — rotate</li>
+          <li>Double-click — reset view</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Atlas sprite tile</b>
+        <b>Default hotkeys</b>
         <ul>
-          <li>Click — activate as the current stamp brush</li>
-          <li>⭐ toolbar button — copy it into the permanent Stamp library</li>
+          <li><code>Alt+G</code> — toggle grid</li>
+          <li><code>Shift+X</code> — toggle tiled X</li>
+          <li><code>Shift+Y</code> — toggle tiled Y</li>
+          <li>Reset view / Split view / pan &amp; zoom mouse buttons are all rebindable in Settings → Hotkeys; reset and split have no default key of their own since the corner handle and right-click menu already cover them.</li>
         </ul>
       </div>
       <div class="info-card">
-        <b>Scope</b>
+        <b>Split-view pane</b>
         <ul>
-          <li>Brush/Stamp libraries persist locally and travel with Export/Import.</li>
-          <li>Atlas imports are session-only — reload the page and they're gone (promote anything worth keeping to the Stamp library first).</li>
+          <li>Drag separator — resize (10%–90%)</li>
+          <li>Double-click separator — switch vertical ↔ horizontal</li>
+          <li>Right-click either pane → Split view — close the split</li>
         </ul>
       </div>
     </div>

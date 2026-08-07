@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hotkeys — PixisEditor Manual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/chrome.css">
+<style>
+  :root{
+    --bg:#0c1017; --bg-alt:#10151d; --panel:#141a24; --panel-2:#181f2b;
+    --border:#232c3a; --border-soft:#1c2430;
+    --text:#c7d0dc; --text-dim:#8b96a8; --text-faint:#5c667a;
+    --accent:#2fd9a8; --accent-soft:rgba(47,217,168,.14); --accent-line:rgba(47,217,168,.35);
+    --gold:#e0b64a; --mint:#57e0c2;
+    --radius:14px; --radius-sm:9px;
+    --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(47,217,168,.07), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(87,224,194,.05), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:var(--font); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
+  .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 10px;}
+  h1{font-size:34px; margin:0 0 12px; letter-spacing:-.01em;}
+  .lede{font-size:16px; color:var(--text-dim); max-width:640px; margin:0 0 12px;}
+  .backlink{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); text-decoration:none; margin-bottom:22px;}
+  .backlink:hover{color:var(--accent);}
+  h2{font-size:19px; margin:46px 0 4px; letter-spacing:-.005em; display:flex; align-items:center; gap:10px;}
+  h2 .count{font-size:11.5px; font-weight:600; color:var(--text-faint); background:var(--panel); border:1px solid var(--border); padding:2px 8px; border-radius:20px;}
+  .section-sub{color:var(--text-dim); font-size:13.5px; margin:0 0 20px; max-width:640px;}
+  .note{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; color:var(--text-dim); line-height:1.6; max-width:720px; margin:14px 0 0;}
+  .note b{color:var(--text);}
+
+  .kbd{
+    display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--border); border-bottom-width:2px; border-radius:6px;
+  }
+  .kbd.none{color:var(--text-faint); font-family:var(--font); font-size:10.5px; font-weight:500; border-style:dashed;}
+  .hold-tag{font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--gold); margin-left:6px; vertical-align:middle;}
+
+  /* ---- toolbar hotkey chips (icon + name + key) ---- */
+  .hk-tools-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;}
+  .hk-tool{display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px;}
+  .hk-tool .ico{width:30px; height:30px; border-radius:8px; flex:none; background:var(--panel-2); border:1px solid var(--border-soft); display:flex; align-items:center; justify-content:center; overflow:hidden;}
+  .hk-tool .ico img{width:22px; height:22px; object-fit:contain;}
+  .hk-tool .name{font-size:12.5px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  /* ---- plain action → key lists (multi-column, wraps naturally) ---- */
+  .hk-list{columns:2; column-gap:16px;}
+  .hk-row{
+    break-inside:avoid; display:flex; align-items:center; justify-content:space-between; gap:14px;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:9px 12px; margin:0 0 8px; font-size:12.5px;
+  }
+  .hk-row .lbl{color:var(--text); min-width:0;}
+  .hk-row .lbl small{display:block; color:var(--text-dim); font-size:12px; margin-top:3px; line-height:1.45;}
+  .hk-row .keys{flex:none; display:flex; align-items:center; gap:4px; white-space:nowrap;}
+
+  /* ---- panel show/hide cheat sheet ---- */
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .info-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .info-card b{display:block; font-size:14px; margin-bottom:8px;}
+  .info-card ul{margin:0; padding-left:0; list-style:none; font-size:12.5px; color:var(--text-dim); line-height:1.9;}
+  .info-card ul li{display:flex; align-items:center; gap:8px;}
+
+  footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
+
+  @media (max-width:900px){
+    .hk-list{columns:1;}
+    .info-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<script src="assets/chrome.js"></script>
+<script>ManualChrome.init({ home: false });</script>
+<div class="layout">
+
+  <nav class="sidebar" id="docsSidebar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit;">
+      <span class="brand-mark v-paint" id="docsBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
+    </a>
+
+    <div class="nav-group">
+      <p class="nav-label">Getting started</p>
+      <a class="nav-link" href="index.html"><span class="dot"></span>Interface overview</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Tools</p>
+      <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
+      <a class="nav-link soon">Fills &amp; shapes</a>
+      <a class="nav-link" href="selection.html"><span class="dot"></span>Selection</a>
+      <a class="nav-link soon">Other tools</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Panels</p>
+      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
+      <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
+      <a class="nav-link" href="animation.html"><span class="dot"></span>Animation</a>
+      <a class="nav-link" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Canvas workflow</p>
+      <a class="nav-link" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
+      <a class="nav-link" href="panel-docking.html"><span class="dot"></span>Panel docking</a>
+      <a class="nav-link active" href="hotkeys.html"><span class="dot"></span>Hotkeys</a>
+    </div>
+
+    <a class="nav-back" href="https://pixis.ink/">← Back to pixis.ink</a>
+  </nav>
+
+  <main class="main">
+    <p class="eyebrow">Canvas workflow</p>
+    <h1>Hotkeys</h1>
+    <p class="lede">Every default keyboard shortcut, grouped by what it does. All of them — including tool keys — can be rebound from Settings → Hotkeys; right-click a toolbar icon for a shortcut to the same editor for just that tool.</p>
+    <a class="backlink" href="index.html">← Interface overview</a>
+
+    <h2>Toolbar tools <span class="count">22</span></h2>
+    <p class="section-sub">One key switches the active tool. <span class="kbd none" style="margin:0 2px;">unassigned</span> means the tool ships with no default chord.</p>
+    <div class="hk-tools-grid">
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/pencil.png" alt=""></span><span class="name">Pencil</span><span class="kbd">B</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/repaint.png" alt=""></span><span class="name">Repaint</span><span class="kbd">R</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/eraser.png" alt=""></span><span class="name">Eraser</span><span class="kbd">E</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/blur.png" alt=""></span><span class="name">Smooth</span><span class="kbd">Shift+S</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/smudge.png" alt=""></span><span class="name">Smudge</span><span class="kbd">S</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/dodge.png" alt=""></span><span class="name">Dodge</span><span class="kbd">D</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/burn.png" alt=""></span><span class="name">Burn</span><span class="kbd none">unassigned</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/clone.png" alt=""></span><span class="name">Clone</span><span class="kbd">C</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/sharpen.png" alt=""></span><span class="name">Sharpen</span><span class="kbd">J</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/dither.png" alt=""></span><span class="name">Dither brush</span><span class="kbd">;</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/bucket.png" alt=""></span><span class="name">Bucket fill</span><span class="kbd">F</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/gradient.png" alt=""></span><span class="name">Gradient fill</span><span class="kbd">G</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/line.png" alt=""></span><span class="name">Line</span><span class="kbd">L</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/rect.png" alt=""></span><span class="name">Rectangle</span><span class="kbd">U</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/ellipse.png" alt=""></span><span class="name">Ellipse</span><span class="kbd">O</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/select.png" alt=""></span><span class="name">Select / move</span><span class="kbd">M</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/lasso.png" alt=""></span><span class="name">Lasso select</span><span class="kbd">Q</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/colourRange.png" alt=""></span><span class="name">Colour range</span><span class="kbd">W</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/eyedropper.png" alt=""></span><span class="name">Eyedropper</span><span class="kbd">I</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/stamp.png" alt=""></span><span class="name">Stamp</span><span class="kbd">N</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/text.png" alt=""></span><span class="name">Text</span><span class="kbd">T</span></div>
+      <div class="hk-tool"><span class="ico"><img src="assets/icons/sprite-transform.png" alt=""></span><span class="name">Move</span><span class="kbd">V</span></div>
+    </div>
+
+    <h2>Hold modifiers</h2>
+    <p class="section-sub">Pressed and held while dragging, instead of tapped once. Freeing a modifier reverts the temporary behavior.</p>
+    <div class="hk-list">
+      <div class="hk-row"><div class="lbl">Temporary eyedropper<small>Sample a color from any paint tool without switching</small></div><div class="keys"><span class="kbd">Alt</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Interactive brush size<small>Move the cursor while held to resize the brush</small></div><div class="keys"><span class="kbd">Ctrl</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Repaint: lock to first color<small>Only recolors pixels matching the first click</small></div><div class="keys"><span class="kbd">Ctrl</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Flip horizontal<small>Stamp, Text and Move (sprite) while placing/dragging</small></div><div class="keys"><span class="kbd">Alt</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Flip vertical<small>Stamp, Text, Move (sprite) and an active selection move</small></div><div class="keys"><span class="kbd">Ctrl</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Rotate 15°<small>Stamp, Text and Move (sprite) — move the cursor while held</small></div><div class="keys"><span class="kbd">Shift</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Selection move: flip horizontal<small>While dragging an active selection frame</small></div><div class="keys"><span class="kbd">Alt</span><span class="hold-tag">hold</span></div></div>
+      <div class="hk-row"><div class="lbl">Pan the canvas<small>Unbound by default — use the middle mouse button instead</small></div><div class="keys"><span class="kbd none">unassigned</span></div></div>
+    </div>
+
+    <h2>Edit &amp; selection</h2>
+    <div class="hk-list">
+      <div class="hk-row"><div class="lbl">Undo</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">Z</span></div></div>
+      <div class="hk-row"><div class="lbl">Redo</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">Z</span></div></div>
+      <div class="hk-row"><div class="lbl">Redo (alt)</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">Y</span></div></div>
+      <div class="hk-row"><div class="lbl">Copy selection</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">C</span></div></div>
+      <div class="hk-row"><div class="lbl">Cut selection</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">X</span></div></div>
+      <div class="hk-row"><div class="lbl">Paste</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">V</span></div></div>
+      <div class="hk-row"><div class="lbl">Delete selection</div><div class="keys"><span class="kbd">X</span></div></div>
+      <div class="hk-row"><div class="lbl">Cancel selection transform</div><div class="keys"><span class="kbd">Esc</span></div></div>
+      <div class="hk-row"><div class="lbl">Mirror selection X</div><div class="keys"><span class="kbd">Shift</span><span class="kbd">H</span></div></div>
+      <div class="hk-row"><div class="lbl">Mirror selection Y</div><div class="keys"><span class="kbd">Shift</span><span class="kbd">V</span></div></div>
+      <div class="hk-row"><div class="lbl">Rotate selection 90° CW</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">]</span></div></div>
+      <div class="hk-row"><div class="lbl">Rotate selection 90° CCW</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">[</span></div></div>
+      <div class="hk-row"><div class="lbl">Rename under cursor</div><div class="keys"><span class="kbd">F2</span></div></div>
+      <div class="hk-row"><div class="lbl">Color picker (under cursor)</div><div class="keys"><span class="kbd">C</span></div></div>
+    </div>
+
+    <h2>View &amp; canvas</h2>
+    <div class="hk-list">
+      <div class="hk-row"><div class="lbl">Zoom canvas</div><div class="keys"><span class="kbd">Wheel</span></div></div>
+      <div class="hk-row"><div class="lbl">Toggle grid</div><div class="keys"><span class="kbd">Alt</span><span class="kbd">G</span></div></div>
+      <div class="hk-row"><div class="lbl">Toggle tiled preview X</div><div class="keys"><span class="kbd">Shift</span><span class="kbd">X</span></div></div>
+      <div class="hk-row"><div class="lbl">Toggle tiled preview Y</div><div class="keys"><span class="kbd">Shift</span><span class="kbd">Y</span></div></div>
+      <div class="hk-row"><div class="lbl">Toggle Play Animation</div><div class="keys"><span class="kbd">Space</span></div></div>
+      <div class="hk-row"><div class="lbl">Nudge / step frame<small>Moves the selection 1px if one is active, otherwise steps the animation frame</small></div><div class="keys"><span class="kbd">←</span><span class="kbd">→</span><span class="kbd">↑</span><span class="kbd">↓</span></div></div>
+    </div>
+
+    <h2>Layers</h2>
+    <div class="hk-list">
+      <div class="hk-row"><div class="lbl">New folder (group selection)</div><div class="keys"><span class="kbd">Shift</span><span class="kbd">G</span></div></div>
+      <div class="hk-row"><div class="lbl">Merge Down / merge selected</div><div class="keys"><span class="kbd">Ctrl</span><span class="kbd">E</span></div></div>
+      <div class="hk-row"><div class="lbl">Frame selected layer<small>Layers panel only</small></div><div class="keys"><span class="kbd">F</span></div></div>
+    </div>
+
+    <h2>Panels &amp; windows</h2>
+    <p class="section-sub">Only the four most-used panels ship with a default chord — everything else (Preview, Stamp library, Presets, Atlas browser…) is unbound until you assign one.</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>Bound by default</b>
+        <ul>
+          <li><span class="kbd">Alt</span><span class="kbd">1</span> Tools</li>
+          <li><span class="kbd">Alt</span><span class="kbd">2</span> Tool Settings</li>
+          <li><span class="kbd">Alt</span><span class="kbd">3</span> Layers</li>
+          <li><span class="kbd">Alt</span><span class="kbd">4</span> Animation</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Assign one of your own</b>
+        <ul>
+          <li>Right-click a panel's header → <b>Edit Hotkey…</b></li>
+          <li>Or File menu → <b>Panels…</b> lists every panel with its current chord</li>
+          <li>A bound chord shows next to the panel name in that list</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Everything else</h2>
+    <p class="section-sub">Ships unassigned by default — pick your own from Settings → Hotkeys if you use them often: reset view, split-view toggle, onion skin, symmetry X/Y, sample-all-layers (Bucket/Gradient/Range), gradient dither/region-limit toggle, dither pattern cycle/erase, brush shape toggle, brush size by wheel, import sprite atlas.</p>
+
+    <div class="note"><b>Conflicts —</b> assigning a key already in use flags the clash instead of silently overwriting it. Hold-only modifiers (flip/rotate, brush resize, temporary eyedropper) are the exception: several can share the same chord since they only ever fire one at a time, on whichever tool is active.</div>
+
+    <footer>Chords reflect PixisEditor's shipped defaults — everything above is rebindable from Settings → Hotkeys.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selection — PixisEditor Manual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/chrome.css">
+<style>
+  :root{
+    --bg:#0c1017; --bg-alt:#10151d; --panel:#141a24; --panel-2:#181f2b;
+    --border:#232c3a; --border-soft:#1c2430;
+    --text:#c7d0dc; --text-dim:#8b96a8; --text-faint:#5c667a;
+    --accent:#2fd9a8; --accent-soft:rgba(47,217,168,.14); --accent-line:rgba(47,217,168,.35);
+    --gold:#e0b64a; --mint:#57e0c2;
+    --radius:14px; --radius-sm:9px;
+    --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(47,217,168,.07), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(87,224,194,.05), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:var(--font); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
+  .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 10px;}
+  h1{font-size:34px; margin:0 0 12px; letter-spacing:-.01em;}
+  .lede{font-size:16px; color:var(--text-dim); max-width:680px; margin:0 0 12px;}
+  .backlink{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); text-decoration:none; margin-bottom:22px;}
+  .backlink:hover{color:var(--accent);}
+  h2{font-size:19px; margin:46px 0 4px; letter-spacing:-.005em; display:flex; align-items:center; gap:10px;}
+  h2 .count{font-size:11.5px; font-weight:600; color:var(--text-faint); background:var(--panel); border:1px solid var(--border); padding:2px 8px; border-radius:20px;}
+  .section-sub{color:var(--text-dim); font-size:13.5px; margin:0 0 20px; max-width:680px;}
+
+  .kbd{
+    display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--border); border-bottom-width:2px; border-radius:6px;
+  }
+
+  /* ---- tool cards (matches tools.html) ---- */
+  .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .tool-card{padding:16px 16px 15px; border-radius:var(--radius); background:var(--panel); border:1px solid var(--border);}
+  .tool-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+  .tool-ico{
+    width:44px; height:44px; border-radius:10px; flex:none; background:var(--panel-2); border:1px solid var(--border-soft);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .tool-ico img{width:34px; height:34px; object-fit:contain;}
+  .tool-name-row{min-width:0; flex:1; display:flex; flex-direction:column; gap:5px;}
+  .tool-name{font-size:14px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tool-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin:0;}
+  .tool-demo{margin-top:12px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-soft); position:relative;}
+  .tool-demo img{display:block; width:100%; height:auto; background:#070a0f;}
+  .tool-demo-cap{font-size:11px; color:var(--text-faint); padding:7px 10px; background:var(--panel-2); border-top:1px solid var(--border-soft);}
+  .tool-demo-hint{
+    position:absolute; right:8px; top:8px; display:inline-flex; align-items:center; gap:5px;
+    font-size:10.5px; font-weight:600; color:var(--text); letter-spacing:.01em;
+    background:color-mix(in srgb, var(--panel-2) 82%, transparent); border:1px solid var(--border-soft);
+    border-radius:20px; padding:3px 9px 3px 7px; pointer-events:none;
+    opacity:.9; transition:opacity .15s ease;
+  }
+  .tool-demo-hint::before{content:"▶"; font-size:8px; color:var(--accent);}
+  .tool-demo:hover .tool-demo-hint{opacity:0;}
+
+  /* ---- hotspot map (matches layers.html / index.html) ---- */
+  .shot-row{display:grid; grid-template-columns:minmax(0,300px) 1fr; gap:26px; align-items:start;}
+  .hotspot-wrap{
+    position:relative; border-radius:var(--radius); overflow:hidden;
+    border:1px solid var(--border); background:#070a0f; flex:none;
+  }
+  .hotspot-wrap img{display:block; width:100%; height:auto;}
+  .hotspot-wrap .dot{
+    position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px;
+    border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 4px rgba(47,217,168,.18), 0 4px 10px -2px rgba(0,0,0,.6);
+    border:1.5px solid rgba(255,255,255,.35);
+  }
+  .hotspot-wrap .dot::after{
+    content:""; position:absolute; inset:-8px; border-radius:50%;
+    border:1.5px solid var(--accent-line); animation:pulse 2.6s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.7); opacity:.9;} 100%{transform:scale(1.5); opacity:0;}}
+
+  .legend{display:flex; flex-direction:column; gap:10px;}
+  .legend-item{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);}
+  .legend-num{
+    flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .legend-item b{display:block; font-size:13.5px; margin-bottom:2px;}
+  .legend-item p{margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+
+  /* ---- modifier chips ---- */
+  .mod-row{display:flex; gap:14px; flex-wrap:wrap; margin:0 0 8px;}
+  .mod-chip{display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:12.5px; color:var(--text-dim); max-width:280px;}
+  .mod-chip b{color:var(--text); font-size:13px;}
+
+  /* ---- gesture / shortcut cards ---- */
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .info-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .info-card b{display:block; font-size:14px; margin-bottom:8px;}
+  .info-card ul{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-dim); line-height:1.7;}
+  .info-card ul li b{display:inline; font-size:12.5px; color:var(--text); margin:0;}
+
+  .note{margin:18px 0 0; padding:12px 16px; background:var(--panel); border:1px solid var(--border-soft); border-left:2px solid var(--gold); border-radius:var(--radius-sm); font-size:12.5px; color:var(--text-dim); max-width:680px;}
+  .note b{color:var(--text);}
+
+  footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
+
+  @media (max-width:900px){
+    .tool-grid{grid-template-columns:1fr 1fr;}
+    .shot-row{grid-template-columns:1fr;}
+    .info-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:640px){ .tool-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<script src="assets/chrome.js"></script>
+<script>ManualChrome.init({ home: false });</script>
+<div class="layout">
+
+  <nav class="sidebar" id="docsSidebar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit;">
+      <span class="brand-mark v-paint" id="docsBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
+    </a>
+
+    <div class="nav-group">
+      <p class="nav-label">Getting started</p>
+      <a class="nav-link" href="index.html"><span class="dot"></span>Interface overview</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Tools</p>
+      <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
+      <a class="nav-link soon">Fills &amp; shapes</a>
+      <a class="nav-link active" href="selection.html"><span class="dot"></span>Selection</a>
+      <a class="nav-link soon">Other tools</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Panels</p>
+      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
+      <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
+      <a class="nav-link" href="animation.html"><span class="dot"></span>Animation</a>
+      <a class="nav-link" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Canvas workflow</p>
+      <a class="nav-link" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
+      <a class="nav-link" href="panel-docking.html"><span class="dot"></span>Panel docking</a>
+      <a class="nav-link" href="hotkeys.html"><span class="dot"></span>Hotkeys</a>
+    </div>
+
+    <a class="nav-back" href="https://pixis.ink/">← Back to pixis.ink</a>
+  </nav>
+
+  <main class="main">
+    <p class="eyebrow">Tools</p>
+    <h1>Selection</h1>
+    <p class="lede">Three ways to define a working area — a rectangular marquee, a freeform lasso, or a click by color — that all feed the same floating transform frame and the same add/subtract modifier keys.</p>
+    <a class="backlink" href="index.html">← Interface overview</a>
+
+    <h2>The tools <span class="count">3</span></h2>
+    <p class="section-sub">Shift always adds to the current selection, Ctrl (Cmd on Mac) subtracts; a plain drag replaces it.</p>
+    <div class="tool-grid">
+
+      <div class="tool-card">
+        <div class="tool-head">
+          <div class="tool-ico"><img src="assets/icons/select.png" alt=""></div>
+          <div class="tool-name-row"><span class="tool-name">Select / move</span><span class="kbd">M</span></div>
+        </div>
+        <p class="tool-desc">Rectangular area (mint frame + gold pixel outline). Drag inside to move, drag a handle to resize/rotate, arrow keys nudge by 1px.</p>
+        <div class="tool-demo"><img src="assets/demo/select.png" data-demo-gif="assets/demo/select.gif" alt="Select marquee demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Active selection frame with handles and a rotate stick</div></div>
+      </div>
+
+      <div class="tool-card">
+        <div class="tool-head">
+          <div class="tool-ico"><img src="assets/icons/lasso.png" alt=""></div>
+          <div class="tool-name-row"><span class="tool-name">Lasso select</span><span class="kbd">Q</span></div>
+        </div>
+        <p class="tool-desc">A freeform area following the drag path; the boundary closes automatically on release. The same move/resize/rotate frame works right away, without switching to Select.</p>
+        <div class="tool-demo"><img src="assets/demo/lasso.png" data-demo-gif="assets/demo/lasso.gif" alt="Lasso select demo"><span class="tool-demo-hint">hover to play</span><div class="tool-demo-cap">Freeform path, auto-closes on release</div></div>
+      </div>
+
+      <div class="tool-card">
+        <div class="tool-head">
+          <div class="tool-ico"><img src="assets/icons/colourRange.png" alt=""></div>
+          <div class="tool-name-row"><span class="tool-name">Colour range select</span><span class="kbd">W</span></div>
+        </div>
+        <p class="tool-desc">Selects pixels by the clicked color. A dashed gold preview shows the match while hovering, before you commit with a click. Clicking a transparent pixel is ignored.</p>
+      </div>
+
+    </div>
+
+    <h2>Select/move: the transform frame</h2>
+    <p class="section-sub">All three tools hand off into this same floating frame once a selection exists — shown here for a plain rectangle. The dashed mint square is the rigid transform frame; the dashed gold line traces the actual selected pixels. For a rectangular marquee the two coincide — a rotated or lasso-shaped selection is where they visibly diverge.</p>
+    <div class="shot-row">
+      <div class="hotspot-wrap">
+        <img src="assets/demo/select.png" alt="Selection transform frame with handles and rotate stick" width="340" height="340">
+        <div class="dot" style="left:50%; top:3%;">1</div>
+        <div class="dot" style="left:50%; top:12%;">2</div>
+        <div class="dot" style="left:87%; top:12%;">3</div>
+        <div class="dot" style="left:68%; top:12%;">4</div>
+        <div class="dot" style="left:45%; top:55%;">5</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Rotate stick</b><p>Drag the gold dot to rotate freely; hold <b>Shift</b> to snap to 15° steps.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Edge handle</b><p>Resizes one axis. Click it without dragging to flip the selection across that axis instead.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Corner handle</b><p>Resizes both axes at once; hold <b>Shift</b> to keep the original aspect ratio.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Outline</b><p>Mint frame = rigid bounding box; gold dashed line = the actual pixel mask. They split apart once the frame is rotated or the selection isn't a plain rectangle.</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>Body</b><p>Drag to move. Hold <b>Alt</b> while dragging to flip horizontally, <b>Ctrl</b> to flip vertically, instead of moving.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Add / subtract / replace</h2>
+    <p class="section-sub">The same three modes apply no matter which of the three tools drew the new shape — there's no separate intersect mode.</p>
+    <div class="mod-row">
+      <div class="mod-chip"><b>Plain drag</b> — replaces the current selection with the new shape.</div>
+      <div class="mod-chip"><b>Shift+drag</b> — adds the new shape to the current selection.</div>
+      <div class="mod-chip"><b>Ctrl+drag</b> — subtracts the new shape from the current selection.</div>
+    </div>
+
+    <h2>Gestures &amp; shortcuts</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>Transform frame</b>
+        <ul>
+          <li>Drag the body — move</li>
+          <li>Drag a handle — resize (<b>Shift</b> on a corner keeps aspect ratio)</li>
+          <li>Click a handle (no drag) — flip across that axis</li>
+          <li>Drag the rotate stick — rotate (<b>Shift</b> snaps to 15°)</li>
+          <li>Arrow keys — nudge by 1px</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Colour range options</b>
+        <ul>
+          <li><b>Tolerance</b> — match threshold, kept separate from Bucket fill's own tolerance</li>
+          <li><b>Contiguous / Global</b> — flood-fill from the click vs. every matching pixel in the document</li>
+          <li><b>Corners</b> — contiguous mode also spreads through diagonal (8-way) neighbors</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Clipboard &amp; contents</b>
+        <ul>
+          <li><b>Ctrl+C</b> / <b>Ctrl+X</b> — copy / cut the selection</li>
+          <li><b>Ctrl+V</b> — paste at the canvas origin (0,0) and switch to Select</li>
+          <li><b>Delete</b> — clear the selection's contents</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Transform the floating selection</b>
+        <ul>
+          <li><b>Shift+H</b> / <b>Shift+V</b> — mirror horizontally / vertically</li>
+          <li><b>Ctrl+]</b> / <b>Ctrl+[</b> — rotate 90° clockwise / counter-clockwise</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="note"><b>No Select All / Deselect / Invert.</b> There's no dedicated command for any of these — <b>Escape</b> only cancels an in-progress drag (or snaps the frame back to its pre-drag state), it doesn't clear a committed selection. Replace it with a new shape, or shrink it with a Ctrl-drag, instead.</p>
+
+    <footer>Icons and screenshots — real PixisEditor interface (chrome-devtools, native panel size).</footer>
+  </main>
+</div>
+<script>
+(function () {
+  document.querySelectorAll(".tool-demo img[data-demo-gif]").forEach(function (img) {
+    var demo = img.closest(".tool-demo");
+    var gifSrc = img.getAttribute("data-demo-gif");
+    var posterSrc = img.getAttribute("src");
+    if (!demo || !gifSrc) return;
+    var ready = false, loading = false, hovered = false;
+    function playIfHovered() {
+      if (hovered) img.src = gifSrc;
+    }
+    demo.addEventListener("mouseenter", function () {
+      hovered = true;
+      if (ready) { img.src = gifSrc; return; }
+      if (loading) return;
+      loading = true;
+      var pre = new Image();
+      pre.onload = function () { ready = true; playIfHovered(); };
+      pre.src = gifSrc;
+    });
+    demo.addEventListener("mouseleave", function () {
+      hovered = false;
+      img.src = posterSrc;
+    });
+  });
+})();
+</script>
+</body>
+</html>

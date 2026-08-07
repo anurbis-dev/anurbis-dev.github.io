@@ -44,14 +44,14 @@
     border:1px solid var(--border); background:#070a0f; flex:none;
   }
   .hotspot-wrap img{display:block; width:100%; height:auto;}
-  .dot{
+  .hotspot-wrap .dot{
     position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px;
     border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:12px;
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 0 0 4px rgba(47,217,168,.18), 0 4px 10px -2px rgba(0,0,0,.6);
     border:1.5px solid rgba(255,255,255,.35);
   }
-  .dot::after{
+  .hotspot-wrap .dot::after{
     content:""; position:absolute; inset:-8px; border-radius:50%;
     border:1.5px solid var(--accent-line); animation:pulse 2.6s ease-out infinite;
   }
@@ -101,7 +101,7 @@
       <p class="nav-label">Tools</p>
       <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
       <a class="nav-link soon">Fills &amp; shapes</a>
-      <a class="nav-link soon">Selection</a>
+      <a class="nav-link" href="selection.html"><span class="dot"></span>Selection</a>
       <a class="nav-link soon">Other tools</a>
     </div>
 
@@ -115,9 +115,9 @@
 
     <div class="nav-group">
       <p class="nav-label">Canvas workflow</p>
-      <a class="nav-link soon">Navigation (pan/zoom)</a>
-      <a class="nav-link soon">Panel docking</a>
-      <a class="nav-link soon">Hotkeys</a>
+      <a class="nav-link" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
+      <a class="nav-link" href="panel-docking.html"><span class="dot"></span>Panel docking</a>
+      <a class="nav-link" href="hotkeys.html"><span class="dot"></span>Hotkeys</a>
     </div>
 
     <a class="nav-back" href="https://pixis.ink/">← Back to pixis.ink</a>

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Panel Docking — PixisEditor Manual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/chrome.css">
+<style>
+  :root{
+    --bg:#0c1017; --bg-alt:#10151d; --panel:#141a24; --panel-2:#181f2b;
+    --border:#232c3a; --border-soft:#1c2430;
+    --text:#c7d0dc; --text-dim:#8b96a8; --text-faint:#5c667a;
+    --accent:#2fd9a8; --accent-soft:rgba(47,217,168,.14); --accent-line:rgba(47,217,168,.35);
+    --gold:#e0b64a; --mint:#57e0c2;
+    --radius:14px; --radius-sm:9px;
+    --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(47,217,168,.07), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(87,224,194,.05), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:var(--font); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  .main{flex:1; min-width:0; padding:44px 56px 90px; max-width:1180px;}
+  .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 10px;}
+  h1{font-size:34px; margin:0 0 12px; letter-spacing:-.01em;}
+  .lede{font-size:16px; color:var(--text-dim); max-width:640px; margin:0 0 12px;}
+  .backlink{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); text-decoration:none; margin-bottom:22px;}
+  .backlink:hover{color:var(--accent);}
+  h2{font-size:19px; margin:46px 0 4px; letter-spacing:-.005em; display:flex; align-items:center; gap:10px;}
+  .section-sub{color:var(--text-dim); font-size:13.5px; margin:0 0 20px; max-width:640px;}
+  .note{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; color:var(--text-dim); line-height:1.6; max-width:640px; margin:14px 0 0;}
+  .note b{color:var(--text);}
+
+  /* ---- two-column shot + legend, like the interface-overview hotspot map ---- */
+  .shot-row{display:grid; grid-template-columns:minmax(0,300px) 1fr; gap:26px; align-items:start;}
+  .shot-row.wide{grid-template-columns:minmax(0,520px) 1fr;}
+  .hotspot-wrap{
+    position:relative; border-radius:var(--radius); overflow:hidden;
+    border:1px solid var(--border); background:#070a0f; flex:none;
+  }
+  .hotspot-wrap img{display:block; width:100%; height:auto;}
+  .hotspot-wrap .dot{
+    position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px;
+    border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 4px rgba(47,217,168,.18), 0 4px 10px -2px rgba(0,0,0,.6);
+    border:1.5px solid rgba(255,255,255,.35);
+  }
+  .hotspot-wrap .dot::after{
+    content:""; position:absolute; inset:-8px; border-radius:50%;
+    border:1.5px solid var(--accent-line); animation:pulse 2.6s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.7); opacity:.9;} 100%{transform:scale(1.5); opacity:0;}}
+
+  .legend{display:flex; flex-direction:column; gap:10px;}
+  .legend-item{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);}
+  .legend-num{
+    flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .legend-item b{display:block; font-size:13.5px; margin-bottom:2px;}
+  .legend-item p{margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5;}
+
+  /* ---- gesture / toolbar reference cards ---- */
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .info-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .info-card b{display:block; font-size:14px; margin-bottom:8px;}
+  .info-card ul{margin:0; padding-left:18px; font-size:12.5px; color:var(--text-dim); line-height:1.7;}
+  .info-card ul li b{display:inline; font-size:12.5px; color:var(--text); margin:0;}
+  .info-card code{background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-family:var(--mono); font-size:11.5px; color:var(--mint);}
+
+  footer{margin-top:70px; padding-top:20px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12px;}
+
+  @media (max-width:900px){
+    .shot-row, .shot-row.wide{grid-template-columns:1fr;}
+    .info-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<script src="assets/chrome.js"></script>
+<script>ManualChrome.init({ home: false });</script>
+<div class="layout">
+
+  <nav class="sidebar" id="docsSidebar">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit;">
+      <span class="brand-mark v-paint" id="docsBrandMark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <div class="brand-text"><b>PixisEditor</b><span>Illustrated manual</span></div>
+    </a>
+
+    <div class="nav-group">
+      <p class="nav-label">Getting started</p>
+      <a class="nav-link" href="index.html"><span class="dot"></span>Interface overview</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Tools</p>
+      <a class="nav-link" href="tools.html"><span class="dot"></span>All tools</a>
+      <a class="nav-link soon">Fills &amp; shapes</a>
+      <a class="nav-link" href="selection.html"><span class="dot"></span>Selection</a>
+      <a class="nav-link soon">Other tools</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Panels</p>
+      <a class="nav-link" href="color-palette.html"><span class="dot"></span>Color &amp; Palette</a>
+      <a class="nav-link" href="layers.html"><span class="dot"></span>Layers</a>
+      <a class="nav-link" href="animation.html"><span class="dot"></span>Animation</a>
+      <a class="nav-link" href="presets-atlas.html"><span class="dot"></span>Presets &amp; Atlas</a>
+    </div>
+
+    <div class="nav-group">
+      <p class="nav-label">Canvas workflow</p>
+      <a class="nav-link" href="canvas-navigation.html"><span class="dot"></span>Navigation (pan/zoom)</a>
+      <a class="nav-link active" href="panel-docking.html"><span class="dot"></span>Panel docking</a>
+      <a class="nav-link" href="hotkeys.html"><span class="dot"></span>Hotkeys</a>
+    </div>
+
+    <a class="nav-back" href="https://pixis.ink/">← Back to pixis.ink</a>
+  </nav>
+
+  <main class="main">
+    <p class="eyebrow">Canvas workflow</p>
+    <h1>Panel Docking</h1>
+    <p class="lede">Every panel is a free-floating window, not a fixed dock slot. Drag it anywhere; it magnet-snaps to the work area's edges and to other panels, collapses to a chip or a title strip, and any inner section can be popped out into its own mini window.</p>
+    <a class="backlink" href="index.html">← Interface overview</a>
+
+    <h2>Move &amp; snap</h2>
+    <p class="section-sub">Drag a panel's title bar (or right-drag its body) to reposition it. Nothing is locked to a slot — get within ~12px of the work area's edge or another panel and it snaps flush; anywhere else it can freely overlap.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/default-layout.png" alt="Default panel layout with panels snapped to the work area's edges" width="1602" height="1000">
+        <div class="dot" style="left:6.2%; top:4.3%;">1</div>
+        <div class="dot" style="left:91.3%; top:4.3%;">2</div>
+        <div class="dot" style="left:30%; top:4.3%;">3</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Snapped left</b><p>Tool Settings sits flush against the work area's left edge — that's a magnet snap, not a fixed dock, so it can be dragged off just as easily.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Snapped right</b><p>Layers is magnet-snapped to the right edge the same way.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Free-floating</b><p>Tools isn't touching any edge — it's just parked wherever it was last left.</p></div></div>
+      </div>
+    </div>
+    <div class="note"><b>Edge-joined groups —</b> when two panels are dragged flush against each other (gap ≈ 0), they become a connected group: dragging one carries every panel still touching it along, so a stacked cluster moves as one piece.</div>
+
+    <h2>Collapse</h2>
+    <p class="section-sub">Click a header without dragging to collapse the panel. Where it lands depends on what it's touching.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/collapse-states.png" alt="Two collapsed panel shapes: an icon chip on the left wall and a title strip on the right" width="1602" height="1000">
+        <div class="dot" style="left:1.6%; top:5.1%;">1</div>
+        <div class="dot" style="left:91.4%; top:4.1%;">2</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Icon chip</b><p>Collapsing a panel stuck to the left or right wall shrinks it to a small square icon — click it again to reopen.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Title strip</b><p>Anywhere else — top/bottom edge or mid-canvas — it collapses to a thin title-only bar instead, keeping its horizontal position.</p></div></div>
+      </div>
+    </div>
+    <div class="note">Whichever edges the panel was stuck to before collapsing stay stuck after — a bottom-anchored panel keeps its bottom edge in place whether open or collapsed.</div>
+
+    <h2>Resize</h2>
+    <p class="section-sub">Every panel has 8 resize zones — 4 edges (one axis) and 4 corners (both axes) — that light up on hover. They snap to the work area's bounds and to neighboring panels' edges, same as a drag-move.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/resize-handles.png" alt="Panel corner and edge resize handles" width="1602" height="1000">
+        <div class="dot" style="left:16.7%; top:2.5%;">1</div>
+        <div class="dot" style="left:43.3%; top:8.65%;">2</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Corner handle</b><p>Resizes width and height together, anchored from the opposite corner.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Edge handle</b><p>Resizes a single axis — top/bottom for height, left/right for width.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Pop a section into its own window</h2>
+    <p class="section-sub">Sub-sections inside a panel — Color &amp; Palette, Brush, View and the like — can be undocked on their own. Press and hold a section's header; it arms after ~0.4s (turns green) and fully detaches at 3 seconds, or drag while armed to pull it out immediately.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/section-detach.png" alt="A Color and Palette section detached into its own floating panel" width="1602" height="1000">
+        <div class="dot" style="left:15.2%; top:7.6%;">1</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>↩ Re-dock</b><p>Click the return arrow to send the section back to its parent panel, right where it was pulled from.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Right-click a panel</h2>
+    <p class="section-sub">Right-clicking any panel's header (without dragging) opens per-panel controls.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/panel-context-menu.png" alt="Panel right-click context menu" width="1602" height="1000">
+        <div class="dot" style="left:94.9%; top:5.9%;">1</div>
+        <div class="dot" style="left:94.9%; top:8.7%;">2</div>
+        <div class="dot" style="left:94.9%; top:11.6%;">3</div>
+        <div class="dot" style="left:94.9%; top:14.4%;">4</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Toggle Header</b><p>Hides the title bar to save space. Shift+click applies the same state to every open panel at once.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Fit to content</b><p>Trims empty space so the panel matches its content at the current width.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Edit Hotkey…</b><p>Opens the Hotkey Editor to assign or change this panel's own show/hide chord.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Restore Defaults</b><p>Resets this one panel's position, size, dock and collapsed state back to the app default.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Show or hide any panel</h2>
+    <p class="section-sub">File menu → <b>Panels…</b> lists every panel with a checkbox — the fastest way to bring back something that's been closed.</p>
+    <div class="shot-row wide">
+      <div class="hotspot-wrap">
+        <img src="assets/panels/panel-docking/panels-menu.png" alt="Panels… menu listing every panel with visibility checkboxes and hotkeys" width="1602" height="1000">
+        <div class="dot" style="left:81.5%; top:15.65%;">1</div>
+        <div class="dot" style="left:81.5%; top:28.9%;">2</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-num">1</div><div><b>Checked + hotkey</b><p>Animation is currently visible; its accelerator (Alt+4 here) shows whenever one is bound — assign one from the panel's own right-click menu.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Unchecked</b><p>Atlas browser is hidden; ticking the box brings it back onto the canvas without hunting for it.</p></div></div>
+      </div>
+    </div>
+
+    <h2>Gestures &amp; shortcuts</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>Header</b>
+        <ul>
+          <li>Drag — move (detaches from any snap)</li>
+          <li>Click, no drag — collapse / expand</li>
+          <li>Right-drag — also moves the panel</li>
+          <li>Right-click, no drag — panel context menu</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Section header (inside a panel)</b>
+        <ul>
+          <li>Click — collapse just that section</li>
+          <li>Hold ~0.4s — arms (turns green)</li>
+          <li>Hold 3s, or drag once armed — detaches to a free window</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Edges &amp; corners</b>
+        <ul>
+          <li>Drag a corner — resize both axes</li>
+          <li>Drag an edge — resize one axis</li>
+          <li>Both snap to the work area and neighboring panels</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Show/hide hotkeys</b>
+        <ul>
+          <li><code>Alt+1</code> — Tools</li>
+          <li><code>Alt+2</code> — Tool Settings</li>
+          <li><code>Alt+3</code> — Layers</li>
+          <li><code>Alt+4</code> — Animation</li>
+          <li>Every panel and detached section can get its own chord via Edit Hotkey…</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>Icons and screenshots — real PixisEditor interface (chrome-devtools, native panel size).</footer>
+  </main>
+</div>
+</body>
+</html>
