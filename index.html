@@ -717,38 +717,28 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
-      <h3>1.29.0 - 2026-08-07</h3>
+      <h3>1.32.4 - 2026-08-10</h3>
       <ul>
-        <li>The top bar shows your <strong>project name</strong> (default Untitled) with a star when unsaved - double-click or F2 to rename.</li>
-        <li><strong>File -&gt; New project...</strong> starts fresh after a warning if you have unsaved work, then asks for a name.</li>
-        <li>Selection outlines no longer paint a full-canvas gold frame on empty exterior; marquee and lasso keep solid geometry for fill/clip.</li>
-        <li>Settings -&gt; Canvas pan &amp; zoom: <strong>Invert zoom</strong> flips wheel and drag zoom direction.</li>
+        <li>Right-click almost any button now offers <strong>Edit Hotkey...</strong>, and dozens more menu/panel/toolbar commands (File menu, panels, color, text, layers, animation, brush &amp; stamp presets, atlas, process recorder) can finally be assigned a key from Settings -&gt; Hotkeys.</li>
+        <li>Fixed animation frame-list rows staying the wrong size until you resized the window, when a neighboring panel changed height.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.28.7 - 2026-08-06</h3>
+      <h3>1.31.0 - 2026-08-10</h3>
       <ul>
-        <li>The Delete key now always deletes your selection, even if you've reassigned the customizable shortcut to something else - your custom shortcut still works too.</li>
+        <li>Every panel now has a "..." menu next to its title bar for quick access to common actions - toggle header, hide/show its own toolbar, fit to content, edit hotkey, restore defaults - and those actions stay reachable from the right-click menu even when a panel's toolbar is hidden.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.27.3 - 2026-08-05</h3>
+      <h3>1.30.2 - 2026-08-10</h3>
       <ul>
-        <li>Select, Lasso, and Colour Range now share one transform frame - switch between them without losing your selection; move, resize, and rotate work with any of those tools active.</li>
-        <li>Hold Alt or Ctrl while moving a selection to flip it horizontally or vertically (live preview, applied on release).</li>
-        <li>Marquee and lasso replace/add keep only solid (opaque) pixels, so empty holes are dropped from the selection.</li>
-        <li>Fixed free-transform bugs: enlarging no longer leaves paint outside the frame; resize and flip on a rotated selection keep the angle; undo, blur, tool switch, and edit shortcuts no longer leave a half-finished move or resize stuck.</li>
-        <li>Shift-add and Ctrl-subtract on the marquee again use the full selection shape (not only painted pixels), and starting those modifiers from inside the frame draws a new marquee instead of moving.</li>
-        <li>Trackpad two-finger horizontal swipe on the canvas undoes/redoes (same idea as the touch three-finger swipe); toggle in Settings -&gt; Gestures.</li>
-        <li>Fixed Split View: a second pointer on the other pane no longer corrupts zoom and pan of the pane you are drawing on.</li>
+        <li>Selection outlines and the colour-range hover preview no longer lag or stall on large canvases.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.27.0 - 2026-08-04</h3>
+      <h3>1.30.0 - 2026-08-10</h3>
       <ul>
-        <li>New illustrated manual with real screenshots of every tool - open it from the <strong>Manual</strong> button in the Gestures &amp; Help window (❔). Hover any tool's picture on the tools page to see a short clip of it in action.</li>
-        <li>Small animated logo detail in the Tools panel header.</li>
-        <li>Process Recorder: fixed several actions not being recorded or replayed correctly - the dither pattern eraser (press-and-hold), dragging a stamp preset onto the canvas, applying a brush preset, pasting/cutting, and a selection or pasted content sometimes disappearing after jumping backward or forward in a recording.</li>
+        <li>Dragging a stamp or a tile from the Atlas browser onto the canvas: hold <strong>Shift</strong> while you drop it to place it on a brand-new layer instead of the one you're currently on.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
