@@ -717,6 +717,18 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.33.0 - 2026-08-10</h3>
+      <ul>
+        <li>Animation timeline is now <strong>multi-track</strong>: drag a frame above or below a lane to create parallel tracks that play and export together on the same columns.</li>
+        <li>Scrub the timeline with left-drag on empty content (relative from the current frame), Shift+middle-drag, or Shift+wheel - including on the canvas. Middle-drag pans the timeline freely.</li>
+        <li><strong>Play range</strong> with [ / ] / \ marks start and end on full-height markers; playback and export stay inside the range. Settings -&gt; Timeline scrub controls loop vs clamp, scrub speed, marker color, ruler height, and ruler top/bottom.</li>
+        <li><strong>F</strong> over the Animation panel fits all tracks and frames to the window; track headers stay locked to their lanes while you scroll.</li>
+        <li>Press <strong>Esc</strong> after rotating the canvas view to reset rotation under the cursor.</li>
+        <li>Preview panel: a single click toggles between 100% and Fit (no more double-click reset).</li>
+        <li>Atlas import auto-detects the grid from the sheet image itself (no stale panel cell size); <strong>⬚</strong> re-runs auto-grid; Shift+Import forces the panel cell size.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.32.4 - 2026-08-10</h3>
       <ul>
         <li>Right-click almost any button now offers <strong>Edit Hotkey...</strong>, and dozens more menu/panel/toolbar commands (File menu, panels, color, text, layers, animation, brush &amp; stamp presets, atlas, process recorder) can finally be assigned a key from Settings -&gt; Hotkeys.</li>
@@ -739,18 +751,6 @@
       <h3>1.28.7 - 2026-08-06</h3>
       <ul>
         <li>The Delete key now always deletes your selection, even if you've reassigned the customizable shortcut to something else - your custom shortcut still works too.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.27.3 - 2026-08-05</h3>
-      <ul>
-        <li>Select, Lasso, and Colour Range now share one transform frame - switch between them without losing your selection; move, resize, and rotate work with any of those tools active.</li>
-        <li>Hold Alt or Ctrl while moving a selection to flip it horizontally or vertically (live preview, applied on release).</li>
-        <li>Marquee and lasso replace/add keep only solid (opaque) pixels, so empty holes are dropped from the selection.</li>
-        <li>Fixed free-transform bugs: enlarging no longer leaves paint outside the frame; resize and flip on a rotated selection keep the angle; undo, blur, tool switch, and edit shortcuts no longer leave a half-finished move or resize stuck.</li>
-        <li>Shift-add and Ctrl-subtract on the marquee again use the full selection shape (not only painted pixels), and starting those modifiers from inside the frame draws a new marquee instead of moving.</li>
-        <li>Trackpad two-finger horizontal swipe on the canvas undoes/redoes (same idea as the touch three-finger swipe); toggle in Settings -&gt; Gestures.</li>
-        <li>Fixed Split View: a second pointer on the other pane no longer corrupts zoom and pan of the pane you are drawing on.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
