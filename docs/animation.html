@@ -139,11 +139,11 @@
   <main class="main">
     <p class="eyebrow">Panels</p>
     <h1>Animation</h1>
-    <p class="lede">A shared frame strip that any layer can link into, named frame actions to hold several logical animations (walk, idle, attack…) on that one strip, and a transport with Forward / Reverse / Ping-pong playback.</p>
+    <p class="lede">A multi-track frame timeline that any layer can link into, named frame actions for logical clips (walk, idle, attack…), parallel tracks that composite together at the same play step, and a transport with Forward / Reverse / Ping-pong playback.</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
     <h2>The panel</h2>
-    <p class="section-sub">Two layers, four frames — a named action ("Walk") covering the last three, Frame 3 held for 3 units instead of 1.</p>
+    <p class="section-sub">Two layers, four frames — a named action ("Walk") covering the last three, Frame 3 held for 3 units instead of 1. New projects start with one track; add more by dragging frames into new lanes (see Parallel tracks).</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
         <img src="assets/panels/animation/overview.png" alt="Animation panel" width="450" height="512">
@@ -171,6 +171,54 @@
       <div class="state-chip bright"><i>All</i>No scope — Play/export use the full timeline</div>
       <div class="state-chip bright"><i>●</i>Named, active — scoped to just this action's frames</div>
       <div class="state-chip bypass"><i>◐</i>Folded — every member frame hidden from the list (re-click to bring back)</div>
+    </div>
+
+    <h2>Parallel tracks</h2>
+    <p class="section-sub">The timeline is not a single strip — each track is a horizontal lane of frames bound to a <b>global timeline column</b> (slots may be empty on some tracks). At a given play/export step, every visible track contributes its frame at that global column; those frames composite together on the canvas.</p>
+    <div class="info-grid">
+      <div class="info-card">
+        <b>Create &amp; remove tracks</b>
+        <ul>
+          <li>Drag a frame above or below a track lane, or onto the gap between lanes, to place it on a new track.</li>
+          <li>A track disappears when its last frame is moved away (there is always at least one track left).</li>
+          <li>Locked tracks reject drops and frame edits from that lane.</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Track headers (left side)</b>
+        <ul>
+          <li>Sticky column beside the frame lanes: track name (double-click to rename), color swatch, eye (hide track from play/composite; <b>Ctrl+click</b> isolates like Layers), and lock (same icon styles as Layers).</li>
+          <li>Drag the vertical separator left (~12px) to collapse the headers into a thin reopen tab; drag open or click the tab to restore.</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Scrub &amp; resize</b>
+        <ul>
+          <li><b>Left-drag</b> on empty timeline content (ruler, empty slots, gaps — not on a frame cell): <b>relative</b> scrub from the current frame at the click point (no need to line up with the playhead).</li>
+          <li><b>Shift + middle-drag</b> or <b>Shift + wheel</b> — scrub over frames too (panel or canvas).</li>
+          <li><b>Middle-drag</b> (no Shift) — pan the timeline freely; content is not pinned to the left/top edge.</li>
+          <li><b>F</b> over the Animation panel — fit all tracks and frames to the current window size.</li>
+          <li><b>Ctrl/Alt + right-drag</b> on a track: vertical scales height (<b>Shift</b> = all tracks); horizontal scales shared slot width (zoom under cursor).</li>
+          <li>Scrub ruler is fixed at the top or bottom of the timeline (Settings → Timeline scrub → position) — it does not scroll with tracks. Track headers stay locked to their lanes.</li>
+          <li>Play-range markers fill the lanes viewport height and only move with horizontal scroll; color / ruler height / position live in Settings → Timeline scrub. Playback never moves vertical scroll; cannot-play toasts name the reason.</li>
+          <li>Invert, speed, and ease match Settings → Canvas pan &amp; zoom (same feel as canvas drag-zoom).</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Play &amp; export</b>
+        <ul>
+          <li>Playback and GIF/PNG sequence export step by <b>column</b> across all visible tracks (hidden tracks are skipped).</li>
+          <li>Duration for a step is the longest duration among the frames in that column.</li>
+          <li>Frame actions still scope which frames participate within each track.</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <b>Composite</b>
+        <ul>
+          <li>Selecting a frame (or the playhead) composites every parallel frame at the same column on other visible tracks — not only the active one.</li>
+          <li>Tracks and frame placement are saved with the project file.</li>
+        </ul>
+      </div>
     </div>
 
     <h2>Playback modes</h2>
@@ -208,7 +256,7 @@
         <b>Frame row</b>
         <ul>
           <li>Drag horizontally — set this frame's opacity (applied when it's the focused frame)</li>
-          <li>Drag vertically — reorder</li>
+          <li>Drag vertically — reorder within the lane, or above/below a lane / onto a gap to create or join another track</li>
           <li>Shift+drag — drop a copy instead of moving</li>
           <li>Double-click name, or F2 — rename</li>
           <li>Drag across several eyes — mass-toggle visibility</li>
