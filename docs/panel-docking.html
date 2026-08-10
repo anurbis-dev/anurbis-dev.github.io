@@ -191,8 +191,8 @@
       </div>
     </div>
 
-    <h2>Right-click a panel</h2>
-    <p class="section-sub">Right-clicking any panel's header (without dragging) opens per-panel controls.</p>
+    <h2>Panel menu (kebab or right-click)</h2>
+    <p class="section-sub">Access panel controls via the "..." kebab button to the right of the title bar (visible on header hover), or right-click the header itself (without dragging). Both open the same common commands.</p>
     <div class="shot-row wide">
       <div class="hotspot-wrap">
         <img src="assets/panels/panel-docking/panel-context-menu.png" alt="Panel right-click context menu" width="1602" height="1000">
@@ -200,14 +200,17 @@
         <div class="dot" style="left:94.9%; top:8.7%;">2</div>
         <div class="dot" style="left:94.9%; top:11.6%;">3</div>
         <div class="dot" style="left:94.9%; top:14.4%;">4</div>
+        <div class="dot" style="left:94.9%; top:17.2%;">5</div>
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-num">1</div><div><b>Toggle Header</b><p>Hides the title bar to save space. Shift+click applies the same state to every open panel at once.</p></div></div>
-        <div class="legend-item"><div class="legend-num">2</div><div><b>Fit to content</b><p>Trims empty space so the panel matches its content at the current width.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Edit Hotkey…</b><p>Opens the Hotkey Editor to assign or change this panel's own show/hide chord.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>Restore Defaults</b><p>Resets this one panel's position, size, dock and collapsed state back to the app default.</p></div></div>
+        <div class="legend-item"><div class="legend-num">2</div><div><b>Toggle Toolbar</b><p>Hides or shows the panel's icon-button row (if it has one). Shift+click applies to all panels. Panels without a toolbar (Tools, Tool Settings, Preview) don't have this option.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Fit to content</b><p>Trims empty space so the panel matches its content at the current width.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>Edit Hotkey…</b><p>Opens the Hotkey Editor to assign or change this panel's own show/hide chord.</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>Restore Defaults</b><p>Resets this one panel's position, size, dock and collapsed state back to the app default.</p></div></div>
       </div>
     </div>
+    <div class="note"><b>Toolbar shortcuts —</b> the kebab menu always mirrors any icon buttons from the panel's toolbar row too (e.g., Layers panel's "Add layer", "New folder", "Duplicate", etc.), right after a separator — clicking them runs the same action as clicking the button directly. The right-click menu mirrors them only while <b>Toggle Toolbar</b> has hidden that row (so nothing becomes unreachable); with the toolbar visible, right-click shows just the common commands since the icons are already on screen.</div>
 
     <h2>Show or hide any panel</h2>
     <p class="section-sub">File menu → <b>Panels…</b> lists every panel with a checkbox — the fastest way to bring back something that's been closed.</p>
