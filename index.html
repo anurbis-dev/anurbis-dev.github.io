@@ -396,6 +396,10 @@
   .supporters{
     border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--text-dim);
   }
+  .supporter-list{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .supporter-item{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;text-decoration:none;color:var(--text)}
+  .supporter-item img{width:40px;height:40px;border-radius:50%;border:1px solid var(--border)}
+  .supporter-item span{font-size:11px;color:var(--text-dim);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
 
   footer{border-top:1px solid var(--border);padding:56px 0 40px;margin-top:40px}
   .footer-community{text-align:center;padding-bottom:40px;margin-bottom:32px;border-bottom:1px solid var(--border)}
@@ -814,12 +818,13 @@
           funds go straight to the developer's payout account.
         </p>
         <a class="btn btn-primary" href="https://github.com/sponsors/anurbis-dev" target="_blank" rel="noopener" data-pixis-event="sponsor" data-pixis-location="support"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor on GitHub</a>
-        <p class="donate-note">Sponsorship link goes live once GitHub Sponsors is enabled for this account.</p>
       </div>
 
       <div class="supporters">
         <h3 style="font-size:16px;color:var(--text);margin-bottom:8px">Top supporters</h3>
+        <!-- SPONSORS:START -->
         <p style="font-size:14px">Nobody yet — be the first name on this list.</p>
+        <!-- SPONSORS:END -->
       </div>
     </div>
   </section>
