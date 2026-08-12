@@ -721,6 +721,19 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.42.0 - 2026-08-12</h3>
+      <ul>
+        <li>Hotkeys can now be bound to mouse clicks: plain left-click stays reserved for painting and UI, but right-click, middle-click, extra mouse buttons, or a modifier held with left-click can all trigger a hotkey - with a separate toggle for "fires on click" vs "fires while held".</li>
+        <li>Clicking now tolerates a little accidental movement before it counts as a drag, so a shaky pen tap no longer misfires as a drag and steals a click (like the middle-click colour picker) by accident.</li>
+        <li>Fixed: dragging a colour-range selection could get dropped if you tapped a tool-switch hotkey mid-drag.</li>
+        <li>Fixed: clicking inside an odd-shaped colour-range selection could try to move it instead of starting a new selection.</li>
+        <li>Fixed: the colour-range hover outline could get stuck on screen after releasing a quick tool-switch hold.</li>
+        <li>Brush size slider now goes up to 64 (type a number for up to 128).</li>
+        <li>Fixed: Pencil now respects round brush shapes, and Pixel Perfect mode no longer erases existing artwork at stroke corners.</li>
+        <li>Fixed several Animation timeline glitches: playback/scrubbing across held frames on multiple tracks, Shift-copy landing on the wrong column, and moving frames between long held cells.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.41.0 - 2026-08-12</h3>
       <ul>
         <li>Frame duration is now a real hold span on the Animation timeline: a frame set to 3 units is three columns wide, later frames on the same track are pushed so holds never overlap, and you can drag the left/right edges of a cell (or the duration number) to stretch or shrink it.</li>
@@ -758,18 +771,6 @@
         <li>New Settings -&gt; Timeline scrub option for play-range marker thickness.</li>
         <li>Panels reliably reset to their default layout for your current window size when the app opens.</li>
         <li>Clicking anywhere on the timeline seeks to that frame, and the playhead ring now shows while scrubbing too.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.33.0 - 2026-08-10</h3>
-      <ul>
-        <li>Animation timeline is now <strong>multi-track</strong>: drag a frame above or below a lane to create parallel tracks that play and export together on the same columns.</li>
-        <li>Scrub the timeline with left-drag on empty content (relative from the current frame), Shift+middle-drag, or Shift+wheel - including on the canvas. Middle-drag pans the timeline freely.</li>
-        <li><strong>Play range</strong> with [ / ] / \ marks start and end on full-height markers; playback and export stay inside the range. Settings -&gt; Timeline scrub controls loop vs clamp, scrub speed, marker color, ruler height, and ruler top/bottom.</li>
-        <li><strong>F</strong> over the Animation panel fits all tracks and frames to the window; track headers stay locked to their lanes while you scroll.</li>
-        <li>Press <strong>Esc</strong> after rotating the canvas view to reset rotation under the cursor.</li>
-        <li>Preview panel: a single click toggles between 100% and Fit (no more double-click reset).</li>
-        <li>Atlas import auto-detects the grid from the sheet image itself (no stale panel cell size); <strong>⬚</strong> re-runs auto-grid; Shift+Import forces the panel cell size.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
