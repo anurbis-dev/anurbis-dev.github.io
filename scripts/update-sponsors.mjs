@@ -16,7 +16,7 @@ const LOGIN = "anurbis-dev";
 const TOP_N = 12;
 const START = "<!-- SPONSORS:START -->";
 const END = "<!-- SPONSORS:END -->";
-const FALLBACK = `      <p style="font-size:14px">Nobody yet — be the first name on this list.</p>`;
+const FALLBACK = `        <p style="font-size:14px">Nobody yet — be the first name on this list.</p>`;
 
 const token = process.env.SPONSORS_TOKEN;
 if (!token) {
@@ -90,14 +90,14 @@ if (sponsors.length === 0) {
       const e = s.sponsorEntity;
       const label = e.name || e.login;
       return [
-        `        <a class="supporter-item" href="${escapeHtml(e.url)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">`,
-        `          <img src="${escapeHtml(e.avatarUrl)}" alt="" loading="lazy">`,
-        `          <span>${escapeHtml(label)}</span>`,
-        `        </a>`,
+        `          <a class="supporter-item" href="${escapeHtml(e.url)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">`,
+        `            <img src="${escapeHtml(e.avatarUrl)}" alt="" loading="lazy">`,
+        `            <span>${escapeHtml(label)}</span>`,
+        `          </a>`,
       ].join("\n");
     })
     .join("\n");
-  inner = [`      <div class="supporter-list">`, items, `      </div>`].join("\n");
+  inner = [`        <div class="supporter-list">`, items, `        </div>`].join("\n");
 }
 
 const indexPath = new URL("../index.html", import.meta.url);
@@ -110,7 +110,7 @@ if (!html.includes(START) || !html.includes(END)) {
 
 const startIdx = html.indexOf(START) + START.length;
 const endIdx = html.indexOf(END);
-html = html.slice(0, startIdx) + "\n" + inner + "\n      " + html.slice(endIdx);
+html = html.slice(0, startIdx) + "\n" + inner + "\n        " + html.slice(endIdx);
 
 fs.writeFileSync(indexPath, html);
 console.log(`Updated Top supporters: ${sponsors.length} public sponsor(s).`);
