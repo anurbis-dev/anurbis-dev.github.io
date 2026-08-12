@@ -721,8 +721,21 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
-      <h3>1.38.3 - 2026-08-12</h3>
+      <h3>1.41.0 - 2026-08-12</h3>
       <ul>
+        <li>Frame duration is now a real hold span on the Animation timeline: a frame set to 3 units is three columns wide, later frames on the same track are pushed so holds never overlap, and you can drag the left/right edges of a cell (or the duration number) to stretch or shrink it.</li>
+        <li>Play and scrub walk through every hold unit - even a single stretched frame can play - and the canvas keeps showing that frame for its full duration while the playhead moves across it.</li>
+        <li>Moving or Shift-copying frames between tracks lands on the column you drop on, including drops onto or between long held cells, without parking copies on the wrong track or cascading random shifts.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>1.40.1 - 2026-08-12</h3>
+      <ul>
+        <li>Saving now works like a real desktop app in Chrome and Edge: pick a file once and Ctrl+S quietly resaves it after that, no more re-downloading a fresh copy every time. Ctrl+Shift+S ("Save project as...") lets you pick a different file whenever you want, and Settings -&gt; Files lets you set a working folder so brand-new projects save there instantly with no dialog at all - just tap the folder icon to pick one. Other browsers keep working exactly as before.</li>
+        <li>If a working folder is set, every save now also backs up your brush presets, stamp presets, and custom pixel fonts as real files next to the project - they already survive closing the tab, but now they survive clearing your browser's storage too.</li>
+        <li>New keyboard shortcuts: Ctrl+N for a new canvas, Ctrl+Shift+N for a new project, Ctrl+O to open a project (the File menu item is now called "Open project..."). Once a project is linked to a file, hover the project name in the title bar to see its location.</li>
+        <li>Renaming a project and saving now correctly creates a new file under the new name, instead of quietly overwriting the old one.</li>
+        <li>Fixed a rare case where a dialog-free save into your working folder could silently overwrite an unrelated existing file with the same name - you're now asked to confirm first.</li>
         <li>Selecting a layer now flashes it with a soft white glow so you can instantly see which one is active - brightness adjustable in Settings -&gt; Appearance (0-200%, off at 0). The flash only fires when the Move tool auto-picks a layer under your cursor, not on every layer switch.</li>
         <li>Panning, zooming, and rotating the canvas view no longer get blocked while Animation is playing.</li>
       </ul>
@@ -757,16 +770,6 @@
         <li>Press <strong>Esc</strong> after rotating the canvas view to reset rotation under the cursor.</li>
         <li>Preview panel: a single click toggles between 100% and Fit (no more double-click reset).</li>
         <li>Atlas import auto-detects the grid from the sheet image itself (no stale panel cell size); <strong>⬚</strong> re-runs auto-grid; Shift+Import forces the panel cell size.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.32.4 - 2026-08-10</h3>
-      <ul>
-        <li>Right-click almost any button now offers <strong>Edit Hotkey...</strong>, and dozens more menu/panel/toolbar commands (File menu, panels, color, text, layers, animation, brush &amp; stamp presets, atlas, process recorder) can finally be assigned a key from Settings -&gt; Hotkeys.</li>
-        <li>Every panel now has a "..." menu next to its title bar for quick access to common actions - toggle header, hide/show its own toolbar, fit to content, edit hotkey, restore defaults - and those actions stay reachable from the right-click menu even when a panel's toolbar is hidden.</li>
-        <li>Dragging a stamp or a tile from the Atlas browser onto the canvas: hold <strong>Shift</strong> while you drop it to place it on a brand-new layer instead of the one you're currently on.</li>
-        <li>Selection outlines and the colour-range hover preview no longer lag or stall on large canvases.</li>
-        <li>Fixed animation frame-list rows staying the wrong size until you resized the window, when a neighboring panel changed height.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
