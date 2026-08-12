@@ -719,25 +719,23 @@
     <div class="card">
       <h3>1.38.3 - 2026-08-12</h3>
       <ul>
-        <li>Default hotkeys refreshed: Toggle Grid moved to Shift+G, and Link Frame to Layer (Ctrl+L), New Layer Group (Ctrl+G), and Delete Layer (Alt+G) now have keyboard shortcuts out of the box; Pencil returns to its spot in the default toolbar.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.38.2 - 2026-08-12</h3>
-      <ul>
-        <li>Panning, zooming, and rotating the canvas view no longer get blocked while Animation is playing.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.38.0 - 2026-08-12</h3>
-      <ul>
         <li>Selecting a layer now flashes it with a soft white glow so you can instantly see which one is active - brightness adjustable in Settings -&gt; Appearance (0-200%, off at 0). The flash only fires when the Move tool auto-picks a layer under your cursor, not on every layer switch.</li>
+        <li>Panning, zooming, and rotating the canvas view no longer get blocked while Animation is playing.</li>
       </ul>
     </div>
     <div class="card">
       <h3>1.37.0 - 2026-08-11</h3>
       <ul>
         <li>Selecting a frame in the Animation panel now automatically selects the layers linked to it, so you can start drawing right away without hunting for the right layer - works consistently whether you click, Shift-range-select, or Ctrl-toggle frames.</li>
+        <li>Cut (Ctrl+X) now actually removes the cut pixels from the canvas instead of leaving them behind.</li>
+        <li>Moving a selection to a new layer now deselects afterward instead of leaving the old selection active.</li>
+        <li>Pasting now drops the floated selection near your cursor instead of always snapping to the top-left corner.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>1.36.0 - 2026-08-11</h3>
+      <ul>
+        <li>New Ctrl+J hotkey moves the pixels inside your selection onto a brand-new layer; hold Shift too (Ctrl+Shift+J) to pull selected pixels from every layer instead of just the current one.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
