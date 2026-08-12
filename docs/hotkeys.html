@@ -126,11 +126,11 @@
   <main class="main">
     <p class="eyebrow">Canvas workflow</p>
     <h1>Hotkeys</h1>
-    <p class="lede">Every default keyboard shortcut, grouped by what it does. All of them — including tool keys — can be rebound from Settings → Hotkeys; right-click a toolbar icon for a shortcut to the same editor for just that tool.</p>
+    <p class="lede">Every default shortcut, grouped by what it does. All of them — including tool keys — can be rebound from Settings → Hotkeys to a key, a mouse button (MMB / RMB / Mouse4 / Mouse5, or Ctrl/Shift/Alt+LMB), or the wheel. Plain left click is reserved for painting and UI. Right-click a toolbar icon to edit just that tool. Click vs Hold are two buttons in the editor (baked hold actions stay Hold).</p>
     <a class="backlink" href="index.html">← Interface overview</a>
 
     <h2>Toolbar tools <span class="count">22</span></h2>
-    <p class="section-sub">One key switches the active tool. <span class="kbd none" style="margin:0 2px;">unassigned</span> means the tool ships with no default chord.</p>
+    <p class="section-sub">One key (or a rebound mouse button) switches the active tool. Set the binding to Hold in the Hotkey Editor to use it only while pressed. <span class="kbd none" style="margin:0 2px;">unassigned</span> means the tool ships with no default chord.</p>
     <div class="hk-tools-grid">
       <div class="hk-tool"><span class="ico"><img src="assets/icons/pencil.png" alt=""></span><span class="name">Pencil</span><span class="kbd">B</span></div>
       <div class="hk-tool"><span class="ico"><img src="assets/icons/repaint.png" alt=""></span><span class="name">Repaint</span><span class="kbd">R</span></div>
@@ -231,7 +231,7 @@
     <h2>Everything else</h2>
     <p class="section-sub">Ships unassigned by default — pick your own from Settings → Hotkeys if you use them often: reset view, split-view toggle, onion skin, symmetry X/Y, sample-all-layers (Bucket/Gradient/Range), gradient dither/region-limit toggle, dither pattern cycle/erase, brush shape toggle, brush size by wheel, import sprite atlas.</p>
 
-    <div class="note"><b>Conflicts —</b> assigning a key already in use flags the clash instead of silently overwriting it. Hold-only modifiers (flip/rotate, brush resize, temporary eyedropper) are the exception: several can share the same chord since they only ever fire one at a time, on whichever tool is active.</div>
+    <div class="note"><b>Conflicts —</b> assigning a key or mouse button already in use flags the clash instead of silently overwriting it. Click and Hold may share one chord. Hold-only modifiers (flip/rotate, brush resize, temporary eyedropper) are the other exception: several can share the same chord since they only ever fire one at a time, on whichever tool is active.</div>
 
     <footer>Chords reflect PixisEditor's shipped defaults — everything above is rebindable from Settings → Hotkeys.</footer>
   </main>
