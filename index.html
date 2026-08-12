@@ -727,21 +727,42 @@
       <h3>1.37.0 - 2026-08-11</h3>
       <ul>
         <li>Selecting a frame in the Animation panel now automatically selects the layers linked to it, so you can start drawing right away without hunting for the right layer - works consistently whether you click, Shift-range-select, or Ctrl-toggle frames.</li>
+        <li>New Ctrl+J hotkey moves the pixels inside your selection onto a brand-new layer; hold Shift too (Ctrl+Shift+J) to pull selected pixels from every layer instead of just the current one.</li>
+        <li>Press Tab to instantly hide or show all your panels at once, for a clear, distraction-free view of the canvas.</li>
+        <li>Animation play-range commands (set start/end frame, reset range) moved from the File menu into the Animation panel's own "⋮" menu; that menu button now sits right next to its title instead of over by the close button.</li>
         <li>Cut (Ctrl+X) now actually removes the cut pixels from the canvas instead of leaving them behind.</li>
         <li>Moving a selection to a new layer now deselects afterward instead of leaving the old selection active.</li>
         <li>Pasting now drops the floated selection near your cursor instead of always snapping to the top-left corner.</li>
+        <li>Fixed the "⋮" panel menu: "Restore Defaults" and a couple of other window commands could land out of order (most noticeable on the Animation panel); the common commands now always stay together at the top of the menu on every panel.</li>
+        <li>Dragging frames in the Animation timeline is much more reliable: reordering, dropping onto empty columns, moving several selected frames at once, and the drop preview under your cursor all behave correctly now (no more stray gaps, jumping strips, or lost multi-select).</li>
+        <li>Playback and the play-range markers correctly follow window/panel resizing, and playback always shows every parallel track.</li>
+        <li>Frame opacity is now set by dragging the thin bar at the top of a frame; the frame cell itself only reorders or moves it between tracks.</li>
+        <li>Grouped ("named action") frames are no longer collapsed into a single timeline cell - each frame shows on its own with its color dot.</li>
+        <li>New Settings -&gt; Timeline scrub option for play-range marker thickness.</li>
+        <li>Panels reliably reset to their default layout for your current window size when the app opens.</li>
+        <li>Clicking anywhere on the timeline seeks to that frame, and the playhead ring now shows while scrubbing too.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.36.0 - 2026-08-11</h3>
+      <h3>1.33.0 - 2026-08-10</h3>
       <ul>
-        <li>New Ctrl+J hotkey moves the pixels inside your selection onto a brand-new layer; hold Shift too (Ctrl+Shift+J) to pull selected pixels from every layer instead of just the current one.</li>
+        <li>Animation timeline is now <strong>multi-track</strong>: drag a frame above or below a lane to create parallel tracks that play and export together on the same columns.</li>
+        <li>Scrub the timeline with left-drag on empty content (relative from the current frame), Shift+middle-drag, or Shift+wheel - including on the canvas. Middle-drag pans the timeline freely.</li>
+        <li><strong>Play range</strong> with [ / ] / \ marks start and end on full-height markers; playback and export stay inside the range. Settings -&gt; Timeline scrub controls loop vs clamp, scrub speed, marker color, ruler height, and ruler top/bottom.</li>
+        <li><strong>F</strong> over the Animation panel fits all tracks and frames to the window; track headers stay locked to their lanes while you scroll.</li>
+        <li>Press <strong>Esc</strong> after rotating the canvas view to reset rotation under the cursor.</li>
+        <li>Preview panel: a single click toggles between 100% and Fit (no more double-click reset).</li>
+        <li>Atlas import auto-detects the grid from the sheet image itself (no stale panel cell size); <strong>⬚</strong> re-runs auto-grid; Shift+Import forces the panel cell size.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.35.0 - 2026-08-11</h3>
+      <h3>1.32.4 - 2026-08-10</h3>
       <ul>
-        <li>Press Tab to instantly hide or show all your panels at once, for a clear, distraction-free view of the canvas.</li>
+        <li>Right-click almost any button now offers <strong>Edit Hotkey...</strong>, and dozens more menu/panel/toolbar commands (File menu, panels, color, text, layers, animation, brush &amp; stamp presets, atlas, process recorder) can finally be assigned a key from Settings -&gt; Hotkeys.</li>
+        <li>Every panel now has a "..." menu next to its title bar for quick access to common actions - toggle header, hide/show its own toolbar, fit to content, edit hotkey, restore defaults - and those actions stay reachable from the right-click menu even when a panel's toolbar is hidden.</li>
+        <li>Dragging a stamp or a tile from the Atlas browser onto the canvas: hold <strong>Shift</strong> while you drop it to place it on a brand-new layer instead of the one you're currently on.</li>
+        <li>Selection outlines and the colour-range hover preview no longer lag or stall on large canvases.</li>
+        <li>Fixed animation frame-list rows staying the wrong size until you resized the window, when a neighboring panel changed height.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
