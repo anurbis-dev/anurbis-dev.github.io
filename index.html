@@ -721,6 +721,19 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.43.0 - 2026-08-13</h3>
+      <ul>
+        <li>New pie menus: in Settings -&gt; Hotkeys open the Pie menus tab, name a menu, bind a key, and drop commands onto the slices. Hold the key and flick toward a slice; release to confirm. Slices can show icons, text, or both.</li>
+        <li>A slice can open another pie. To go back, hover the small wedge in the sector you came from - the empty center stays free so you can cross to the opposite slice.</li>
+        <li>Settings -&gt; Appearance now has pie size, hide-empty-slices, text size and color, icon size, background color and opacity, and shadow.</li>
+        <li>Ctrl+U opens a Hue / Saturation / Brightness panel at the cursor. It recolors the current selection or the selected layers in one undo step, and closes when you move the pointer away.</li>
+        <li>Hold Alt while drawing a rectangle or ellipse to fill that stroke, even if Filled is turned off.</li>
+        <li>Drag a palette color onto the canvas to flood-fill there, using the same tolerance, contiguous/global mode, symmetry, and selection clip as the bucket tool.</li>
+        <li>Fixed: picking a tool from a pie no longer breaks Shift-smooth or the Alt eyedropper until you reload.</li>
+        <li>Fixed: Repaint's color lock no longer treats two pixels as the same color when they share RGB but differ in transparency.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.42.0 - 2026-08-12</h3>
       <ul>
         <li>Hotkeys can now be bound to mouse clicks: plain left-click stays reserved for painting and UI, but right-click, middle-click, extra mouse buttons, or a modifier held with left-click can all trigger a hotkey - with a separate toggle for "fires on click" vs "fires while held".</li>
@@ -751,26 +764,6 @@
         <li>Fixed a rare case where a dialog-free save into your working folder could silently overwrite an unrelated existing file with the same name - you're now asked to confirm first.</li>
         <li>Selecting a layer now flashes it with a soft white glow so you can instantly see which one is active - brightness adjustable in Settings -&gt; Appearance (0-200%, off at 0). The flash only fires when the Move tool auto-picks a layer under your cursor, not on every layer switch.</li>
         <li>Panning, zooming, and rotating the canvas view no longer get blocked while Animation is playing.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.37.0 - 2026-08-11</h3>
-      <ul>
-        <li>Selecting a frame in the Animation panel now automatically selects the layers linked to it, so you can start drawing right away without hunting for the right layer - works consistently whether you click, Shift-range-select, or Ctrl-toggle frames.</li>
-        <li>New Ctrl+J hotkey moves the pixels inside your selection onto a brand-new layer; hold Shift too (Ctrl+Shift+J) to pull selected pixels from every layer instead of just the current one.</li>
-        <li>Press Tab to instantly hide or show all your panels at once, for a clear, distraction-free view of the canvas.</li>
-        <li>Animation play-range commands (set start/end frame, reset range) moved from the File menu into the Animation panel's own "⋮" menu; that menu button now sits right next to its title instead of over by the close button.</li>
-        <li>Cut (Ctrl+X) now actually removes the cut pixels from the canvas instead of leaving them behind.</li>
-        <li>Moving a selection to a new layer now deselects afterward instead of leaving the old selection active.</li>
-        <li>Pasting now drops the floated selection near your cursor instead of always snapping to the top-left corner.</li>
-        <li>Fixed the "⋮" panel menu: "Restore Defaults" and a couple of other window commands could land out of order (most noticeable on the Animation panel); the common commands now always stay together at the top of the menu on every panel.</li>
-        <li>Dragging frames in the Animation timeline is much more reliable: reordering, dropping onto empty columns, moving several selected frames at once, and the drop preview under your cursor all behave correctly now (no more stray gaps, jumping strips, or lost multi-select).</li>
-        <li>Playback and the play-range markers correctly follow window/panel resizing, and playback always shows every parallel track.</li>
-        <li>Frame opacity is now set by dragging the thin bar at the top of a frame; the frame cell itself only reorders or moves it between tracks.</li>
-        <li>Grouped ("named action") frames are no longer collapsed into a single timeline cell - each frame shows on its own with its color dot.</li>
-        <li>New Settings -&gt; Timeline scrub option for play-range marker thickness.</li>
-        <li>Panels reliably reset to their default layout for your current window size when the app opens.</li>
-        <li>Clicking anywhere on the timeline seeks to that frame, and the playhead ring now shows while scrubbing too.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
