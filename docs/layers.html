@@ -151,8 +151,8 @@
         <div class="legend-item"><div class="legend-num">1</div><div><b>Toolbar</b><p>Add layer / new folder / duplicate / delete / merge down / import reference image / insert canvas as sprite layer — left to right.</p></div></div>
         <div class="legend-item"><div class="legend-num">2</div><div><b>Visibility &amp; Lock</b><p>👁 toggles visibility (Ctrl+click isolates it, hiding everything else); 🔒 blocks painting on that layer (or moving, for a reference layer). Both drag across rows to mass-toggle.</p></div></div>
         <div class="legend-item"><div class="legend-num">3</div><div><b>Layer / folder row</b><p>Drag horizontally for opacity, vertically to reorder; hold <b>Shift</b> while dragging to drop a copy. Double-click the name (or F2) to rename.</p></div></div>
-        <div class="legend-item"><div class="legend-num">4</div><div><b>🎚 Adjustments</b><p>Blend mode, brightness/contrast/hue/saturation, and tint (color × amount, multiply) — non-destructive, applied on top of the layer's pixels.</p></div></div>
-        <div class="legend-item"><div class="legend-num">5</div><div><b>ƒx Layer effects</b><p>Opens the effects popover for this layer (below). Middle-click either icon to mass-toggle every adjustment/effect on that layer without deleting them.</p></div></div>
+        <div class="legend-item"><div class="legend-num">4</div><div><b>🎚 Adjustments</b><p>Blend mode, brightness/contrast/hue/saturation, and tint (color × amount, multiply) — non-destructive, applied on top of the layer's pixels. Drag this icon onto another non-group layer to move the adjustments; Ctrl+drag (Cmd on Mac) copies them.</p></div></div>
+        <div class="legend-item"><div class="legend-num">5</div><div><b>ƒx Layer effects</b><p>Opens the effects popover for this layer (below). Drag this icon onto another non-group layer to move the effect stack; Ctrl+drag (Cmd on Mac) copies it. Middle-click either icon to mass-toggle every adjustment/effect on that layer without deleting them.</p></div></div>
       </div>
     </div>
 
@@ -189,8 +189,10 @@
         <ul>
           <li>Drag horizontally — set opacity</li>
           <li>Drag vertically — reorder (also moves in/out of folders)</li>
-          <li>Shift+drag — drop a copy (paint/sprite layers only)</li>
+          <li>Shift+drag — drop a copy (folders clone the whole nested tree)</li>
           <li>Double-click name, or F2 — rename</li>
+          <li><b>Ctrl + wheel</b> / <b>Ctrl + right-drag</b> over the Layers window — scale row previews (same feel as canvas zoom)</li>
+          <li>At minimum height the preview becomes an icon; hover it for a temporary layer-image popup</li>
         </ul>
       </div>
       <div class="info-card">
@@ -205,6 +207,7 @@
         <b>Keyboard</b>
         <ul>
           <li><b>Shift+G</b> — new folder from the current selection, grouped in place</li>
+          <li>Duplicate — copies the current multi-selection; a folder is a full nested copy (new ids)</li>
           <li><b>Ctrl+E</b> — merge down (active layer, or a multi-selection, into the layer(s) below)</li>
           <li><b>F</b> — frame the active layer (expands its folder path, scrolls it into view)</li>
         </ul>
@@ -213,6 +216,8 @@
         <b>ƒx / 🎚 icons</b>
         <ul>
           <li>Click — open the popover for that layer</li>
+          <li>Drag onto another non-group layer — move adjustments or the effect stack (empty icons do not start a drag)</li>
+          <li>Ctrl+drag (Cmd on Mac) — copy instead of move</li>
           <li>Middle-click — mass-toggle the entire stack on/off, without deleting anything</li>
         </ul>
       </div>

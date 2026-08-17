@@ -188,6 +188,7 @@
         <b>Track headers (left side)</b>
         <ul>
           <li>Sticky column beside the frame lanes: track name (double-click to rename), color swatch, eye (hide track from play/composite; <b>Ctrl+click</b> isolates like Layers), and lock (same icon styles as Layers).</li>
+          <li><b>Drag a header</b> to reorder tracks (top-level lane order). On <b>play, scrub, ←→, and export</b> that order is the canvas draw order: the top track is in front; each track still uses Layers order inside its frame. Click a frame cell to edit that frame only (Layers order).</li>
           <li>Drag the vertical separator left (~12px) to collapse the headers into a thin reopen tab; drag open or click the tab to restore.</li>
         </ul>
       </div>
@@ -199,6 +200,8 @@
           <li><b>Middle-drag</b> (no Shift) — pan the timeline freely; content is not pinned to the left/top edge.</li>
           <li><b>F</b> over the Animation panel — fit all tracks and frames to the current window size.</li>
           <li><b>Ctrl/Alt + right-drag</b> on a track: vertical scales height (<b>Shift</b> = all tracks); horizontal scales shared slot width (zoom under cursor).</li>
+          <li><b>Ctrl + wheel</b> over the Animation window scales cells proportionally (width and height together). At min/max size the page does not zoom.</li>
+          <li><b>Ctrl + right-drag</b> on Color, Layers, Stamp library, or Atlas browser scales that window's content (same feel as canvas zoom). Layers at minimum height show an icon — hover for a preview popup.</li>
           <li>Scrub ruler is fixed at the top or bottom of the timeline (Settings → Timeline scrub → position) — it does not scroll with tracks. Track headers stay locked to their lanes.</li>
           <li>Play-range markers fill the lanes viewport height and only move with horizontal scroll; color / ruler height / position live in Settings → Timeline scrub. Playback never moves vertical scroll; cannot-play toasts name the reason.</li>
           <li>Invert, speed, and ease match Settings → Canvas pan &amp; zoom (same feel as canvas drag-zoom).</li>
