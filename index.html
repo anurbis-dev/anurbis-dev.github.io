@@ -721,6 +721,17 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.45.0 - 2026-08-17</h3>
+      <ul>
+        <li>Duplicate now applies to everything selected in Layers, including folders - a folder copies its whole nested tree, and only the folder name gets " copy".</li>
+        <li>Drag a layer's 🎚 or ƒx icon onto another layer to move its adjustments or effects; hold Ctrl (Cmd on Mac) to copy them instead.</li>
+        <li>Drag Animation track headers to reorder tracks. Play, scrub, and export now draw in that order (top track in front). Clicking a single frame cell still uses Layers order.</li>
+        <li>Ctrl+wheel over the Animation window scales the frame cells.</li>
+        <li>Ctrl+right-drag over Color, Layers, Stamp library, or the Atlas browser scales that window's content - same feel as canvas zoom.</li>
+        <li>When the Layers list is very short, previews become icons; hover to pop up the layer image. The 🎚 / ƒx icons are smaller and highlight on hover.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.44.0 - 2026-08-14</h3>
       <ul>
         <li>Opening or saving a file now uses that filename in the title bar and in File -&gt; Recent, instead of staying Untitled.</li>
@@ -757,14 +768,6 @@
         <li>Brush size slider now goes up to 64 (type a number for up to 128).</li>
         <li>Fixed: Pencil now respects round brush shapes, and Pixel Perfect mode no longer erases existing artwork at stroke corners.</li>
         <li>Fixed several Animation timeline glitches: playback/scrubbing across held frames on multiple tracks, Shift-copy landing on the wrong column, and moving frames between long held cells.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.41.0 - 2026-08-12</h3>
-      <ul>
-        <li>Frame duration is now a real hold span on the Animation timeline: a frame set to 3 units is three columns wide, later frames on the same track are pushed so holds never overlap, and you can drag the left/right edges of a cell (or the duration number) to stretch or shrink it.</li>
-        <li>Play and scrub walk through every hold unit - even a single stretched frame can play - and the canvas keeps showing that frame for its full duration while the playhead moves across it.</li>
-        <li>Moving or Shift-copying frames between tracks lands on the column you drop on, including drops onto or between long held cells, without parking copies on the wrong track or cascading random shifts.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
