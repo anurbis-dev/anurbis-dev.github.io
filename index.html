@@ -721,6 +721,20 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.47.1 - 2026-08-18</h3>
+      <ul>
+        <li>Fixed: switching to the eraser mid-stroke while drawing a line, rectangle, or ellipse could leave a faint ghost pixel on screen that stuck around until you picked that shape tool again.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>1.47.0 - 2026-08-18</h3>
+      <ul>
+        <li>Painting past the edge of the canvas now keeps working the whole time you drag - the brush cursor and your off-canvas strokes stay visible instead of vanishing at the border, and that paint is kept and saved with the layer, not just when using Move.</li>
+        <li>The stamp/tile placement preview now wraps correctly across every repeat when tiled mode is on.</li>
+        <li>Shift while drawing a straight line now snaps to clean pixel-art step ratios (1:1, 1:2, 1:3...) instead of just 45° angles; the Gradient tool still snaps to 45° angles as before.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.45.0 - 2026-08-17</h3>
       <ul>
         <li>Duplicate now applies to everything selected in Layers, including folders - a folder copies its whole nested tree, and only the folder name gets " copy".</li>
@@ -742,32 +756,6 @@
         <li>The canvas pointer can be a crosshair or the current tool's icon, with an optional tool-name label next to it (Settings -&gt; Brush / stamp).</li>
         <li>Hold a hotkey (unbound by default, Settings -&gt; Hotkeys) to select the topmost layer under the cursor just by hovering.</li>
         <li>Fixed: after you move a selection once, switching layers and moving again now takes the new layer's pixels with it.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.43.0 - 2026-08-13</h3>
-      <ul>
-        <li>New pie menus: in Settings -&gt; Hotkeys open the Pie menus tab, name a menu, bind a key, and drop commands onto the slices. Hold the key and flick toward a slice; release to confirm. Slices can show icons, text, or both.</li>
-        <li>A slice can open another pie. To go back, hover the small wedge in the sector you came from - the empty center stays free so you can cross to the opposite slice.</li>
-        <li>Settings -&gt; Appearance now has pie size, hide-empty-slices, text size and color, icon size, background color and opacity, and shadow.</li>
-        <li>Ctrl+U opens a Hue / Saturation / Brightness panel at the cursor. It recolors the current selection or the selected layers in one undo step, and closes when you move the pointer away.</li>
-        <li>Hold Alt while drawing a rectangle or ellipse to fill that stroke, even if Filled is turned off.</li>
-        <li>Drag a palette color onto the canvas to flood-fill there, using the same tolerance, contiguous/global mode, symmetry, and selection clip as the bucket tool.</li>
-        <li>Fixed: picking a tool from a pie no longer breaks Shift-smooth or the Alt eyedropper until you reload.</li>
-        <li>Fixed: Repaint's color lock no longer treats two pixels as the same color when they share RGB but differ in transparency.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.42.0 - 2026-08-12</h3>
-      <ul>
-        <li>Hotkeys can now be bound to mouse clicks: plain left-click stays reserved for painting and UI, but right-click, middle-click, extra mouse buttons, or a modifier held with left-click can all trigger a hotkey - with a separate toggle for "fires on click" vs "fires while held".</li>
-        <li>Clicking now tolerates a little accidental movement before it counts as a drag, so a shaky pen tap no longer misfires as a drag and steals a click (like the middle-click colour picker) by accident.</li>
-        <li>Fixed: dragging a colour-range selection could get dropped if you tapped a tool-switch hotkey mid-drag.</li>
-        <li>Fixed: clicking inside an odd-shaped colour-range selection could try to move it instead of starting a new selection.</li>
-        <li>Fixed: the colour-range hover outline could get stuck on screen after releasing a quick tool-switch hold.</li>
-        <li>Brush size slider now goes up to 64 (type a number for up to 128).</li>
-        <li>Fixed: Pencil now respects round brush shapes, and Pixel Perfect mode no longer erases existing artwork at stroke corners.</li>
-        <li>Fixed several Animation timeline glitches: playback/scrubbing across held frames on multiple tracks, Shift-copy landing on the wrong column, and moving frames between long held cells.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
