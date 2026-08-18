@@ -157,7 +157,7 @@
       <div class="legend">
         <div class="legend-item"><div class="legend-num">1</div><div><b>＋ Save</b><p>Bakes the active pixel selection (or, with none, the whole canvas) into a stamp, cropped to its opaque bounds.</p></div></div>
         <div class="legend-item"><div class="legend-num">2</div><div><b>↑ / ↓ Export / Import</b><p>Same JSON round-trip as Brush presets, kept as a separate file/library.</p></div></div>
-        <div class="legend-item"><div class="legend-num">3</div><div><b>Stamp chip</b><p>Click selects it as the current stamp brush. Drag it straight onto the canvas to place a copy without switching tools first.</p></div></div>
+        <div class="legend-item"><div class="legend-num">3</div><div><b>Stamp chip</b><p>Click selects it as the current stamp brush. Drag it straight onto the canvas to place a copy without switching tools first. Pixels past the canvas edge stay on the layer (overflow); a tiled axis wraps instead.</p></div></div>
       </div>
     </div>
 
@@ -197,13 +197,14 @@
       <div class="info-card">
         <b>Stamp chip only</b>
         <ul>
-          <li>Drag onto the canvas — places a copy there directly, restoring the previous tool afterward</li>
+          <li>Drag onto the canvas — places a copy there directly (not clipped at the canvas edge), restoring the previous tool afterward</li>
         </ul>
       </div>
       <div class="info-card">
         <b>Atlas sprite tile</b>
         <ul>
           <li>Click — activate as the current stamp brush</li>
+          <li>Drag onto the canvas — same one-shot place as a stamp chip (overflow past the edge; tiled axes wrap)</li>
           <li>⭐ toolbar button — copy it into the permanent Stamp library</li>
         </ul>
       </div>

@@ -313,7 +313,7 @@
           <div class="tool-ico"><img src="assets/icons/stamp.png" alt=""></div>
           <div class="tool-name-row"><span class="tool-name">Stamp</span><span class="kbd">N</span></div>
         </div>
-        <p class="tool-desc">Stamps a saved image from the Stamp library panel. Dragging a stamp from the panel onto the canvas applies it once without switching tools.</p>
+        <p class="tool-desc">Stamps a saved image from the Stamp library panel (or an Atlas tile). Placement is not clipped at the canvas edge — pixels past the artboard stay on the layer as overflow (faded + dashed box only while Move is active, or live during the stroke). A tiled axis wraps instead. Dragging a stamp from the panel onto the canvas applies it once without switching tools.</p>
       </div>
 
       <div class="tool-card">
@@ -329,7 +329,7 @@
           <div class="tool-ico"><img src="assets/icons/sprite-transform.png" alt=""></div>
           <div class="tool-name-row"><span class="tool-name">Move</span><span class="kbd">V</span></div>
         </div>
-        <p class="tool-desc">Move/transform: drag moves the layer (paint or sprite). Paint pixels that leave the canvas stay on the layer and show faded while Move is active so you can pick them back; flip (Shift+H/V) mirrors canvas + overflow together. The rotate modifier turns a sprite layer; Ctrl+Alt+drag duplicates in place.</p>
+        <p class="tool-desc">Move/transform: drag moves the layer (paint or sprite). Paint pixels that leave the canvas stay on the layer and show faded (dashed box) only while Move is active, so you can pick them back; a paint stroke that continues past the edge shows those pixels until you release. Flip (Shift+H/V) mirrors canvas + overflow together. The rotate modifier turns a sprite layer; Ctrl+Alt+drag duplicates in place.</p>
       </div>
 
     </div>
