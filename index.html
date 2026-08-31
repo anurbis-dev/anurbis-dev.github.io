@@ -721,31 +721,40 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
-      <h3>1.49.5 - 2026-08-31</h3>
+      <h3>1.49.9 - 2026-08-31</h3>
       <ul>
-        <li>Fixed: a pixel-text layer (or any paint layer not on the current frame) could stay invisible right after loading a project, until you dragged its opacity slider. Loading a project now correctly restores which frame each layer was focused on.</li>
+        <li>Painting a small area no longer rebuilds the whole canvas - only the changed pixels are redrawn, so large canvases stay snappier.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.49.2 - 2026-08-27</h3>
+      <h3>1.49.8 - 2026-08-31</h3>
       <ul>
-        <li>Fixed: adjusting Hue/Saturation/Brightness with the Ctrl+U quick panel during a Process Recorder take could vanish from the recording. It's now captured and replayed live, so playing back or exporting the take shows the adjustment happening in motion, not just a before/after jump.</li>
+        <li>Hide, lock, layer/frame opacity, isolate, play range, and animation-track visibility/lock now undo with Ctrl+Z.</li>
+        <li>Onion-skin neighboring frames stay cheaper to redraw - they are no longer fully recolored on every canvas refresh.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.49.0 - 2026-08-27</h3>
+      <h3>1.49.7 - 2026-08-31</h3>
       <ul>
-        <li>Process Recorder timelapse exports now show the canvas's real background (checkerboard or your chosen color) and the pixel grid when it's visible, instead of always flattening to plain white with no grid.</li>
-        <li>Process Recorder export can now capture at the size you're currently viewing the canvas at - with your pan and zoom baked in - instead of only the canvas's native resolution. Pick it from the new "Capture size" option.</li>
-        <li>Max length and Hold last frame in the Process Recorder export section are now free-form number sliders instead of a fixed list of presets.</li>
-        <li>Fixed: opening or playing back a recording in Process Recorder could permanently replace your actual project with the recording's content, with no way back. Stopping playback (or export) now always restores your real project exactly as it was.</li>
+        <li>Sprite layers that play on the canvas hitch less - the editor no longer throws away every cached animation frame on each tick.</li>
+        <li>Ping-pong and reverse GIF/PNG exports keep sprite instances on the same timeline column instead of walking extra frames on the way back.</li>
+        <li>Process Recorder GIF timelapse no longer breaks if the recording resizes the canvas mid-clip.</li>
+        <li>The pixel grid at high zoom, and dragging a floating selection, should feel lighter.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.48.0 - 2026-08-27</h3>
+      <h3>1.49.6 - 2026-08-31</h3>
       <ul>
-        <li>Process Recorder timelapse export can now save as an MP4 video, not just an animated GIF - pick the format, a maximum length, and how long to hold on the final frame, then export with one button.</li>
-        <li>Process Recorder now keeps every recording you make or load in a list for the session, instead of just the latest one - pick which one to play, save, or export from a dropdown. Save no longer happens automatically every time you stop recording.</li>
+        <li>Loading another project (File -&gt; Open or Recent) now warns if the current one has unsaved changes; closing the browser tab does too.</li>
+        <li>Frame names, hidden frames, and frame opacity now survive save and reload.</li>
+        <li>Starting a two-finger pinch no longer silently undoes your last real stroke.</li>
+        <li>Undo, switching canvas tabs, or opening a file while still drawing no longer leaves a half-finished stroke outside Undo.</li>
+        <li>PNG export no longer hangs forever on a canvas that's too large - you get an error toast instead.</li>
+        <li>Importing a GIF onto a larger canvas no longer shrinks the canvas to the GIF size.</li>
+        <li>Playing or exporting a Process Recorder take no longer disconnects Save from the file you already had open.</li>
+        <li>Isolating a layer (Ctrl+click the eye) no longer leaks that hide/show state onto other canvas tabs.</li>
+        <li>Deleting frames while Play is running no longer sticks the timeline on missing frames.</li>
+        <li>Brush hover, pinch-zoom, and the corner zoom handle no longer rebuild the whole canvas every move - they should feel smoother.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
