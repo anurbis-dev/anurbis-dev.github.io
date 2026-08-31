@@ -721,6 +721,15 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.50.0 - 2026-08-31</h3>
+      <ul>
+        <li>Drag an image or GIF from your file system straight onto the editor to import it - an image becomes a paint layer, a GIF becomes an animation. An on-screen prompt shows how the drop will be handled; unsupported file types are rejected with a clear message.</li>
+        <li>Import -&gt; Image now creates a regular paint layer instead of a reference-only layer, so it behaves like any other layer right away. The separate "Parse reference -&gt; layer" step is gone since it's no longer needed.</li>
+        <li>Fixed: erasing could sometimes leave faint leftover color behind until a larger repaint cleared it.</li>
+        <li>Fixed: Ctrl+right-click-dragging to resize a floating palette window could instead resize the main Color panel.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.49.9 - 2026-08-31</h3>
       <ul>
         <li>Painting a small area no longer rebuilds the whole canvas - only the changed pixels are redrawn, so large canvases stay snappier.</li>
@@ -740,21 +749,6 @@
         <li>Ping-pong and reverse GIF/PNG exports keep sprite instances on the same timeline column instead of walking extra frames on the way back.</li>
         <li>Process Recorder GIF timelapse no longer breaks if the recording resizes the canvas mid-clip.</li>
         <li>The pixel grid at high zoom, and dragging a floating selection, should feel lighter.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.49.6 - 2026-08-31</h3>
-      <ul>
-        <li>Loading another project (File -&gt; Open or Recent) now warns if the current one has unsaved changes; closing the browser tab does too.</li>
-        <li>Frame names, hidden frames, and frame opacity now survive save and reload.</li>
-        <li>Starting a two-finger pinch no longer silently undoes your last real stroke.</li>
-        <li>Undo, switching canvas tabs, or opening a file while still drawing no longer leaves a half-finished stroke outside Undo.</li>
-        <li>PNG export no longer hangs forever on a canvas that's too large - you get an error toast instead.</li>
-        <li>Importing a GIF onto a larger canvas no longer shrinks the canvas to the GIF size.</li>
-        <li>Playing or exporting a Process Recorder take no longer disconnects Save from the file you already had open.</li>
-        <li>Isolating a layer (Ctrl+click the eye) no longer leaks that hide/show state onto other canvas tabs.</li>
-        <li>Deleting frames while Play is running no longer sticks the timeline on missing frames.</li>
-        <li>Brush hover, pinch-zoom, and the corner zoom handle no longer rebuild the whole canvas every move - they should feel smoother.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
