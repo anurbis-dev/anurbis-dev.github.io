@@ -721,41 +721,31 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
-      <h3>1.47.1 - 2026-08-18</h3>
+      <h3>1.49.5 - 2026-08-31</h3>
       <ul>
-        <li>Fixed: switching to the eraser mid-stroke while drawing a line, rectangle, or ellipse could leave a faint ghost pixel on screen that stuck around until you picked that shape tool again.</li>
+        <li>Fixed: a pixel-text layer (or any paint layer not on the current frame) could stay invisible right after loading a project, until you dragged its opacity slider. Loading a project now correctly restores which frame each layer was focused on.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.47.0 - 2026-08-18</h3>
+      <h3>1.49.2 - 2026-08-27</h3>
       <ul>
-        <li>Painting past the edge of the canvas now keeps working the whole time you drag - the brush cursor and your off-canvas strokes stay visible instead of vanishing at the border, and that paint is kept and saved with the layer, not just when using Move.</li>
-        <li>The stamp/tile placement preview now wraps correctly across every repeat when tiled mode is on.</li>
-        <li>Shift while drawing a straight line now snaps to clean pixel-art step ratios (1:1, 1:2, 1:3...) instead of just 45° angles; the Gradient tool still snaps to 45° angles as before.</li>
+        <li>Fixed: adjusting Hue/Saturation/Brightness with the Ctrl+U quick panel during a Process Recorder take could vanish from the recording. It's now captured and replayed live, so playing back or exporting the take shows the adjustment happening in motion, not just a before/after jump.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.45.0 - 2026-08-17</h3>
+      <h3>1.49.0 - 2026-08-27</h3>
       <ul>
-        <li>Duplicate now applies to everything selected in Layers, including folders - a folder copies its whole nested tree, and only the folder name gets " copy".</li>
-        <li>Drag a layer's 🎚 or ƒx icon onto another layer to move its adjustments or effects; hold Ctrl (Cmd on Mac) to copy them instead.</li>
-        <li>Drag Animation track headers to reorder tracks. Play, scrub, and export now draw in that order (top track in front). Clicking a single frame cell still uses Layers order.</li>
-        <li>Ctrl+wheel over the Animation window scales the frame cells.</li>
-        <li>Ctrl+right-drag over Color, Layers, Stamp library, or the Atlas browser scales that window's content - same feel as canvas zoom.</li>
-        <li>When the Layers list is very short, previews become icons; hover to pop up the layer image. The 🎚 / ƒx icons are smaller and highlight on hover.</li>
+        <li>Process Recorder timelapse exports now show the canvas's real background (checkerboard or your chosen color) and the pixel grid when it's visible, instead of always flattening to plain white with no grid.</li>
+        <li>Process Recorder export can now capture at the size you're currently viewing the canvas at - with your pan and zoom baked in - instead of only the canvas's native resolution. Pick it from the new "Capture size" option.</li>
+        <li>Max length and Hold last frame in the Process Recorder export section are now free-form number sliders instead of a fixed list of presets.</li>
+        <li>Fixed: opening or playing back a recording in Process Recorder could permanently replace your actual project with the recording's content, with no way back. Stopping playback (or export) now always restores your real project exactly as it was.</li>
       </ul>
     </div>
     <div class="card">
-      <h3>1.44.0 - 2026-08-14</h3>
+      <h3>1.48.0 - 2026-08-27</h3>
       <ul>
-        <li>Opening or saving a file now uses that filename in the title bar and in File -&gt; Recent, instead of staying Untitled.</li>
-        <li>File -&gt; Recent keeps each project as its own slot even when several are still named Untitled. Save updates that slot; Save As makes a new one.</li>
-        <li>Outline effects have a Holes toggle (on by default): the outline also traces empty pixels inside a shape; turn it off for the outer edge only.</li>
-        <li>Paint you drag off the canvas stays on the layer and is saved with the project. The Move tool shows it faded so you can grab it and pull it back.</li>
-        <li>You can pick that off-canvas paint from outside the artboard - hover-pick and the layer flash work there too.</li>
-        <li>The canvas pointer can be a crosshair or the current tool's icon, with an optional tool-name label next to it (Settings -&gt; Brush / stamp).</li>
-        <li>Hold a hotkey (unbound by default, Settings -&gt; Hotkeys) to select the topmost layer under the cursor just by hovering.</li>
-        <li>Fixed: after you move a selection once, switching layers and moving again now takes the new layer's pixels with it.</li>
+        <li>Process Recorder timelapse export can now save as an MP4 video, not just an animated GIF - pick the format, a maximum length, and how long to hold on the final frame, then export with one button.</li>
+        <li>Process Recorder now keeps every recording you make or load in a list for the session, instead of just the latest one - pick which one to play, save, or export from a dropdown. Save no longer happens automatically every time you stop recording.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
