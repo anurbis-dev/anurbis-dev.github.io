@@ -721,6 +721,15 @@
     <div class="grid" style="grid-template-columns:1fr;gap:14px;max-width:640px;margin:0 auto">
 <!-- WHATS_NEW:START -->
     <div class="card">
+      <h3>1.51.0 - 2026-09-01</h3>
+      <ul>
+        <li>Paste (Ctrl+V) an image copied from outside the editor straight in as a new paint layer, fit and centered - just like dragging a file in. Pasting inside the editor still works as before.</li>
+        <li>Press <strong>H</strong> or <strong>Y</strong> to flip the selected layer(s) horizontally or vertically from any tool, no need to switch to Move first.</li>
+        <li>Press <strong>\</strong>* to isolate the active layer (hide all others), press again to bring them back.</li>
+        <li>Fixed: moving or transforming a floating selection could briefly paint it on top of every layer instead of staying at its own layer's position in the stack.</li>
+      </ul>
+    </div>
+    <div class="card">
       <h3>1.50.0 - 2026-08-31</h3>
       <ul>
         <li>Drag an image or GIF from your file system straight onto the editor to import it - an image becomes a paint layer, a GIF becomes an animation. An on-screen prompt shows how the drop will be handled; unsupported file types are rejected with a clear message.</li>
@@ -740,15 +749,6 @@
       <ul>
         <li>Hide, lock, layer/frame opacity, isolate, play range, and animation-track visibility/lock now undo with Ctrl+Z.</li>
         <li>Onion-skin neighboring frames stay cheaper to redraw - they are no longer fully recolored on every canvas refresh.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>1.49.7 - 2026-08-31</h3>
-      <ul>
-        <li>Sprite layers that play on the canvas hitch less - the editor no longer throws away every cached animation frame on each tick.</li>
-        <li>Ping-pong and reverse GIF/PNG exports keep sprite instances on the same timeline column instead of walking extra frames on the way back.</li>
-        <li>Process Recorder GIF timelapse no longer breaks if the recording resizes the canvas mid-clip.</li>
-        <li>The pixel grid at high zoom, and dragging a floating selection, should feel lighter.</li>
       </ul>
     </div>
     <!-- WHATS_NEW:END -->
