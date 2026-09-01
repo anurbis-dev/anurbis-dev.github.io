@@ -204,7 +204,7 @@
     </div>
 
     <h2>Select/move: the transform frame</h2>
-    <p class="section-sub">All three tools hand off into this same floating frame once a selection exists — shown here for a plain rectangle. The dashed mint square is the rigid transform frame; the dashed gold line traces the actual selected pixels. For a rectangular marquee the two coincide — a rotated or lasso-shaped selection is where they visibly diverge.</p>
+    <p class="section-sub">All three tools hand off into this same floating frame once a selection exists — shown here for a plain rectangle. The dashed mint square is the rigid transform frame; the dashed gold line traces the actual selected pixels. For a rectangular marquee the two coincide — a rotated or lasso-shaped selection is where they visibly diverge. While you move or transform, the pixels stay on their layer (layers above still cover them); only the mint frame and gold outline sit on top.</p>
     <div class="shot-row">
       <div class="hotspot-wrap">
         <img src="assets/demo/select.png" alt="Selection transform frame with handles and rotate stick" width="340" height="340">
@@ -255,14 +255,14 @@
         <b>Clipboard &amp; contents</b>
         <ul>
           <li><b>Ctrl+C</b> / <b>Ctrl+X</b> — copy / cut the selection</li>
-          <li><b>Ctrl+V</b> — paste at the canvas origin (0,0) and switch to Select</li>
+          <li><b>Ctrl+V</b> — paste the copied selection (floated, centered on the cursor) and switch to Select; an OS clipboard image becomes a new paint layer instead</li>
           <li><b>Delete</b> — clear the selection's contents</li>
         </ul>
       </div>
       <div class="info-card">
         <b>Transform the floating selection</b>
         <ul>
-          <li><b>Shift+H</b> / <b>Shift+V</b> — mirror horizontally / vertically</li>
+          <li><b>Shift+H</b> / <b>Shift+V</b> — mirror horizontally / vertically (with no marquee these flip the selected layers instead)</li>
           <li><b>Ctrl+]</b> / <b>Ctrl+[</b> — rotate 90° clockwise / counter-clockwise</li>
         </ul>
       </div>
