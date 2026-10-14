@@ -324,10 +324,18 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   font-size:calc(40px*var(--ui)); font-weight:900; letter-spacing:-.02em; text-shadow:0 4px 24px rgba(40,10,60,.45); color:var(--txt); --sw:.1em;
   opacity:0; transform:translateY(10px) scale(.96); transition:opacity .35s ease, transform .35s ease;
 }
-#smart{ position:fixed; left:0; top:0; z-index:3; pointer-events:none; visibility:hidden; width:calc(34px*var(--ui)); height:calc(34px*var(--ui)); border-radius:50%;
+#smart{ position:fixed; left:0; top:0; z-index:3; cursor:pointer; touch-action:none; visibility:hidden; width:calc(34px*var(--ui)); height:calc(34px*var(--ui)); border-radius:50%;
   display:grid; place-items:center; background:#ffd23f; color:#5a3300; font-size:calc(24px*var(--ui)); font-weight:900; line-height:1; box-shadow:0 3px 10px rgba(40,10,60,.4), inset 0 -3px 0 rgba(0,0,0,.12); will-change:transform; }
 #smart.abil{ border-radius:0; width:calc(40px*var(--ui)); height:calc(36px*var(--ui)); padding-top:calc(8px*var(--ui)); box-sizing:border-box; background:#7cf0a0; color:#0d4a2a;
   clip-path:polygon(50% 0,100% 100%,0 100%); box-shadow:none; }
+#smart::after{ content:''; position:absolute; inset:calc(-12px*var(--ui)); }   /* a bigger tap target than the bubble */
+#say{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 19%); transform:translate(-50%,-8px); z-index:4; pointer-events:none;
+  max-width:min(86vw,420px*var(--ui)); box-sizing:border-box; padding:calc(10px*var(--ui)) calc(18px*var(--ui)); border-radius:calc(16px*var(--ui));
+  background:var(--panel); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--txt); text-align:center; text-wrap:balance;
+  font-size:calc(16px*var(--ui)); font-weight:800; line-height:1.3; opacity:0; transition:opacity .35s ease, transform .35s ease; }
+#say.show{ opacity:1; transform:translate(-50%,0); }
+#say small{ display:block; font-size:calc(11px*var(--ui)); font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.7; margin-bottom:.2em; }
+body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #toast small{ display:block; margin-top:.3em; font-size:calc(21px*var(--ui)); line-height:1.2; font-weight:800; opacity:.8; letter-spacing:0; }
 #toast.show{ opacity:1; transform:none; }
 /* A newer version is out (verCheck in js/start.js): a strip at the top, above everything but the beta form; not modal */
@@ -579,7 +587,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   .xgo{ min-height:0; gap:1px; padding-top:clamp(4px,1.2vh,8px); padding-bottom:clamp(4px,1.2vh,8px); } .xgo b{ font-size:15px; } .xgo small, .xgo span{ font-size:12px; }
   .xbox > .xin > .cta{ height:clamp(36px,10vh,48px); } }
 @media (prefers-reduced-motion: reduce){ .xbox,.xrow,.xask{ transition:none !important; animation:none !important; } }
-@media (prefers-reduced-motion: reduce){ .logo,.tbox .tap,#toast,#hint,#sky i,.overlay,.overlay .card,.overlay .tbox,#title .tbox,#title::after,.btn,#stats .card > *,#stats .stbox > .mhead,.stlife,.stlife > div,.lcube,.stbar *,#hudL > *,.aglow::before,.aglow,.ainfo > *,.afly,.ainfo,.alore{ transition:none !important; animation:none !important; } }
+@media (prefers-reduced-motion: reduce){ .logo,.tbox .tap,#toast,#say,#hint,#sky i,.overlay,.overlay .card,.overlay .tbox,#title .tbox,#title::after,.btn,#stats .card > *,#stats .stbox > .mhead,.stlife,.stlife > div,.lcube,.stbar *,#hudL > *,.aglow::before,.aglow,.ainfo > *,.afly,.ainfo,.alore{ transition:none !important; animation:none !important; } }
 @media (max-height:460px){ #hint{ font-size:13px; padding:8px 12px; } .title b{ font-size:20px; } #toast{ top:18%; font-size:32px; } }
 
 /* Language on the title: a globe at the bottom centre unfolds a row of flags (the same choice as in the settings) */
@@ -670,6 +678,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 <div id="toast" class="otl" aria-live="polite"></div>
 <!--web--><div id="upd" role="status" hidden><p><b data-t>A new version of the game is out</b><small data-t>Reload the page to get it — your progress is saved.</small></p><button id="updGo" data-t>Reload</button><button id="updX" aria-label="Later" data-ta>×</button></div><!--/web-->
 <div id="smart" aria-hidden="true">!</div>
+<div id="say" aria-live="polite"></div>
 <div id="lvIntro" class="otl" aria-hidden="true"><b id="liName"></b></div>
 <div id="wipe"></div>
 <div id="lvw"></div>
@@ -1000,6 +1009,11 @@ const L10N={
     "在<b>低矮的顶</b>下（桥、木板、岩壁里的凹洞）方块无法翻滚——用<b>冲刺</b>滑进去，里面滑动手指会让它滑行。跳跃高度上的凹洞：<b>跳起时滑动</b>。岩壁上的裂块后面可能藏着<b>隧道</b>",
     "<b>低い天井</b>（橋、板、岩のくぼみ）の下ではキューブは転がれない——<b>ダッシュ</b>で滑り込もう。中ではスワイプで滑って進む。ジャンプの高さにあるくぼみへは<b>ジャンプ中にスワイプ</b>。岩のひびの入ったブロックの奥に<b>トンネル</b>が隠れていることも",
     "<b>낮은 지붕</b>(다리, 널빤지, 바위 틈) 아래에서는 큐브가 구를 수 없다 — <b>돌진</b>으로 미끄러져 들어가고, 안에서는 스와이프로 미끄러져 움직인다. 점프 높이의 틈에는 <b>점프 중 스와이프</b>. 바위의 금 간 블록 뒤에 <b>터널</b>이 숨어 있을 수 있다"],
+  "Something is hidden nearby…":["Рядом что-то спрятано…","Hay algo escondido cerca…","Tem algo escondido por perto…","Hier in der Nähe ist etwas versteckt…","Quelque chose est caché tout près…","附近藏着什么东西……","近くに何か隠れている…","근처에 뭔가 숨겨져 있다…"],
+  "Try knocking it out with a slam?…":["Попробовать выбить ударом?…","¿Y si lo sacas de un golpe?…","Que tal tirar com uma pancada?…","Vielleicht mit einem Stampfer herausschlagen?…","Et si on le délogeait d'un coup ?…","试试用重击把它砸出来？……","叩きつけて出してみる？…","내려찍어서 꺼내 볼까?…"],
+  "Shake the plants?…":["Потрясти растительность?…","¿Sacudir las plantas?…","Sacudir as plantas?…","Die Pflanzen schütteln?…","Secouer les plantes ?…","摇一摇植物？……","草木を揺らしてみる？…","식물을 흔들어 볼까?…"],
+  "To the ship":["Кораблю","A la nave","Para a nave","An das Schiff","Au vaisseau","致飞船","船へ","우주선에게"],
+  "I'm here. Waiting for the shuttle…":["Я на месте, жду челнок…","Estoy en el punto. Espero la lanzadera…","Cheguei. Aguardando a nave…","Bin am Ziel. Warte auf das Shuttle…","Je suis sur place. J'attends la navette…","我已到位，等待穿梭机……","到着した。シャトルを待っている…","도착했다. 셔틀을 기다리는 중…"],
   "Too low to roll":["Слишком низко, не перекатиться","Demasiado bajo para rodar","Baixo demais para rolar","Zu niedrig zum Rollen","Trop bas pour rouler","太低了，滚不过去","低すぎて転がれない","너무 낮아서 구를 수 없다"],
   "Dash to slide under":["Въезжай рывком","Entra con una carrera","Entre com uma arrancada","Mit einem Sprint hineinrutschen","Entre d'une ruée","用冲刺滑进去","ダッシュで滑り込もう","돌진으로 미끄러져 들어가자"],
   "hMound":["<b>Сугроб</b> или <b>бархан</b> преграждает путь — пробей его <b>рывком</b>. Под ним может быть что-то спрятано",
@@ -14321,7 +14335,8 @@ function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
   lvSave((cur+1)%N); starsProg=bankStars();
-  const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
+  after(.5,()=>{ if(state==='win') smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); });   // a radio line to the ship until it takes the cube
+  const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
 }
 /* =====================================================================
    WARPS — cave doors, sublevel doors and portal pads as free objects
@@ -19399,7 +19414,7 @@ function loadLevel(i,retry,defer,sv){
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
   if(!defer) startLevel();
   if(sv===true) subPlace();                                            // at the door it came through, with the run's lives and time ('fb' — a feedback replay places the cube itself)
-  hudTitle(); updateStars(); introHide(); hintClear(); toastTap(true); hudLeft(!!retry); hudArt();   // a new level: the HUD corner waits for the intro
+  hudTitle(); updateStars(); introHide(); hintClear(); toastTap(true); smartSayOff(); hudLeft(!!retry); hudArt();   // a new level: the HUD corner waits for the intro
   camRc=null; pan.set(0,0,0); zoomT=1; cam.zoom=1; cam.updateProjectionMatrix(); const cv=def.cam||{}; camBase=cv.az!=null?cv.az*Math.PI/180:STEP; el=cv.el!=null?cv.el*Math.PI/180:EL0; camLeadK=cv.lead||0; camLeadD=camLead=camLeadA=0; camLeadX=null;   // def.cam {az, el} in degrees: a level's own view (a side-scroller — az 0, low el)
   az=azT=camBase; camTw=null; updateCam(true);   // the default camera on every load (a retry too)
   if(!retry && !defer) announce();
@@ -19780,11 +19795,20 @@ function updateGust(){
    It points at hidden loot within DIG_R: buried stars a slam would knock out, loot inside an object (a bush, a tree, a lamp, a rock, a crate…)
    and stars under a cover or an unbroken slab; smartAlert() is the general call for other hints.
    A hidden ability nearby (SMART_ABIL: a granite rock that leaves stone corners, even under a mound) is told apart: a "!" in a triangle and a happy jingle.
-   The alert repeats at most every SMART_CD s while the cube stays in the zone; leaving it resets the timer
+   The alert repeats at most every SMART_CD s while the cube stays in the zone; leaving it resets the timer.
+   A tap on the bubble shows a plate (smartSay): first "Something is hidden nearby…", the next taps — how to get it (smartKind: 'slam' — buried,
+   in a rock, a crate, a mound, under a cover or a slab; 'shake' — in a bush, a tree, a lamp); the count resets with a new zone
    ===================================================================== */
-const SMART_CD=15, SMART_SHOW=2.6, SMART_OUT=.7;                      // cooldown, how long the bubble stays, extra radius to leave the zone (no flicker on the edge)
-let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1;
-const smartEl=$('smart');
+const SMART_CD=15, SMART_SHOW=6, SMART_OUT=.7, SAY_MS=3200;            // cooldown, how long the bubble stays, extra radius to leave the zone (no flicker on the edge), the plate's time
+let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1, smartKind='slam', smartTaps=0;
+const smartEl=$('smart'), sayEl=$('say');
+/* The plate: a short line in a panel near the top (head — a small caption above); ms 0 — stays until smartSayOff */
+function smartSay(t,head,ms=SAY_MS){ const f=document.createDocumentFragment();
+  if(head) f.append(Object.assign(document.createElement('small'),{ textContent:head })); f.append(t); toastOn(sayEl,f,null,ms); }
+function smartSayOff(){ toastOff(sayEl); }
+smartEl.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); if(smartT<0 || paused || inputOff()) return;
+  SND.init(); SND.uiTap(.8); smartTaps++; smartT=Math.min(smartT,.5);   // a tap keeps the bubble up for another round
+  smartSay(smartTaps<2 ? loc('Something is hidden nearby…') : smartKind==='shake' ? loc('Shake the plants?…') : loc('Try knocking it out with a slam?…')); });
 function smartSet(on){ smartOn=!!on; setTg('tgSmart',smartOn); if(!smartOn) smartHide(); }
 $('tgSmart').onclick=()=>{ smartSet(!smartOn); LS.set('cube-smart',smartOn?'1':'0'); };
 function smartHide(){ smartT=-1; smartEl.style.visibility='hidden'; }
@@ -19795,24 +19819,27 @@ function smartHere(x,z,y,base,r){ return y!==null && Math.hypot(x-P.x,z-P.z)<=r 
 const SMART_ABIL=[ o=>(o.granite || o.under?.granite) && !P.studs ];
 function smartAbil(r){ const base=digBase(P.x,P.z,P.l);
   for(const k in obst){ const o=obst[k]; if(!SMART_ABIL.some(f=>f(o))) continue;
-    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) return true; }
-  return false; }
-function smartNear(r){ const base=digBase(P.x,P.z,P.l);
-  for(const k in buried) if(digDist(k,buried[k],P.x,P.z,base,r)>=0) return true;
+    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) return 'slam'; }
+  return null; }
+/* the nearest hidden loot within r: how to get it ('slam' | 'shake') or null */
+function smartNear(r){ const base=digBase(P.x,P.z,P.l); let best=null, bd=1e9;
+  const put=(x,z,how)=>{ const d=Math.hypot(x-P.x,z-P.z); if(d<bd){ bd=d; best=how; } };
+  for(const k in buried){ const s=buried[k]; if(digDist(k,s,P.x,P.z,base,r)>=0) put(s.x,s.z,'slam'); }
   for(const k in obst){ const o=obst[k], L=loot[o.lk||k]; if(!L || L.done || buried[o.lk||k]) continue;   // loot inside an object (a pushed one carries it, lk)
-    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) return true; }
+    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) put(x,z,SHAKY.includes(o.type)?'shake':'slam'); }
   for(const k in stars){ const s=stars[k]; if(s.got || s.kept || s.dig || s.loot || s.virt || s.hang!=null || !hiddenAt(K(s.x,s.z))) continue;   // a star under a cover or a slab
-    if(smartHere(s.x,s.z,floorH(s.x,s.z),base,r)) return true; }
-  return false; }
+    if(smartHere(s.x,s.z,floorH(s.x,s.z),base,r)) put(s.x,s.z,'slam'); }
+  return best; }
 const _sv2=new V3();
 function updateSmart(){
   if(!smartOn || state==='intro') return smartHide();
   const calm=!paused && !inputOff() && state!=='dead' && state!=='win' && state!=='tele';
   if(calm){
     const out=r=>smartZone===r ? DIG_R+SMART_OUT : DIG_R;           // the zone of the kind already shown is left a little further out
-    const z=smartAbil(out('abil')) ? 'abil' : smartNear(out('loot')) ? 'loot' : null;   // an ability outranks loot
-    if(z){ if(smartZone!==z){ smartZone=z; smartCd=0; } smartCd-=dt; if(smartCd<=0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
-    else { smartZone=null; smartCd=0; }
+    const a=smartAbil(out('abil')), n=a ? null : smartNear(out('loot'));   // an ability outranks loot
+    const z=a ? 'abil' : n ? 'loot' : null;
+    if(z){ smartKind=a||n; if(smartZone!==z){ smartZone=z; smartCd=0; smartTaps=0; } smartCd-=dt; if(smartCd<=0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
+    else { smartZone=null; smartCd=0; smartTaps=0; }
   }
   if(smartT<0) return;
   if(paused){ smartEl.style.visibility='hidden'; return; }
