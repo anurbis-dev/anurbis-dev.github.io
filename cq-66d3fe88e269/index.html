@@ -826,7 +826,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.94.1';
+const VERSION = '1.95.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1845,7 +1845,7 @@ const SND = (() => {
   let rk=1;                                                          // pitch factor of the action sound being built (see VARY), 1 otherwise
   let lead=0;                                                        // tone/noise start this much later than asked (a menu cue: see uiPlay)
   const busy=()=>live>=VOICES;
-  const holds = new Set();          // reasons for silence: 'menu', 'hidden'
+  const holds = new Set();          // reasons for silence: 'menu', 'hidden', 'fb' (the beta feedback form: the output itself goes silent)
   const busOf = k => k==='mus'?musBus:k==='amb'?ambBus:k==='ui'?uiBus:sfxBus;
   const verbOf = k => k==='mus'?verbM:k==='amb'?verbA:verbS;
   const BK = { m:'mus', a:'amb', s:'sfx', u:'ui' };                          // short bus names in sound options → volume keys
@@ -2315,6 +2315,7 @@ const SND = (() => {
     holdAt(g,t);
     // ctx.state stays 'running' until suspend() settles: resume unconditionally, and re-check once the suspend is done
     if(tuneBus) tuneBus.gain.setTargetAtTime(holds.has('hidden')?0:VOL.mus*BASE.mus,t,.15);   // the artifact tune skips the master, but not a hidden tab
+    holdAt(boost.gain,t); boost.gain.setTargetAtTime(holds.has('fb')?0:GAIN,t,.12);   // the beta feedback form: everything silent (the title's music, the tune and the menu cues skip the master)
     if(holds.size){ g.setTargetAtTime(0,t,.15); g.setValueAtTime(0,t+MUTE_CUT-.1);
       cutT=setTimeout(()=>{ if(holds.size && !cut){ try{ master.disconnect(boost); cut=true; }catch(e){} } },MUTE_CUT*1000); sleepSoon();
       if(!on && [...holds].every(r=>r==='art' || r==='title')) wake(); }   // back from a hidden tab over the title/award: their own sounds play again
@@ -2677,7 +2678,7 @@ const SND = (() => {
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
     fx[n]=(...a)=>{ const p=rk; rk=1+rand(-VARY,VARY); try{ return f(...a); } finally{ rk=p; } }; }
   return { init, ready, hold, titleAmb, setAmbient, setMood, setVol, setCave, slip, mach, gust, geyser, get caveMix(){ return cave&&cave.on ? cave.i.gain.value : 0; },
-    get loops(){ const o={}; for(const k in loops) o[k]=loops[k].v; return o; }, vol:VOL, get step(){return step;}, get running(){return !!ctx;}, get level(){ return ctx?master.gain.value:0; }, get ctxState(){ return ctx?ctx.state:'none'; }, get cut(){ return cut; }, get tune(){ return tune ? tune.i : -1; }, lat:LAT, get ui(){return uiN;}, get lastDeath(){return lastD;}, ...fx };
+    get loops(){ const o={}; for(const k in loops) o[k]=loops[k].v; return o; }, vol:VOL, get step(){return step;}, get running(){return !!ctx;}, get level(){ return ctx?master.gain.value:0; }, get ctxState(){ return ctx?ctx.state:'none'; }, get cut(){ return cut; }, get out(){ return ctx?boost.gain.value:0; }, get tune(){ return tune ? tune.i : -1; }, lat:LAT, get ui(){return uiN;}, get lastDeath(){return lastD;}, ...fx };
 })();
 
 /* =====================================================================
@@ -18998,7 +18999,7 @@ function updatePause(){
   document.body.classList.toggle('mopen', paused && ov?.id==='menu');   // the menu button on top — closes
   document.body.classList.toggle('artopen', paused && ov?.id==='art');
   SND.hold('menu', paused && !(ov?.id==='menu' && mSec==='settings') && ov?.id!=='stats' && ov?.id!=='art' && ov?.id!=='xp');   // the expedition screen keeps the title's music (the game is held by 'title' anyway)
-  SND.hold('art', paused && ov?.id==='art');
+  SND.hold('art', paused && ov?.id==='art'); SND.hold('fb', fbPaused);
   const mo=paused && ov?.id==='menu'; if(mo!==menuOn){ menuOn=mo; mo ? SND.pauseOn() : SND.pauseOff(); }   // the pause menu opens / the game resumes
   if(paused) dropInput();
   modalSync(ov);
@@ -19107,7 +19108,7 @@ function applyLang(){
   [...$('langRow').children].forEach((b,i)=>b.classList.toggle('on',LANGS[i][0]===lang));
   [...$('tlRow').children].forEach((b,i)=>b.classList.toggle('on',LANGS[i][0]===lang));
   hudTitle(); livesLabel(); if($('title').classList.contains('opt')){ xRows(); xNewTxt(); } const h=$('hint'); if(!h.classList.contains('dim') && h.textContent) h.textContent=lvHint(curDef());
-  lvRows(); if(lvList) requestAnimationFrame(lvListPaint); moreAll(); }
+  lvRows(); if(lvList) requestAnimationFrame(lvListPaint); moreAll(); document.dispatchEvent(new Event('cube-lang')); }   // the beta's own UI (beta/feedback.js) follows
 function setLang(l){ if(!LANGS.some(x=>x[0]===l)) return; lang=l; LS.set('cube-lang',l); applyLang(); }
 applyLang(); modalSync(document.querySelector('.overlay:not(.hidden)'));
 /* The camera button can be switched off (a device setting, cube-cam) */
@@ -19269,8 +19270,9 @@ function toTitle(){                                                    // the me
 }
 /* Closed beta (BETA builds only): the title opens with a confidentiality notice instead of "Tap anywhere to play"; "I agree" is that first tap.
    Shown at every launch, not after End expedition (the class stays off) */
-function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot')) return; t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); }
-if(BETA && !FBS){ $('title').classList.add('beta'); $('tBeta').hidden=false; }
+function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot') || $('tBetaOk').disabled) return;
+  t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); }   // disabled: the tester has not signed in yet (beta/feedback.js)
+if(BETA && !FBS){ $('title').classList.add('beta'); $('tBeta').hidden=false; $('tBetaOk').disabled=true; }   // beta/feedback.js asks for the tester's nickname, then lets it go
 $('tBetaOk').onclick=e=>{ e.stopPropagation(); betaAgree(e); };
 $('title').onclick=e=>{ if(xMode){ if(!e.target.closest('#xBox')) xBack(); } else titleTap(e); };   // a tap beside the list and its button hides it: back to the start screen
 $('xNew').onclick=()=>{ SND.uiTap(); newExp(); };
@@ -20114,7 +20116,7 @@ if(BETA && !FBS){
   window.__cubeFb={ snap:fbSnap, shot:fbShot, get lang(){ return lang; }, ver:VERSION,
     pause(on){ fbPaused=!!on; updatePause(); } };
   const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION; s.onload=then; s.onerror=then; document.head.append(s); };
-  js('config.js',()=>js('feedback.js'));   // the worker's address, then the button
+  js('config.js',()=>js('feedback.js',()=>{ if(!window.__cubeFb.up) $('tBetaOk').disabled=false; }));   // the worker's address, then the button and the sign-in (failed to load — the notice is not locked)
 }
 /*}web*/
 resize();
