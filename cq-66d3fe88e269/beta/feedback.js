@@ -36,6 +36,7 @@ const TR={
   'Sending…':['Отправка…','Enviando…','Enviando…','Wird gesendet…','Envoi…','发送中…','送信中…','보내는 중…'],
   'Thank you! Sent.':['Спасибо! Отправлено.','¡Gracias! Enviado.','Obrigado! Enviado.','Danke! Gesendet.','Merci ! Envoyé.','谢谢！已发送。','ありがとう！ 送信しました。','감사합니다! 보냈습니다.'],
   'Couldn\'t send. Check the connection and try again.':['Не удалось отправить. Проверьте связь и попробуйте ещё раз.','No se pudo enviar. Revisa la conexión e inténtalo de nuevo.','Não foi possível enviar. Verifique a conexão e tente de novo.','Senden fehlgeschlagen. Prüfe die Verbindung und versuche es erneut.','Envoi impossible. Vérifiez la connexion et réessayez.','发送失败。请检查网络后重试。','送信できませんでした。 接続を確認してもう一度お試しください。','보내지 못했습니다. 연결을 확인하고 다시 시도하세요.'],
+  'Too many reports for now. Try again later.':['Слишком много отзывов подряд. Попробуйте позже.','Demasiados comentarios por ahora. Inténtalo más tarde.','Muitos comentários por agora. Tente mais tarde.','Gerade zu viele Rückmeldungen. Versuche es später erneut.','Trop d\'avis pour le moment. Réessayez plus tard.','反馈太多了，请稍后再试。','送信が多すぎます。 しばらくしてからお試しください。','피드백이 너무 많습니다. 나중에 다시 시도하세요.'],
   'Syncing progress…':['Синхронизация прогресса…','Sincronizando progreso…','Sincronizando progresso…','Fortschritt wird abgeglichen…','Synchronisation de la progression…','正在同步进度…','進行状況を同期中…','진행 상황 동기화 중…'],
   'Microphone unavailable':['Микрофон недоступен','Micrófono no disponible','Microfone indisponível','Mikrofon nicht verfügbar','Micro indisponible','麦克风不可用','マイクが使えません','마이크를 사용할 수 없습니다'],
   'Write a few words or record your voice':['Напишите пару слов или запишите голос','Escribe unas palabras o graba tu voz','Escreva algumas palavras ou grave sua voz','Schreib ein paar Worte oder nimm eine Sprachnachricht auf','Écrivez quelques mots ou enregistrez votre voix','写几句话或录一段语音','ひとこと書くか、音声を録音してください','몇 마디 적거나 음성을 녹음하세요']
@@ -214,7 +215,7 @@ $('fbSend').onclick=async()=>{
     const pic=$('fbShotOn').checked ? await shotP : null;
     await post('/fb',{ tok:acct && acct.tok, kind, text, snap, shot:pic, audio:voice ? { data:await b64(voice.blob), dur:voice.dur } : null });
     msg(t('Thank you! Sent.'),true); setTimeout(close,1100);
-  }catch(e){ console.warn('feedback:',e); msg(t('Couldn\'t send. Check the connection and try again.')); sending=false; $('fbSend').disabled=false; }
+  }catch(e){ console.warn('feedback:',e); msg(t(e.status===429 ? 'Too many reports for now. Try again later.' : 'Couldn\'t send. Check the connection and try again.')); sending=false; $('fbSend').disabled=false; }
 };
 
 /* Sign-in on the beta notice: a nickname and a PIN — new (register) or one already made on another device (login).
@@ -252,7 +253,7 @@ $('fgGo').onclick=async()=>{
   gBusy=true; $('fgGo').disabled=true; M('…');
   try{ const d=await post(gMode==='new' ? '/tester/register' : '/tester/login',{ nick, pin, id:tester });
     acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); }
-  catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' ? 'Too many attempts. Try again in 15 minutes.'
+  catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' || e.status===429 ? 'Too many attempts. Try again in 15 minutes.'
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }
 };
@@ -263,7 +264,7 @@ document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); 
    the same expedition (its creation time c) takes the newer copy, one only the cloud has takes a free slot (or the slot of an older one
    that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
    cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
-const SYNC_WAIT=6000, SYNC_EVERY=240e3;
+const SYNC_WAIT=6000, SYNC_EVERY=600e3;   // the worker takes SAVE_DAY writes a tester a day
 let syncing=false, sentAt=-1;
 const known=()=>{ try{ const k=JSON.parse(LSget('cube-tester-sync','null')); return k && acct && k.id===acct.id && Array.isArray(k.cs) ? k.cs : []; }catch(e){ return []; } };
 const strip=a=>a.map(({ k, ...e })=>e), atMax=a=>a.reduce((m,e)=>Math.max(m,e.at||0),0);
