@@ -329,11 +329,12 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 #smart.abil{ border-radius:0; width:calc(40px*var(--ui)); height:calc(36px*var(--ui)); padding-top:calc(8px*var(--ui)); box-sizing:border-box; background:#7cf0a0; color:#0d4a2a;
   clip-path:polygon(50% 0,100% 100%,0 100%); box-shadow:none; }
 #smart::after{ content:''; position:absolute; inset:calc(-12px*var(--ui)); }   /* a bigger tap target than the bubble */
-#say{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 19%); transform:translate(-50%,-8px); z-index:4; pointer-events:none;
+#say{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 19%); transform:translate(-50%,12px); z-index:4; pointer-events:none;
   max-width:min(86vw,420px*var(--ui)); box-sizing:border-box; padding:calc(10px*var(--ui)) calc(18px*var(--ui)); border-radius:calc(16px*var(--ui));
   background:var(--panel); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); color:var(--txt); text-align:center; text-wrap:balance;
   font-size:calc(16px*var(--ui)); font-weight:800; line-height:1.3; opacity:0; transition:opacity .35s ease, transform .35s ease; }
 #say.show{ opacity:1; transform:translate(-50%,0); }
+#say.out:not(.voice){ transform:translate(-50%,-12px); }   /* the plate rises in from below and leaves upward (smartSayOff) */
 #say small{ display:block; font-size:calc(11px*var(--ui)); font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.7; margin-bottom:.2em; }
 #say.voice{ top:0; left:0; transform:translate(-50%,-100%) scale(.6); transform-origin:50% 100%; pointer-events:auto; cursor:pointer; touch-action:none;
   max-width:min(70vw,300px*var(--ui)); padding:calc(9px*var(--ui)) calc(14px*var(--ui)); font-size:calc(15px*var(--ui)); margin-top:calc(-8px*var(--ui));
@@ -870,7 +871,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.4';
+const VERSION = '1.99.5';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -19842,9 +19843,12 @@ const SMART_CD=15, SMART_SHOW=6, SMART_OUT=.7, SAY_MS=3200, SMART_POP=.4;   // c
 let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1, smartKind='slam', smartTaps=0, smartPop=-1, smartTgt=null, smartWas=null;   // smartTgt — the secret the zone points at (the nearest), smartWas — the one already alerted
 const smartEl=$('smart'), sayEl=$('say');
 /* The plate: a short line in a panel near the top (head — a small caption above); ms 0 — stays until smartSayOff */
-function smartSay(t,head,ms=SAY_MS){ const f=document.createDocumentFragment(); sayEl.classList.remove('voice');
+function smartSay(t,head,ms=SAY_MS){ const f=document.createDocumentFragment();
+  const st=sayEl.style; if(sayEl.classList.contains('voice')){ st.left=st.top=st.visibility=''; }   // the voice plate's spot over the cube is not the panel's
+  if(!sayEl.classList.contains('show')){ st.transition='none'; sayEl.classList.remove('out','voice'); void sayEl.offsetWidth; st.transition=''; }   // a fresh plate starts below, not where the last one left
+  sayEl.classList.remove('voice');
   if(head) f.append(Object.assign(document.createElement('small'),{ textContent:head })); f.append(t); toastOn(sayEl,f,null,ms); }
-function smartSayOff(){ toastOff(sayEl); }
+function smartSayOff(){ if(!sayEl.classList.contains('voice')) sayEl.classList.add('out'); toastOff(sayEl); }
 const smartVoiceOn=()=>sayEl.classList.contains('voice') && sayEl.classList.contains('show');
 function smartLine(){ smartTaps++; const k=smartTaps<2 ? 'hidden' : smartKind;   // the line and its own droid phrase (SND.say)
   SND.say(k); return k==='hidden' ? loc('Something is hidden nearby…') : k==='shake' ? loc('Shake the plants?…') : loc('Try knocking it out with a slam?…'); }
