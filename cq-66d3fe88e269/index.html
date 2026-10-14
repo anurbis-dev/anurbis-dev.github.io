@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <meta name="robots" content="noindex, nofollow">
+<script>window.__CUBE_BETA__=1</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -319,6 +320,8 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 }
 #smart{ position:fixed; left:0; top:0; z-index:3; pointer-events:none; visibility:hidden; width:calc(34px*var(--ui)); height:calc(34px*var(--ui)); border-radius:50%;
   display:grid; place-items:center; background:#ffd23f; color:#5a3300; font-size:calc(24px*var(--ui)); font-weight:900; line-height:1; box-shadow:0 3px 10px rgba(40,10,60,.4), inset 0 -3px 0 rgba(0,0,0,.12); will-change:transform; }
+#smart.abil{ border-radius:0; width:calc(40px*var(--ui)); height:calc(36px*var(--ui)); padding-top:calc(8px*var(--ui)); box-sizing:border-box; background:#7cf0a0; color:#0d4a2a;
+  clip-path:polygon(50% 0,100% 100%,0 100%); box-shadow:none; }
 #toast small{ display:block; margin-top:.3em; font-size:calc(21px*var(--ui)); line-height:1.2; font-weight:800; opacity:.8; letter-spacing:0; }
 #toast.show{ opacity:1; transform:none; }
 #lvIntro{ position:fixed; inset:0; z-index:6; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -596,6 +599,15 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 /* A low screen (landscape phone): the expedition screen's rows, title and button tighten by the height so it all fits */
 @media (max-height:600px){ .xpbox h2{ font-size:clamp(22px,7vh,40px); } .xpbox .rule{ margin:1.4vh auto; }
   #xp .xprows{ gap:0; margin-bottom:1.6vh; } #xp .xpr{ padding:clamp(1px,.55vh,6px) 4px; font-size:14px; line-height:1.25; } #xpGo{ margin-top:0; height:clamp(36px,10vh,48px); } }
+/* Closed beta (BETA builds only): a confidentiality notice over the title until "I agree"; the language bar stays on top */
+.tbeta{ position:absolute; inset:0; display:grid; place-items:center; padding:16px 16px 72px; transition:opacity .7s ease; }
+.tbeta[hidden]{ display:none; }
+.tbeta .card{ width:min(92vw,380px); zoom:var(--ui); text-align:center; }
+.tbeta h2{ justify-content:center; }
+.tbeta small{ display:block; font-size:15px; font-weight:700; line-height:1.45; opacity:.85; }
+#title.beta .tbox{ opacity:0; pointer-events:none; }
+#title.beta{ cursor:default; }
+#title.boot .tbeta{ opacity:0; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -651,6 +663,9 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
         <button class="cta" id="xNew">New expedition</button>
       </div></div></div>
   </div>
+  <div class="tbeta" id="tBeta" hidden><div class="card"><h2 data-t>Closed beta</h2>
+    <small data-t="betaTxt">This is a pre-release build for closed beta testing. It is confidential: please do not share, copy, record or publish the game, and do not pass the link on, without the developer's permission.</small>
+    <button class="cta" id="tBetaOk" data-t>I agree</button></div></div>
   <div class="tlang" id="tLang"><div class="tlrow" id="tlRow"></div><button type="button" id="tlBtn" data-ta aria-label="Language" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></button></div>
 </div>
 
@@ -811,9 +826,10 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.90.0';
+const VERSION = '1.92.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
+const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
 /* =====================================================================
    STORAGE AND EXPEDITIONS (save slots)
    Every key goes through LS. Players sharing a device keep their own expedition — one of SLOTS slots, the current one in cube-slot.
@@ -1011,6 +1027,16 @@ const L10N={
   "Import":["Импорт","Importar","Importar","Importieren","Importer","导入","読み込み","가져오기"],
   "Replace all progress with this file?":["Заменить весь прогресс данными из файла?","¿Reemplazar todo el progreso con este archivo?","Substituir todo o progresso por este arquivo?","Den gesamten Fortschritt durch diese Datei ersetzen?","Remplacer toute la progression par ce fichier ?","用此文件替换全部进度？","すべての進行状況をこのファイルで置き換えますか？","모든 진행 상황을 이 파일로 바꿀까요?"],
   "This file isn't a save":["Этот файл — не сохранение","Este archivo no es una partida guardada","Este arquivo não é um jogo salvo","Diese Datei ist kein Spielstand","Ce fichier n'est pas une sauvegarde","此文件不是存档","このファイルはセーブデータではありません","이 파일은 저장 데이터가 아닙니다"],
+  "Closed beta":["Закрытый бета-тест","Beta cerrada","Beta fechado","Geschlossene Beta","Bêta fermée","封闭测试版","クローズドベータ","비공개 베타"],
+  "betaTxt":["Это предварительная версия для закрытого бета-теста. Она конфиденциальна: не распространяйте, не копируйте, не записывайте и не публикуйте игру и не передавайте ссылку другим без разрешения разработчика.",
+    "Esta es una versión preliminar para la beta cerrada. Es confidencial: no compartas, copies, grabes ni publiques el juego, ni pases el enlace a otros, sin permiso del desarrollador.",
+    "Esta é uma versão preliminar para o beta fechado. Ela é confidencial: não compartilhe, copie, grave nem publique o jogo, nem passe o link adiante, sem a permissão do desenvolvedor.",
+    "Dies ist eine Vorabversion für den geschlossenen Betatest. Sie ist vertraulich: Bitte das Spiel ohne Erlaubnis des Entwicklers nicht weitergeben, kopieren, aufzeichnen oder veröffentlichen und den Link nicht weiterleiten.",
+    "Ceci est une version préliminaire pour la bêta fermée. Elle est confidentielle : ne partagez, ne copiez, n'enregistrez ni ne publiez le jeu, et ne transmettez pas le lien, sans l'autorisation du développeur.",
+    "这是供封闭测试使用的预发布版本，内容保密：未经开发者许可，请勿传播、复制、录制或发布本游戏，也不要将链接转发给他人。",
+    "これはクローズドベータテスト用のリリース前バージョンです。内容は機密です。開発者の許可なく、ゲームを共有・複製・録画・公開したり、リンクを他の人に渡したりしないでください。",
+    "이것은 비공개 베타 테스트용 출시 전 버전입니다. 기밀 사항이므로 개발자의 허락 없이 게임을 공유, 복사, 녹화, 게시하거나 링크를 다른 사람에게 전달하지 마세요."],
+  "I agree":["Принимаю","Acepto","Concordo","Einverstanden","J'accepte","我同意","同意する","동의합니다"],
   "Something went wrong":["Что-то пошло не так","Algo salió mal","Algo deu errado","Etwas ist schiefgelaufen","Un problème est survenu","出了点问题","問題が発生しました","문제가 발생했습니다"],
   "The game stopped because of an error. Restarting the level usually helps.":["Игра остановилась из-за ошибки. Обычно помогает начать уровень заново.","El juego se detuvo por un error. Reiniciar el nivel suele ayudar.","O jogo parou por causa de um erro. Reiniciar o nível costuma resolver.","Das Spiel wurde wegen eines Fehlers angehalten. Meist hilft es, das Level neu zu starten.","Le jeu s'est arrêté à cause d'une erreur. Recommencer le niveau aide en général.","游戏因错误而停止。重新开始本关通常可以解决。","エラーのためゲームが停止しました。レベルをやり直すと直ることが多いです。","오류로 게임이 멈췄습니다. 레벨을 다시 시작하면 대개 해결됩니다."],
   "Settings":["Настройки","Ajustes","Ajustes","Einstellungen","Réglages","设置","設定","설정"],
@@ -2430,6 +2456,10 @@ const SND = (() => {
     /* The smart-mode alert: a short droid-like chirp — quick gliding notes, the last one rising */
     uiAlert(){ uiPlay('alert',400,()=>{ const n=[[1500,2300],[2100,1300],[1200,2000],[1800,2600],[1400,3100]], r=rand(.92,1.08);
       n.forEach(([f,f2],i)=>{ const w=i*.075; tone({ f:f*r, f2:f2*r, d:.07, type:'sine', v:.05, a:.005, when:w, bus:'u', wet:0 }); tone({ f:f*r*2, f2:f2*r*2, d:.05, type:'triangle', v:.012, a:.005, when:w, bus:'u', wet:0 }); }); }); },
+    /* The smart-mode ability alert: a happy major arpeggio up with a sparkle on top */
+    uiAbil(){ uiPlay('abil',400,()=>{ [72,76,79,84].forEach((m,i)=>{ const w=i*.07;
+        tone({ f:mtof(m)*1.02, f2:mtof(m), d:.16, type:'triangle', v:.05, a:.005, when:w, bus:'u', wet:0 }); tone({ f:mtof(m+12), d:.08, v:.012, a:.005, when:w, bus:'u', wet:0 }); });
+      [91,96].forEach((m,i)=>tone({ f:mtof(m), d:.22, v:.014, a:.005, when:.3+i*.06, bus:'u', wet:0 })); }); },
     /* A level icon in the list: a soft marimba "pop" (a short sine with a quick fall into the note and a faint ×4 partial), a pentatonic
        pitch at random; an artifact tapped (the card's view, the award): a short, soft crystal shimmer through the UI echo */
     uiLevel(){ uiPlay('lv',60,()=>{ const m=pick([67,69,72,74,76]);
@@ -2635,7 +2665,7 @@ const SND = (() => {
   /* Every sound in fx varies a little in pitch (±VARY) so repeats don't sound the same: one factor per call keeps a sound's layers
      in tune with each other (tone/noise/voice/warble/bub/taps/bushChirp multiply by rk). Only the sounds that must stay
      exactly in tune — the interface and the melodic jingles — are on the NO_VARY list; a new sound is varied by default */
-  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiLevel uiRelic click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
+  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil uiLevel uiRelic click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
     fx[n]=(...a)=>{ const p=rk; rk=1+rand(-VARY,VARY); try{ return f(...a); } finally{ rk=p; } }; }
   return { init, ready, hold, titleAmb, setAmbient, setMood, setVol, setCave, slip, mach, gust, geyser, get caveMix(){ return cave&&cave.on ? cave.i.gain.value : 0; },
@@ -10818,17 +10848,20 @@ function addFrog(x,z,how){
   else m.position.set(x+rand(-.12,.12), terr[z][x], z+rand(-.12,.12));
   world.add(m); critters.push(c);
 }
+/* Open water for amphibians and shore animals (shore.js): a water cell not frozen over and not under a roof (overhang, tunnel stone, bridge deck). */
+const openWater=(x,z)=>{ const k=K(x,z); return !!water[k] && !ice[k] && !ovh[k]; };
 function spawnFrogs(){
-  if(!waterCells.length || T.snowy) return;                           // no frogs in the snow — penguins and seals live there (shore.js)
-  const want=faunaN(clamp(3+Math.floor(waterCells.length/4),3,8)), used=(x,z)=>critters.some(c=>c.type==='frog'&&!c.swim&&c.x===x&&c.z===z);
+  const open=waterCells.filter(([x,z])=>openWater(x,z));
+  if(!open.length || T.snowy) return;                                 // no open water — no frogs; none in the snow either (penguins and seals, shore.js)
+  const want=faunaN(clamp(3+Math.floor(open.length/4),3,8)), used=(x,z)=>critters.some(c=>c.type==='frog'&&!c.swim&&c.x===x&&c.z===z);
   const shores=[];
-  for(const [x,z] of waterCells) for(const [dx,dz] of DIRS){ const X=x+dx, Z=z+dz; if(!freeTile(X,Z)||hotTile(X,Z)||used(X,Z)) continue;
+  for(const [x,z] of open) for(const [dx,dz] of DIRS){ const X=x+dx, Z=z+dz; if(!freeTile(X,Z)||hotTile(X,Z)||used(X,Z)) continue;
     const g=terr[Z][X]; if(g===null || Math.abs(g-wsurf(x,z))>2.2) continue;
     if(!shores.some(s=>s[0]===X&&s[1]===Z)) shores.push([X,Z]); }
   let n=critters.filter(c=>c.type==='frog').length;
   const pool=shores.slice();
   while(n<want && pool.length){ const [x,z]=pool.splice(Math.floor(Math.random()*pool.length),1)[0]; addFrog(x,z,'land'); n++; }
-  const ws=waterCells.slice();
+  const ws=open.slice();
   while(n<want && ws.length){ const [x,z]=ws.splice(Math.floor(Math.random()*ws.length),1)[0]; addFrog(x,z,'swim'); n++; }
 }
 /* Fireflies' anchors: lanterns, bushes, trees, and open ground. Never over lava — they would burn. */
@@ -11197,7 +11230,7 @@ function frogHop(c,x,z,dest){
   m.rotation.y=Math.atan2(to.x-from.x,to.z-from.z); c.face=m.rotation.y; c.x=x; c.z=z;
 }
 function frogAct(c,px,pz,flee){
-  const wat=DIRS.map(([dx,dz])=>[c.x+dx,c.z+dz]).filter(([x,z])=>th(x,z)!==null && water[K(x,z)] && wlk(K(x,z))===wlk(K(c.x,c.z)));
+  const wat=DIRS.map(([dx,dz])=>[c.x+dx,c.z+dz]).filter(([x,z])=>th(x,z)!==null && openWater(x,z) && wlk(K(x,z))===wlk(K(c.x,c.z)));
   const bank=DIRS.map(([dx,dz])=>[c.x+dx,c.z+dz]).filter(([x,z])=>freeTile(x,z) && !hotTile(x,z) && Math.abs(terr[z][x]-wsurf(c.x,c.z))<1.8);
   const step=DIRS.map(([dx,dz])=>[c.x+dx,c.z+dz]).filter(([x,z])=>freeTile(x,z) && !hotTile(x,z) && Math.abs(terr[z][x]-terr[c.z][c.x])<=1);
   const land=c.swim?bank:step;
@@ -11208,7 +11241,7 @@ function frogAct(c,px,pz,flee){
   if(flee){
     const dp=Math.hypot(c.x-px,c.z-pz);
     const away=[...wat,...land].filter(([x,z])=>Math.hypot(x-px,z-pz)>=dp*.85), pool=away.length?away:land;
-    if(pool.length){ const [x,z]=pick(pool); frogHop(c,x,z,water[K(x,z)]?'swim':'land'); }
+    if(pool.length){ const [x,z]=pick(pool); frogHop(c,x,z,openWater(x,z)?'swim':'land'); }
     return;
   }
   if(Math.random()<.3){ c.face=wrapA(c.m.rotation.y+(Math.random()<.5?-1:1)*rand(.7,2)); c.tH=time; return; }   // a little hop round on the spot
@@ -11222,7 +11255,7 @@ function frogSwim(c){
     c.depth+=(.32-c.depth)*(1-Math.exp(-dt*2));
     const dx=(c.tx??m.position.x)-m.position.x, dz=(c.tz??m.position.z)-m.position.z, d=Math.hypot(dx,dz);
     if(d<.08){
-      const o=DIRS.map(([a,b])=>[c.x+a,c.z+b]).filter(([x,z])=>th(x,z)!==null && water[K(x,z)] && wlk(K(x,z))===wlk(K(c.x,c.z)));
+      const o=DIRS.map(([a,b])=>[c.x+a,c.z+b]).filter(([x,z])=>th(x,z)!==null && openWater(x,z) && wlk(K(x,z))===wlk(K(c.x,c.z)));
       const [x,z]=o.length && Math.random()<.75 ? pick(o) : [c.x,c.z];
       c.tx=x+rand(-.22,.22); c.tz=z+rand(-.22,.22);
     } else { const st=Math.min(d,.55*dt); m.position.x+=dx/d*st; m.position.z+=dz/d*st; c.face=Math.atan2(dx,dz); }
@@ -11644,8 +11677,8 @@ function buildSky(){
 buildSky();
 
 /* =====================================================================
-   SHORE ANIMALS: penguins, seals and walruses on snowy levels (by the water or on the ice), crabs and sea turtles on sandy shores.
-   They live on "home" cells (shoreSpawn: snow/ice or sand near the water) and go between the land and the water like frogs:
+   SHORE ANIMALS: penguins, seals and walruses on snowy levels, crabs and sea turtles on sandy shores.
+   They live on "home" cells (shoreSpawn: snow/ice or sand near open water — openWater; none without it) and go between the land and the water like frogs:
    walk cell to cell (c.mv — a tween), slip into a neighbouring water cell, swim about under the surface, climb out onto a home cell.
    The cube near — into the water if it is next to them (or away over the land), already swimming — dive deeper and swim off.
    type 'shore'; c.ground only while on land (so the others keep off its cell)
@@ -11714,7 +11747,7 @@ const shoreMk=(k,y)=>{ if(k==='penguin') return shorePivot(mkPenguin(y)); if(k==
 const SHORE_Y={ land:1.3, swim:1.3, dep:.7, R:1.1 };                 // the young: a bit quicker (to keep up), shallower, a little shyer
 const SHORE_HATCH={ land:.75, swim:1, dep:.12, lim:.3, out:.6, R:1.3, wet:.9 };   // sea turtle hatchlings scurry to the water
 /* ---------- Where they live ---------- */
-const shoreWet=(x,z)=>th(x,z)!==null && !!water[K(x,z)];               // a water cell with a bottom (frogs' rule too)
+const shoreWet=(x,z)=>th(x,z)!==null && openWater(x,z);                // open water with a bottom (frogs' rule too)
 function shoreNear(x,z,r,f){ for(let dz=-r;dz<=r;dz++) for(let dx=-r;dx<=r;dx++) if(f(x+dx,z+dz)) return true; return false; }
 function shoreCells(f){ const a=[]; for(let z=0;z<D;z++) for(let x=0;x<W;x++) if(th(x,z)!==null && !water[K(x,z)] && f(x,z)) a.push(K(x,z)); return a; }
 function shoreWD(x,z){ let b=1e9; for(const [a,c] of waterCells) if(shoreWet(a,c)) b=Math.min(b,Math.hypot(a-x,c-z)); return b; }   // distance to the nearest water
@@ -11732,18 +11765,16 @@ function shoreAdd(kind,home,near,mom,hatch){                         // mom — 
 const shoreKids=(kind,home,a,n)=>{ for(let i=0;a && i<n;i++) shoreAdd(kind,home,[a.x,a.z],a); };
 function shoreSpawn(){
   if(T.cave) return;
-  const wet=waterCells.some(([x,z])=>shoreWet(x,z));
+  if(!waterCells.some(([x,z])=>shoreWet(x,z))) return;              // no open water — no penguins, seals, walruses, crabs, turtles
   if(T.snowy){
-    const ices=Object.keys(ice).length, sn=(x,z)=>ice[K(x,z)] || surfType(K(x,z))==='snow';
-    const near=wet ? (x,z)=>shoreNear(x,z,3,shoreWet) : ices ? (x,z)=>shoreNear(x,z,2,(a,b)=>!!ice[K(a,b)]) : ()=>true;
-    const home=new Set(shoreCells((x,z)=>sn(x,z) && near(x,z)));
+    const sn=(x,z)=>ice[K(x,z)] || surfType(K(x,z))==='snow';
+    const home=new Set(shoreCells((x,z)=>sn(x,z) && shoreNear(x,z,3,shoreWet)));
     if(home.size>=4){ const n=Math.min(irand(3,5),Math.floor(home.size/2)), a=shoreAdd('penguin',home);   // a little colony around the first one
       const ad=[a]; for(let i=1;a && i<n;i++) ad.push(shoreAdd('penguin',home,[a.x,a.z]));
       for(let i=0,k=irand(1,2);a && i<k;i++) shoreKids('penguin',home,pick(ad.filter(Boolean)),1); }   // 1–2 chicks, each with a parent
-    if((wet||ices) && home.size>=6) for(let i=0,n=irand(1,2);i<n;i++){ const s=shoreAdd('seal',home); if(Math.random()<.45) shoreKids('seal',home,s,1); }
-    if((wet||ices) && home.size>=12 && Math.random()<.75){ const w=shoreAdd('walrus',home); if(Math.random()<.4) shoreKids('walrus',home,w,1); }
+    if(home.size>=6) for(let i=0,n=irand(1,2);i<n;i++){ const s=shoreAdd('seal',home); if(Math.random()<.45) shoreKids('seal',home,s,1); }
+    if(home.size>=12 && Math.random()<.75){ const w=shoreAdd('walrus',home); if(Math.random()<.4) shoreKids('walrus',home,w,1); }
     return; }
-  if(!wet) return;
   const home=new Set(shoreCells((x,z)=>surfType(K(x,z))==='sand' && shoreNear(x,z,2,shoreWet)));
   if(home.size>=3){ let a=null; for(let i=0,n=Math.min(irand(2,4),home.size-1);i<n;i++) a=shoreAdd('crab',home)||a;
     if(home.size>=5 && Math.random()<.5) shoreKids('crab',home,a,irand(1,2)); }
@@ -15942,7 +15973,7 @@ function shipTopY(x0,z0){
 function shipHoverY(l,x,z){ return Math.max(l+HOVER, shipTopY(Math.round(x),Math.round(z))+1); }
 /* Level start and respawn: the ship flies in, holds the cube in the beam and releases it above the cell */
 function shipDrop(x,z,l){
-  state='intro'; queue=[]; holdDir=null;
+  state='intro'; queue=[]; holdDir=null; SH.drop=(SH.drop||0)+1;
   const hover=new V3(x,shipHoverY(l,x,z),z);
   SND.shipIn(); pMesh.visible=true; root.scale.set(1,1,1);
   SH.hang=-1.55; SH.a=0; SH.dropK=0; shipBeam(1.25,.9);              // reset per-drop camera handoff state (restart-safe)
@@ -15954,8 +15985,9 @@ function shipDrop(x,z,l){
         SH.dropK=1;
         SH.hang=y1; SH.carry=false; root.scale.set(1,1,1); root.position.y=P.l+HALF; setMeshQ(); afterLand(null,null,'soft'); SND.drop(); camSoft=1.2;
         SH.len=Math.max(1.25,ship.position.y-(P.l+HALF)+.2); SH.a=SH.aT=.9;
-        play(.32, q=>{ SH.len=Math.max(.01,lerp(SH.len,.01,ease(q))); }, ()=>{
-          shipBeam(0,0); SH.hang=-1.55; shipLeave(hover,null,.45);
+        const id=SH.drop;                                             // a tween, not play(): the cube is already free — a swipe, a respawn or anything that takes the main anim would leave the ship hanging
+        tween(.32, q=>{ if(SH.drop===id) SH.len=Math.max(.01,lerp(SH.len,.01,ease(q))); }, ()=>{
+          if(SH.drop!==id) return; shipBeam(0,0); SH.hang=-1.55; shipLeave(hover,null,.45);
         });
       });
     });
@@ -19133,6 +19165,7 @@ function xShow(m,kb){
 }
 function xNewTxt(){ $('xNew').textContent=loc([...Array(SLOTS)].some((_,j)=>slotUsed(j+1)) ? 'New expedition' : 'Start expedition'); }   // none yet — just start (setLang calls it too)
 function titleTap(e){ const t=$('title'); if(xMode || ['hidden','boot','dead'].some(c=>t.classList.contains(c))) return;
+  if(t.classList.contains('beta')){ if(e && e.type==='keydown') betaAgree(e); return; }   // the beta notice: only its button (or Enter/Space) goes on
   SND.init(); autoFS(); SND.uiTap(); xShow('opt',e && e.type==='keydown'); }
 function xBack(){ if($('tLang').classList.contains('open')){ tlOpen(false); SND.uiTap(.8); return; } const a=$('xList').querySelector('.xrow.ask'); if(a){ a.classList.remove('ask'); SND.uiTap(.8); } else if(xMode){ xShow(''); SND.uiTap(.8); } }
 async function enter(k){ if(!xGo && xpFresh!==k) xpFresh=0;                                               // open slot k: its level (rebuilt behind the title if needed), the expedition screen, then "Let's go!" lets the ship in
@@ -19178,6 +19211,11 @@ function toTitle(){                                                    // the me
   if(goalLock || wiping || xGo) return; xGo=true; xpSave(); introHide(); showOverlay('title'); logoSpin(); xShow('opt'); SND.init(); SND.titleAmb(true);
   setTimeout(()=>{ loadLevel(slotLv(),false,true); lvSlot=slot; xGo=false; },320);   // behind the title once it covers the game: nothing plays on
 }
+/* Closed beta (BETA builds only): the title opens with a confidentiality notice instead of "Tap anywhere to play"; "I agree" is that first tap.
+   Shown at every launch, not after End expedition (the class stays off) */
+function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot')) return; t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); }
+if(BETA){ $('title').classList.add('beta'); $('tBeta').hidden=false; }
+$('tBetaOk').onclick=e=>{ e.stopPropagation(); betaAgree(e); };
 $('title').onclick=e=>{ if(xMode){ if(!e.target.closest('#xBox')) xBack(); } else titleTap(e); };   // a tap beside the list and its button hides it: back to the start screen
 $('xNew').onclick=()=>{ SND.uiTap(); newExp(); };
 $('xList').onclick=e=>{ const r=e.target.closest('.xrow'), b=e.target.closest('button'); if(!r || !b || xGo) return;
@@ -19249,7 +19287,7 @@ function loadLevel(i,retry,defer,sv){
   trails=[]; P.lives=lvLives=bankLives(); updateLives();
   if(!sv) P.studs=false;                                               // stone corners last the run: a sublevel visit keeps them
   resetPlayer(start.x,start.z,terr[start.z][start.x],def.mat||'normal','w'); P.hist=[]; saveCheck();
-  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.carry=false; shipBeam(0,0); SH.a=0;
+  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; SH.carry=false; shipBeam(0,0); SH.a=0;
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
   if(!defer) startLevel();
   if(sv) subPlace();                                                   // at the door it came through, with the run's lives and time
@@ -19633,17 +19671,24 @@ function updateGust(){
    SMART MODE — an optional helper (device setting cube-smart): an alert bubble "!" hops up over the cube with a short droid-like chirp.
    It points at hidden loot within DIG_R: buried stars a slam would knock out, loot inside an object (a bush, a tree, a lamp, a rock, a crate…)
    and stars under a cover or an unbroken slab; smartAlert() is the general call for other hints.
+   A hidden ability nearby (SMART_ABIL: a granite rock that leaves stone corners, even under a mound) is told apart: a "!" in a triangle and a happy jingle.
    The alert repeats at most every SMART_CD s while the cube stays in the zone; leaving it resets the timer
    ===================================================================== */
 const SMART_CD=15, SMART_SHOW=2.6, SMART_OUT=.7;                      // cooldown, how long the bubble stays, extra radius to leave the zone (no flicker on the edge)
-let smartOn=LS.get('cube-smart','1')==='1', smartZone=false, smartCd=0, smartT=-1;
+let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1;
 const smartEl=$('smart');
 function smartSet(on){ smartOn=!!on; setTg('tgSmart',smartOn); if(!smartOn) smartHide(); }
 $('tgSmart').onclick=()=>{ smartSet(!smartOn); LS.set('cube-smart',smartOn?'1':'0'); };
 function smartHide(){ smartT=-1; smartEl.style.visibility='hidden'; }
 smartSet(smartOn);
-function smartAlert(){ smartT=0; SND.uiAlert(); }                     // the bubble hops up over the cube; the sound — a short chirp
+function smartAlert(abil){ smartT=0; smartEl.classList.toggle('abil',!!abil); abil ? SND.uiAbil() : SND.uiAlert(); }   // the bubble hops up over the cube; the sound — a short chirp (an ability — a happy jingle)
 function smartHere(x,z,y,base,r){ return y!==null && Math.hypot(x-P.x,z-P.z)<=r && Math.abs(y-base)<=DIG_H; }   // loot at (x,z) on floor y within reach of the cube
+/* Hidden abilities: an obstacle whose breaking gives the cube something new, while the cube doesn't have it yet */
+const SMART_ABIL=[ o=>(o.granite || o.under?.granite) && !P.studs ];
+function smartAbil(r){ const base=digBase(P.x,P.z,P.l);
+  for(const k in obst){ const o=obst[k]; if(!SMART_ABIL.some(f=>f(o))) continue;
+    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) return true; }
+  return false; }
 function smartNear(r){ const base=digBase(P.x,P.z,P.l);
   for(const k in buried) if(digDist(k,buried[k],P.x,P.z,base,r)>=0) return true;
   for(const k in obst){ const o=obst[k], L=loot[o.lk||k]; if(!L || L.done || buried[o.lk||k]) continue;   // loot inside an object (a pushed one carries it, lk)
@@ -19656,8 +19701,10 @@ function updateSmart(){
   if(!smartOn || state==='intro') return smartHide();
   const calm=!paused && !inputOff() && state!=='dead' && state!=='win' && state!=='tele';
   if(calm){
-    if(smartNear(smartZone ? DIG_R+SMART_OUT : DIG_R)){ if(!smartZone){ smartZone=true; smartCd=0; } smartCd-=dt; if(smartCd<=0){ smartCd=SMART_CD; smartAlert(); } }
-    else { smartZone=false; smartCd=0; }
+    const out=r=>smartZone===r ? DIG_R+SMART_OUT : DIG_R;           // the zone of the kind already shown is left a little further out
+    const z=smartAbil(out('abil')) ? 'abil' : smartNear(out('loot')) ? 'loot' : null;   // an ability outranks loot
+    if(z){ if(smartZone!==z){ smartZone=z; smartCd=0; } smartCd-=dt; if(smartCd<=0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
+    else { smartZone=null; smartCd=0; }
   }
   if(smartT<0) return;
   if(paused){ smartEl.style.visibility='hidden'; return; }
@@ -19853,7 +19900,7 @@ function tick(now){
   if(ambT<=0){
     if(T.cave){ SND.drip(); ambT=rand(.9,3.2); }
     else if(T.night && !crickets.length){ SND.cricket(); ambT=rand(.7,2.2); }
-    else if(faunaKinds.includes('frog')){ SND.croak(); ambT=rand(3,7); }
+    else if(critters.some(c=>c.type==='frog')){ SND.croak(); ambT=rand(3,7); }   // only where frogs live (open water)
     else if(faunaKinds.includes('sparrow')||faunaKinds.includes('flock')){ SND.bird(pick(T.calls||['tweet']),rand(.6,1),rand(-.7,.7)); ambT=rand(2.5,7); }
     else ambT=5;
   }
