@@ -870,7 +870,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.2';
+const VERSION = '1.99.3';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1019,6 +1019,7 @@ const L10N={
   "Try knocking it out with a slam?…":["Попробовать выбить ударом?…","¿Y si lo sacas de un golpe?…","Que tal tirar com uma pancada?…","Vielleicht mit einem Stampfer herausschlagen?…","Et si on le délogeait d'un coup ?…","试试用重击把它砸出来？……","叩きつけて出してみる？…","내려찍어서 꺼내 볼까?…"],
   "Shake the plants?…":["Потрясти растительность?…","¿Sacudir las plantas?…","Sacudir as plantas?…","Die Pflanzen schütteln?…","Secouer les plantes ?…","摇一摇植物？……","草木を揺らしてみる？…","식물을 흔들어 볼까?…"],
   "To the ship":["Кораблю","A la nave","Para a nave","An das Schiff","Au vaisseau","致飞船","船へ","우주선에게"],
+  "I'm here. Get me out of here.":["Я на месте. Заберите меня отсюда.","Estoy en el punto. Sacadme de aquí.","Cheguei. Me tirem daqui.","Bin am Ziel. Holt mich hier raus.","Je suis sur place. Sortez-moi de là.","我已到位。快把我弄出去。","到着した。ここから出してくれ。","도착했다. 여기서 꺼내 줘."],
   "I'm here. Waiting for the shuttle…":["Я на месте, жду челнок…","Estoy en el punto. Espero la lanzadera…","Cheguei. Aguardando a nave…","Bin am Ziel. Warte auf das Shuttle…","Je suis sur place. J'attends la navette…","我已到位，等待穿梭机……","到着した。シャトルを待っている…","도착했다. 셔틀을 기다리는 중…"],
   "Too low to roll":["Слишком низко, не перекатиться","Demasiado bajo para rodar","Baixo demais para rolar","Zu niedrig zum Rollen","Trop bas pour rouler","太低了，滚不过去","低すぎて転がれない","너무 낮아서 구를 수 없다"],
   "Dash to slide under":["Въезжай рывком","Entra con una carrera","Entre com uma arrancada","Mit einem Sprint hineinrutschen","Entre d'une ruée","用冲刺滑进去","ダッシュで滑り込もう","돌진으로 미끄러져 들어가자"],
@@ -14370,7 +14371,7 @@ function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
   lvSave((cur+1)%N); starsProg=bankStars();
-  after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
+  after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(T.cave ? loc("I'm here. Get me out of here.") : loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
   const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
 }
 /* =====================================================================
@@ -16114,13 +16115,14 @@ function pillarDrop(x,z,l){
 }
 function pillarPickup(done){                                          // the goal underground: the beam comes down onto the cube and draws it up off-frame
   const x=P.x, z=P.z, l=P.l, y0=root.position.y, top=pillarTop(x,z,l)+1;
-  Object.assign(PIL,{ x, z, l, bot:top, a:0, aT:.9, up:true }); SND.beam(); SH.at=false;
-  play(.45, q=>{ PIL.bot=lerp(top,l-.6,ease(q)); }, ()=>{
-    SH.at=true; smartSayOff(); SND.suck();   // the beam is on the cube: the radio line to the ship is over goalFade(1.6);
+  SH.at=false;
+  play(1.1, ()=>{}, ()=>{ Object.assign(PIL,{ x, z, l, bot:top, a:0, aT:.9, up:true }); SND.beam();   // a pause: the cube's radio line is heard first, then the beam comes down slowly
+  play(1.2, q=>{ PIL.bot=lerp(top,l-.6,ease(q)); }, ()=>{
+    SH.at=true; smartSayOff(); SND.suck(); goalFade(1.6);   // the beam is on the cube: the radio line to the ship is over
     play(1.6, q=>{ const e=Math.pow(Math.max(0,(q-.15)/.85),2.2); root.position.y=lerp(y0,top,e); pMesh.rotateY(dt*(2+6*q)); }, ()=>{   // a slow start, then faster and faster
       pMesh.visible=false; PIL.aT=0; after(.4, ()=>{ PIL.up=false; done&&done(); });
     });
-  });
+  }); });
 }
 function updatePillar(){
   PIL.a+=(PIL.aT-PIL.a)*(1-Math.exp(-dt*(PIL.aT>0?6:3)));
