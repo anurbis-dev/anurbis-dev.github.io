@@ -84,18 +84,47 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
 .rep .r small,.rep .note{display:block;color:var(--dim);font-size:12px;white-space:normal}
 .rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-height:70px;resize:vertical;font:inherit;color:inherit;width:100%}
 .rep .row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-#tp{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:8;display:grid;place-items:start center;padding:6vh 12px;overflow:auto}
-#tp[hidden]{display:none}
-#tpCard{width:min(860px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;gap:12px}
-#tpCard h2{margin:0;font:600 20px Fredoka,sans-serif;display:flex;align-items:center;gap:10px}
-#tpCard table{width:100%;border-collapse:collapse;font-size:13.5px}
-#tpCard th{text-align:left;color:var(--dim);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--line)}
-#tpCard td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
-#tpCard td.a{white-space:nowrap;text-align:right}
-#tpCard td.a .btn{padding:3px 8px;font-size:13px}
-#tpCard tr.ban td:first-child{color:var(--bug)}
-#tpCard .nk{cursor:pointer;font-weight:800} #tpCard .nk:hover{color:var(--gold)}
-@media (max-width:640px){ #tpCard td.id,#tpCard th.id,#tpCard td.reg,#tpCard th.reg{display:none} }
+#tpOpen .n{min-width:20px;padding:0 6px;border-radius:99px;background:var(--gold);color:#2a1d50;font-weight:800;font-size:12px;text-align:center}
+#tpOpen .n:empty{display:none}
+#tpOpen .on{color:var(--ok);font-size:12px;font-weight:800}
+#tpOpen .on:empty{display:none}
+#tpOpen[aria-pressed=true]{background:var(--card2);border-color:var(--gold)}
+#tp{display:none;overflow:auto;height:calc(100% - var(--hh,60px));padding:16px 18px 40px}
+body.tpv #tp{display:block}
+body.tpv #bar,body.tpv #main{display:none!important}
+.tpw{max-width:1200px;margin:0 auto;display:grid;gap:14px}
+.tph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tph h2{margin:0;font:600 22px Fredoka,sans-serif}
+.tph input[type=search]{flex:0 1 240px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.tph select{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tile b{display:block;font:600 22px Fredoka,sans-serif}
+.tile span{color:var(--dim);font-size:12.5px}
+.tc{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:12px}
+.tc.ban{border-color:rgba(255,122,138,.5)}
+.tc.ban .tn{color:var(--bug)}
+.tc-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tn{font:600 19px Fredoka,sans-serif;cursor:pointer} .tn:hover{color:var(--gold)}
+.tc-h .a{display:flex;gap:6px;margin-left:auto}
+.tc-h .a .btn{padding:3px 9px;font-size:13px}
+.lv{color:var(--ok);font-weight:800;font-size:13px}
+.lv::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+.tc-m{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--dim);font-size:13px}
+.tc-m code{color:var(--txt)} .tc-m a{cursor:pointer}
+.ks{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ks div{background:var(--card);border-radius:10px;padding:7px 12px}
+.ks b{display:block;font-size:16px} .ks span{color:var(--dim);font-size:12px}
+.tbl{overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--dim);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.tbl td small{display:block;color:var(--dim);font-size:11.5px}
+.tbl tr.now td:first-child b::after{content:' ●';color:var(--ok)}
+.tc details{margin:0;background:none;border:0;padding:0}
+.tc .none{color:var(--dim);font-size:13px}
+@media (max-width:640px){ #tp{padding:12px 10px 40px} .tc{padding:12px} .tc-h .a{margin-left:0} }
 @media (max-width:860px){
   main{grid-template-columns:1fr}
   #det{display:none;position:fixed;inset:0;background:var(--bg);z-index:5;padding:14px 16px 40px}
@@ -110,7 +139,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
   <h1><svg viewBox="0 0 32 32"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="#7a5bd0"/><path d="M16 3 28 9.5 16 16 4 9.5z" fill="#ffd66b"/><path d="M16 16v13L4 22.5v-13z" fill="#5a3fb0"/></svg>Data Cube · Отзывы</h1>
   <div class="stats" id="stats"></div>
   <span class="sp"></span>
-  <button class="btn" id="tpOpen" title="Аккаунты тестеров">👥 Тестеры</button>
+  <button class="btn" id="tpOpen" title="Тестеры: устройства, сессии, время игры" aria-pressed="false">👥 Тестеры <span class="n" id="tpN"></span><span class="on" id="tpOn"></span></button>
   <span id="live" title="Список обновляется сам"></span><button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
 </header>
 <div class="bar" id="bar">
@@ -130,7 +159,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
   <span class="err" id="gateErr"></span>
 </div>
 <div id="lb" hidden><img alt=""></div>
-<div id="tp" hidden><div id="tpCard"><h2>👥 Тестеры <span class="sp"></span><button class="btn" id="tpClose">✕</button></h2><div id="tpBody"></div></div></div>
+<div id="tp"><div class="tpw"><div class="tph"><button class="btn" id="tpClose" title="К отзывам (Esc)">← Отзывы</button><h2>👥 Тестеры</h2><span class="sp"></span><input type="search" id="tpQ" placeholder="Ник, устройство, браузер…"><select id="tpSort"><option value="last">Недавно играли</option><option value="time">Больше всего играли</option><option value="at">Новые</option><option value="nick">По нику</option></select></div><div class="tiles" id="tpSum"></div><div id="tpBody" class="tpw"></div></div></div>
 <script>
 (function(){
 'use strict';
@@ -168,6 +197,7 @@ async function load(quiet){
     if(hr) [['stateSeg','state'],['kindSeg','kind']].forEach(([id,k])=>{ if(F[k] && hr[k]!==F[k]){ F[k]=''; [...$(id).children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===''))); } });
     const c0=cur; firstLoad=false; LSs('cube-fb-key',KEY); $('gate').hidden=true; $('main').hidden=false;
     if(fresh){ unseen+=fresh; ping(fresh); }
+    if(!tpAt) tpLoad(true);
     if(diff || fresh || all.length!==n0 || !quiet){ fill(); render(); }   // nothing new: the list is left alone (hover, scroll, images)
     if(hr) show(hr); else if(c0) detRefresh(was); loadAt=Date.now(); liveTxt(); title(); }
   catch(e){ if(quiet && all.length) $('live').textContent='⚠ нет связи'; else { $('list').innerHTML='<div class="empty err">Не удалось загрузить: '+esc(e.message)+'</div>'; $('main').hidden=false; } }
@@ -183,7 +213,7 @@ function detRefresh(was){
   show(cur,true); $('det').scrollTop=y;
   if(v && $('repText')){ $('repText').value=v; if(f){ $('repText').focus(); $('repText').setSelectionRange(s0,s1); } }
 }
-const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · Отзывы'; };
+const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · '+(tpv() ? 'Тестеры' : 'Отзывы'); };
 const liveTxt=()=>{ if(!loadAt) return; const s=Math.round((Date.now()-loadAt)/1000); $('live').textContent='● обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад'); };
 function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a system notification
   try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
@@ -229,7 +259,7 @@ $('list').onclick=e=>{ const it=e.target.closest('.item'); if(it) show(all.find(
 function show(r,quiet){
   cur=r; if(!quiet || document.hasFocus()){ if(r.fresh){ r.fresh=false; unseen=Math.max(0,unseen-1); title(); } r.chg=false; }
   document.querySelectorAll('.item').forEach(e=>{ e.classList.toggle('on',+e.dataset.n===r.n); if(+e.dataset.n===r.n && !r.fresh && !r.chg) e.classList.remove('new','chg'); });
-  if(history.replaceState) history.replaceState(null,'','#'+r.n);
+  if(history.replaceState && !tpv()) history.replaceState(null,'','#'+r.n);
   if(!quiet){ document.body.classList.add('det'); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
   const s=r.s, m=r.m, q=s.q||{};
   const row=(a,b)=>b ? `<dt>${a}</dt><dd>${b}</dd>` : '';
@@ -284,42 +314,114 @@ async function replySend(r){
   finally{ if(cur===r) $('repGo').disabled=false; }
 }
 
-/* Testers' accounts */
-let tps=[];
-async function tpLoad(){
-  $('tpBody').innerHTML='<div class="empty">Загрузка…</div>';
-  try{ tps=await api('/testers'); tpRender(); }catch(e){ $('tpBody').innerHTML='<div class="empty err">Не удалось: '+esc(e.message)+'</div>'; }
+/* Testers: a page of its own (#testers, the header button with their number) — every account with its play statistics from the
+   worker (stats: sessions, time, devices; live: the session going on now) and the account actions (rename, PIN, ban, delete) */
+let tps=[], tpAt=0, tpBusy=false;
+const TP_POLL=120e3, TP_POLL_BG=600e3;
+const tpv=()=>document.body.classList.contains('tpv');
+const hm=ms=>{ const m=Math.round((ms||0)/60e3); return m<1 ? (ms>0 ? '<1 мин' : '0') : m<60 ? m+' мин' : Math.floor(m/60)+' ч '+String(m%60).padStart(2,'0')+' мин'; };
+const nf=(n,a,b,c)=>{ n=Math.abs(n)%100; const d=n%10; return n>10 && n<20 ? c : d===1 ? a : d>1 && d<5 ? b : c; };
+/* A device from what the beta page sent: name (model or kind), OS, browser */
+function uaOf(d){
+  const ua=d.ua||'', g=(re,i=1)=>(ua.match(re)||[])[i]||'';
+  let os='', name='', kind='💻';
+  if(/Android/.test(ua)){ os='Android '+(d.osv && /Android/i.test(d.os||'Android') ? d.osv.split('.')[0] : g(/Android ([\d.]+)/)); const m=d.model||g(/Android [\d.]+; ([^;)]+?)(?: Build|\))/); name=m && m!=='K' ? m : 'Android'; kind=/Mobile/.test(ua) ? '📱' : '📟'; }
+  else if(/iPhone|iPad|iPod/.test(ua)){ const v=g(/OS (\d+)_(\d+)/)&&g(/OS (\d+_\d+)/).replace('_','.'); name=g(/(iPhone|iPad|iPod)/); os='iOS '+v; kind=name==='iPad' ? '📟' : '📱'; }
+  else if(/Macintosh/.test(ua)){ if(d.touch>1){ name='iPad'; os='iPadOS'; kind='📟'; } else { name='Mac'; os='macOS'; } }
+  else if(/Windows/.test(ua)){ name='ПК'; os=/Windows NT 10/.test(ua) ? (d.osv ? (+d.osv.split('.')[0]>=13 ? 'Windows 11' : 'Windows 10') : 'Windows 10/11') : 'Windows'; }
+  else if(/CrOS/.test(ua)){ name='Chromebook'; os='ChromeOS'; }
+  else if(/Linux/.test(ua)){ name='ПК'; os='Linux'; }
+  const br=[['YaBrowser','Яндекс'],['SamsungBrowser','Samsung Internet'],['EdgA?','Edge'],['OPR','Opera'],['FxiOS','Firefox'],['Firefox','Firefox'],['CriOS','Chrome'],['Chrome','Chrome']]
+    .map(([k,n])=>{ const v=g(new RegExp(k+'/(\\d+)')); return v ? n+' '+v : ''; }).find(Boolean) || (/Safari/.test(ua) ? 'Safari '+g(/Version\/(\d+(?:\.\d+)?)/) : '') || (/wv\)/.test(ua) ? 'WebView' : '?');
+  return { name:name||'?', os, br:(/; wv\)/.test(ua) ? 'WebView · ' : '')+br, kind };
+}
+const devLine=d=>{ const u=uaOf(d); return u.kind+' '+u.name+(u.os ? ' · '+u.os : ''); };
+async function tpLoad(quiet){
+  if(tpBusy) return; tpBusy=true;
+  if(!quiet && !tps.length) $('tpBody').innerHTML='<div class="empty">Загрузка…</div>';
+  try{ tps=await api('/testers'); tpAt=Date.now(); tpCount(); if(tpv()) tpRender(); }
+  catch(e){ if(!quiet || !tps.length) $('tpBody').innerHTML='<div class="empty err">Не удалось: '+esc(e.message)+'</div>'; }
+  finally{ tpBusy=false; }
+}
+function tpCount(){
+  const on=tps.filter(t=>t.live).length;
+  $('tpN').textContent=tps.length; $('tpOn').textContent=on ? '● '+on : '';
+  $('tpOpen').title=tps.length+' '+nf(tps.length,'тестер','тестера','тестеров')+(on ? ', сейчас '+nf(on,'играет','играют','играют')+' '+on : '')+' — устройства, сессии, время игры';
+}
+/* One tester's numbers: the time includes the session going on now; the average — of the finished sessions */
+function tpNums(t){
+  const st=t.stats||{ n:0, ms:0, devs:{}, ss:[] }, now=Date.now(), cur=t.live ? Math.max(0,now-t.live.s) : 0;
+  const done=Math.max(0,(st.n||0)-(t.live ? 1 : 0)), devs=Object.entries(st.devs||{}).map(([id,d])=>({ ...d, id })).sort((a,b)=>(b.last||0)-(a.last||0));
+  return { st, n:st.n||0, ms:(st.ms||0)+cur, avg:done ? st.ms/done : 0, cur, devs, last:t.live ? now : st.last||0, ss:st.ss||[] };
 }
 function tpRender(){
-  const n=id=>all.filter(r=>r.tester===id).length;
-  $('tpBody').innerHTML=tps.length ? `<table><tr><th>Ник</th><th class="id">id</th><th class="reg">Регистрация</th><th>Отзывов</th><th>Прогресс</th><th></th></tr>${tps.map((t,i)=>`<tr class="${t.ban ? 'ban' : ''}" data-i="${i}">
-    <td><span class="nk" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span></td><td class="id"><code>${esc(t.id)}</code></td>
-    <td class="reg">${t.at ? ago(t.at) : '—'}</td><td>${n(t.id)}</td><td>${t.save ? '☁' : '—'}</td>
-    <td class="a"><button class="btn" data-a="rename" title="Переименовать">✎</button> <button class="btn" data-a="pin" title="Новый PIN">🔑</button>
-      <button class="btn" data-a="ban" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button> <button class="btn" data-a="delete" title="Удалить аккаунт">🗑</button></td></tr>`).join('')}</table>
-    <span class="note" style="color:var(--dim);font-size:12px">Переименование и новый PIN не разлогинивают устройства тестера; удаление стирает аккаунт, прогресс и сообщения (отзывы остаются) и разлогинивает его везде.</span>`
-    : '<div class="empty">Тестеров пока нет</div>';
+  const now=Date.now(), N=tps.map(t=>({ t, x:tpNums(t) })), q=($('tpQ').value||'').trim().toLowerCase(), so=$('tpSort').value;
+  const tot=N.reduce((a,{ x })=>{ a.ms+=x.ms; a.n+=x.n; a.d+=x.devs.length; a.done+=x.n-(x.cur ? 1 : 0); a.dms+=x.ms-x.cur; return a; },{ ms:0, n:0, d:0, done:0, dms:0 });
+  const on=tps.filter(t=>t.live).length, played=N.filter(({ x })=>x.n).length;
+  $('tpSum').innerHTML=[[tps.length,'тестеров'+(played<tps.length ? ' · играли '+played : '')],[on,'играют сейчас'],[hm(tot.ms),'всего наиграно'],[tot.n,'сессий'],
+    [hm(tot.done ? tot.dms/tot.done : 0),'средняя сессия'],[hm(played ? tot.ms/played : 0),'в среднем на тестера'],[tot.d,'устройств']]
+    .map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+  const hay=({ t, x })=>[t.nick,t.id,...x.devs.map(d=>{ const u=uaOf(d); return [u.name,u.os,u.br,d.gpu].join(' '); })].join(' ').toLowerCase();
+  const L=N.filter(r=>!q || hay(r).includes(q)).sort(so==='time' ? (a,b)=>b.x.ms-a.x.ms : so==='at' ? (a,b)=>(b.t.at||0)-(a.t.at||0) : so==='nick' ? (a,b)=>a.t.nick.localeCompare(b.t.nick,'ru')
+    : (a,b)=>(b.x.last||0)-(a.x.last||0) || (b.t.at||0)-(a.t.at||0));
+  const op=new Set([...document.querySelectorAll('#tpBody details[open]')].map(d=>d.closest('[data-id]').dataset.id));
+  const rep=id=>all.filter(r=>r.tester===id), devName=(x,id)=>{ const d=x.devs.find(d=>d.id===id); return d ? devLine(d) : '—'; };
+  $('tpBody').innerHTML=L.length ? L.map(({ t, x })=>{ const i=tps.indexOf(t), r=rep(t.id), bugs=r.filter(r=>r.kind==='bug').length;
+    return `<section class="tc${t.ban ? ' ban' : ''}" data-i="${i}" data-id="${esc(t.id)}">
+    <div class="tc-h"><span class="tn" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span>
+      ${t.live ? `<span class="lv">играет ${hm(x.cur)}${t.live.dev ? ' · '+esc(devName(x,t.live.dev)) : ''}</span>` : ''}
+      <span class="a"><button class="btn" data-a="rename" title="Переименовать">✎</button><button class="btn" data-a="pin" title="Новый PIN">🔑</button>
+      <button class="btn" data-a="ban" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button><button class="btn" data-a="delete" title="Удалить аккаунт">🗑</button></span></div>
+    <div class="tc-m"><span>id <code>${esc(t.id)}</code></span><span>регистрация ${t.at ? `<span title="${full(t.at)}">${ago(t.at)}</span>` : '—'}</span>
+      <span>${t.live ? 'в игре сейчас' : x.last ? `последняя игра <span title="${full(x.last)}">${ago(x.last)}</span>` : 'ещё не играл'}</span>
+      <span>${r.length ? `<a data-a="show">отзывов ${r.length}</a>${r.length ? ' (🐞 '+bugs+' · 💬 '+(r.length-bugs)+')' : ''}` : 'отзывов нет'}</span><span>${t.save ? '☁ прогресс в облаке' : 'прогресса в облаке нет'}</span></div>
+    ${t.stats ? `<div class="ks"><div><b>${hm(x.ms)}</b><span>наиграно всего</span></div><div><b>${x.n}</b><span>${nf(x.n,'сессия','сессии','сессий')}</span></div>
+      <div><b>${hm(x.avg)}</b><span>средняя сессия</span></div><div><b>${x.devs.length}</b><span>${nf(x.devs.length,'устройство','устройства','устройств')}</span></div>
+      <div><b>${x.st.first ? new Date(x.st.first).toLocaleDateString('ru') : '—'}</b><span>первая игра</span></div></div>
+    ${x.devs.length ? `<div class="tbl"><table><tr><th>Устройство</th><th>Браузер</th><th>Экран</th><th>Видеокарта</th><th>Сессий</th><th>Время</th><th>Последний раз</th></tr>${x.devs.map(d=>{ const u=uaOf(d);
+      return `<tr class="${t.live && t.live.dev===d.id ? 'now' : ''}"><td><b>${u.kind} ${esc(u.name)}</b><small>${esc(u.os)}${d.ver ? ' · игра v'+esc(d.ver) : ''}</small></td>
+      <td>${esc(u.br)}${d.pwa ? '<small>установлено (PWA)</small>' : ''}</td>
+      <td>${d.sw ? d.sw+'×'+d.sh : '—'}${d.dpr ? '<small>DPR '+(+d.dpr).toFixed(2).replace(/\.?0+$/,'')+(d.touch ? ' · сенсор' : '')+'</small>' : ''}</td>
+      <td>${esc(d.gpu||'—')}${d.cores || d.mem ? `<small>${d.cores ? d.cores+' ядер' : ''}${d.cores && d.mem ? ' · ' : ''}${d.mem ? '≥'+d.mem+' ГБ' : ''}</small>` : ''}</td>
+      <td>${d.n||0}</td><td>${hm(d.ms)}${d.n>1 ? '<small>≈ '+hm(d.ms/d.n)+' за раз</small>' : ''}</td>
+      <td><span title="${d.last ? full(d.last) : ''}">${d.last ? ago(d.last) : '—'}</span><small>${d.lang ? esc(d.lang) : ''}${d.tz ? ' · '+esc(d.tz) : ''}</small></td></tr>`; }).join('')}</table></div>` : ''}
+    ${x.ss.length ? `<details${op.has(t.id) ? ' open' : ''}><summary>Последние сессии (${x.ss.length})</summary><div class="tbl"><table><tr><th>Начало</th><th>Длительность</th><th>Устройство</th></tr>
+      ${x.ss.map(s=>`<tr><td>${full(s.s)}</td><td>${hm(s.e-s.s)}</td><td>${esc(devName(x,s.d))}</td></tr>`).join('')}</table></div></details>` : ''}`
+    : '<div class="none">Статистики игры пока нет: она копится с первой сессии после обновления воркера.</div>'}
+    </section>`; }).join('')
+    + '<span class="note" style="color:var(--dim);font-size:12px">Сессия — от «I agree» до закрытия страницы или 8 минут без связи; время считается с точностью до 3 минут. Устройство — браузер на устройстве (другой браузер на том же телефоне — другое устройство). Переименование и новый PIN не разлогинивают устройства тестера; удаление стирает аккаунт, прогресс, статистику и сообщения (отзывы остаются) и разлогинивает его везде.</span>'
+    : `<div class="empty">${tps.length ? 'Никого не найдено' : 'Тестеров пока нет'}</div>`;
 }
 $('tpBody').onclick=async e=>{
-  const b=e.target.closest('[data-a]'), tr=e.target.closest('tr'); if(!b || !tr) return;
+  const b=e.target.closest('[data-a]'), tr=e.target.closest('[data-i]'); if(!b || !tr) return;
   const t=tps[+tr.dataset.i], a=b.dataset.a; let body={ id:t.id, nick:t.nick };
-  if(a==='show'){ if(![...$('tester').options].some(o=>o.value===t.id)) return alert('У '+t.nick+' нет отзывов'); F.tester=$('tester').value=t.id; cur=null; render(); $('tp').hidden=true; return; }
+  if(a==='show'){ if(![...$('tester').options].some(o=>o.value===t.id)) return alert('У '+t.nick+' нет отзывов'); F.tester=$('tester').value=t.id; cur=null; tpShow(false); render(); return; }
   if(a==='rename'){ const to=prompt('Новый ник для '+t.nick+' (2–20 букв или цифр):',t.nick); if(!to || to.trim()===t.nick) return; body.to=to.trim(); }
   if(a==='pin'){ const pin=prompt('Новый PIN для '+t.nick+' (4–6 цифр). Сообщите его тестеру:',''); if(!pin) return; if(!/^\d{4,6}$/.test(pin.trim())) return alert('PIN — 4–6 цифр'); body.pin=pin.trim(); }
   if(a==='ban'){ body.on=!t.ban; if(body.on && !confirm('Забанить '+t.nick+'? Не сможет войти, слать отзывы и синхронизировать прогресс.')) return; }
-  if(a==='delete' && !confirm('Удалить аккаунт '+t.nick+'? Прогресс в облаке и сообщения сотрутся, ник освободится. Отзывы останутся.')) return;
+  if(a==='delete' && !confirm('Удалить аккаунт '+t.nick+'? Прогресс в облаке, статистика и сообщения сотрутся, ник освободится. Отзывы останутся.')) return;
   b.disabled=true;
   try{ const d=await api('/testers/'+a,body);
     if(a==='rename'){ t.nick=d.nick; all.filter(r=>r.tester===t.id).forEach(r=>{ r.who=r.nick=d.nick; }); fill(); render(); }
     if(a==='ban') t.ban=body.on;
-    if(a==='delete') tps.splice(+tr.dataset.i,1);
+    if(a==='delete') tps.splice(tps.indexOf(t),1);
     if(a==='pin') alert('PIN для '+t.nick+' изменён');
-    tpRender(); }
+    tpCount(); tpRender(); }
   catch(e){ b.disabled=false; alert('Не удалось: '+({ taken:'ник занят', nick:'неверный ник', pin:'неверный PIN', 'no tester':'тестер не найден' }[e.message]||e.message)); }
 };
-$('tpOpen').onclick=()=>{ $('tp').hidden=false; tpLoad(); };
-$('tpClose').onclick=()=>{ $('tp').hidden=true; };
-$('tp').onclick=e=>{ if(e.target===$('tp')) $('tp').hidden=true; };
+/* The page: #testers in the address (a reload stays on it, the browser's Back returns to the reports) */
+function tpShow(on,nav=true){
+  if(on===tpv()) return;
+  document.body.classList.toggle('tpv',on); $('tpOpen').setAttribute('aria-pressed',String(on));
+  if(nav){ if(on) history.pushState(null,'','#testers'); else if(location.hash==='#testers') history.replaceState(null,'',location.pathname+(cur ? '#'+cur.n : '')); }
+  title();
+  if(on){ $('tp').scrollTop=0; tpRender(); tpLoad(); } else top();
+}
+$('tpOpen').onclick=()=>tpShow(!tpv());
+$('tpClose').onclick=()=>tpShow(false);
+addEventListener('popstate',()=>tpShow(location.hash==='#testers',false));
+$('tpQ').oninput=tpRender; $('tpSort').value=LSg('cube-fb-tpsort','last');
+$('tpSort').onchange=()=>{ LSs('cube-fb-tpsort',$('tpSort').value); tpRender(); };
 
 function step(d){ if(!shown.length) return; const i=cur ? shown.findIndex(r=>r.n===cur.n) : -1; const r=shown[Math.max(0,Math.min(shown.length-1,i+d))]; if(r) show(r,!document.body.classList.contains('det')); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
 async function setState(r){
@@ -337,23 +439,25 @@ const segs=(id,key)=>{ const b=[...$(id).children]; const sync=()=>b.forEach(x=>
 segs('kindSeg','kind'); segs('stateSeg','state');
 ['tester','ver','lv'].forEach(k=>$(k).onchange=()=>{ F[k]=$(k).value; cur=null; render(); });
 $('q').oninput=()=>{ F.q=$('q').value; render(); };
-$('reload').onclick=()=>load();
+$('reload').onclick=()=>{ load(); if(tpv()) tpLoad(); };
 addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')){ if(e.key==='Escape') e.target.blur(); return; }
-  if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else if(!$('tp').hidden) $('tp').hidden=true; else document.body.classList.remove('det'); }
+  if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else if(tpv()) tpShow(false); else document.body.classList.remove('det'); }
+  else if(tpv()){ if(e.key==='r'){ load(true); tpLoad(); } else if(e.key==='/'){ e.preventDefault(); $('tpQ').focus(); } }
   else if(e.key==='ArrowDown' || e.key==='j'){ e.preventDefault(); step(1); } else if(e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); step(-1); }
   else if(e.key==='/'){ e.preventDefault(); $('q').focus(); } else if(e.key==='r') load(); });
 addEventListener('pointerdown',()=>{ if(window.Notification && Notification.permission==='default') Notification.requestPermission(); },{ once:true });
-const top=()=>document.documentElement.style.setProperty('--top',(document.querySelector('header').offsetHeight+$('bar').offsetHeight)+'px');
+const top=()=>{ const h=document.querySelector('header').offsetHeight, S=document.documentElement.style; S.setProperty('--hh',h+'px'); if(!tpv()) S.setProperty('--top',(h+$('bar').offsetHeight)+'px'); };
 addEventListener('resize',top); top();
 
 /* Key */
 function gate(msg){ $('main').hidden=true; $('gate').hidden=false; $('gateErr').textContent=msg||''; $('keyIn').value=''; $('keyIn').focus(); }
 $('keyGo').onclick=()=>{ KEY=$('keyIn').value.trim(); if(KEY) load(); };
 $('keyIn').onkeydown=e=>{ if(e.key==='Enter') $('keyGo').click(); };
-if(KEY) load(); else gate();
+if(KEY){ if(location.hash==='#testers') tpShow(true,false); load(); } else gate();
 const live=()=>KEY && $('gate').hidden && !loading;
-setInterval(()=>{ if(live() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true); liveTxt(); },5000);
-const back=()=>{ if(!document.hidden && live() && Date.now()-loadAt>5000) load(true); };
+setInterval(()=>{ if(live() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true);
+  if(live() && tpAt && Date.now()-tpAt>=(tpv() && !document.hidden ? TP_POLL : TP_POLL_BG)) tpLoad(true); liveTxt(); },5000);
+const back=()=>{ if(!document.hidden && live() && Date.now()-loadAt>5000) load(true); if(!document.hidden && live() && tpv() && Date.now()-tpAt>30e3) tpLoad(true); };
 document.addEventListener('visibilitychange',back); addEventListener('focus',back);
 })();
 </script>

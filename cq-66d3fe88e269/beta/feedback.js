@@ -319,9 +319,19 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater
    the first call comes right after "I agree", the page closing sends /tester/bye */
 const MSG_EVERY=180e3;
 let inMsgs=[], inBusy=false;
+/* This device for the dashboard's play statistics (sent with play=1): a random id kept in this browser, the browser, screen and GPU */
+const devInfo=(()=>{ let id=LSget('cube-tester-dev',''); if(!/^[0-9a-f]{12}$/.test(id)){ id=[...crypto.getRandomValues(new Uint8Array(6))].map(b=>b.toString(16).padStart(2,'0')).join(''); LSset('cube-tester-dev',id); }
+  const n=navigator, d={ id, ua:n.userAgent, sw:screen.width, sh:screen.height, dpr:devicePixelRatio, lang:n.language, tz:(Intl.DateTimeFormat().resolvedOptions().timeZone)||'',
+    touch:n.maxTouchPoints||0, cores:n.hardwareConcurrency||0, mem:n.deviceMemory||0, pwa:matchMedia('(display-mode: standalone)').matches || !!n.standalone, ver:FB.ver };
+  try{ const g=document.createElement('canvas').getContext('webgl'), x=g && g.getExtension('WEBGL_debug_renderer_info');
+    if(g) d.gpu=String(x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)).slice(0,120);
+    const lc=g && g.getExtension('WEBGL_lose_context'); if(lc) lc.loseContext(); }catch(e){}
+  if(n.userAgentData && n.userAgentData.getHighEntropyValues) n.userAgentData.getHighEntropyValues(['model','platformVersion']).then(h=>{
+    if(h.model) d.model=h.model; if(h.platform) d.os=h.platform; if(h.platformVersion) d.osv=h.platformVersion; }).catch(()=>{});
+  return d; })();
 async function inPull(){
   if(!acct || inBusy || document.hidden) return; inBusy=true; const me=acct;
-  try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick, play:FB.busy ? 1 : 0 });
+  try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick, play:FB.busy ? 1 : 0, dev:FB.busy ? devInfo : undefined });
     if(acct!==me) return;
     if(d.nick && d.nick!==acct.nick){ acct={ ...acct, nick:d.nick, tok:d.tok||acct.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); gSync(); }
     const had=new Set(inMsgs.map(m=>m.id)); for(const m of d.msgs||[]) if(!had.has(m.id)) inMsgs.push(m);
