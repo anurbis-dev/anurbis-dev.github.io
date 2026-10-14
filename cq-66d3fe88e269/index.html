@@ -826,7 +826,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.94.0';
+const VERSION = '1.94.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -20079,11 +20079,12 @@ function fbSnap(){
     q:{ mode:qMode, step:qStep, fps:Math.round(1/qAvg), dpr:renderer.getPixelRatio() }, errs:FB_LOG.slice() };
   return { app:'data-cube-fb', v:1, at:Date.now(), sum, st, ls };
 }
-/* The game canvas as a JPEG (the WebGL buffer is read right after a fresh render; HTML overlays are not in it) */
-function fbShot(max=960,qy=.72){
+/* The game canvas on the level's backdrop (the page behind the transparent WebGL), as a 2D canvas at most max px on its long side;
+   the WebGL buffer is read right after a fresh render. HTML overlays are not in it: beta/feedback.js draws the page over it */
+function fbShot(max=1280){
   try{ renderer.render(scene,cam); const c=renderer.domElement, k=Math.min(1,max/Math.max(c.width,c.height)), o=document.createElement('canvas');
-    o.width=Math.round(c.width*k); o.height=Math.round(c.height*k); const g=o.getContext('2d');
-    g.fillStyle=T.bg[1]; g.fillRect(0,0,o.width,o.height); g.drawImage(c,0,0,o.width,o.height); return o.toDataURL('image/jpeg',qy); }
+    o.width=Math.round(c.width*k); o.height=Math.round(c.height*k); const g=o.getContext('2d'), gr=g.createLinearGradient(0,0,0,o.height);
+    gr.addColorStop(0,T.bg[0]); gr.addColorStop(1,T.bg[1]); g.fillStyle=gr; g.fillRect(0,0,o.width,o.height); g.drawImage(c,0,0,o.width,o.height); return o; }
   catch(e){ console.error(e); return null; }
 }
 let fbDone=false;

@@ -49,9 +49,13 @@ css.textContent=`
 #fbCard textarea,#fbCard input[type=text]{font:inherit;color:#fff;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box}
 #fbCard textarea{min-height:84px;resize:vertical}
 #fbCard label.shot{display:flex;align-items:center;gap:8px;font-size:14px}
-#fbCard label.shot img{height:44px;border-radius:6px;margin-left:auto;border:1px solid rgba(255,255,255,.25)}
-#fbCard .voice{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#fbCard .voice audio{height:34px;flex:1;min-width:150px}
+#fbCard .pic{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);min-height:60px;display:grid;place-items:center}
+#fbCard .pic img{display:block;width:100%;max-height:min(42vh,320px);object-fit:contain}
+#fbCard .pic.off img{opacity:.25;filter:grayscale(1)}
+#fbCard .pic .wait{position:absolute;font-size:13px;opacity:.8}
+#fbCard .voice{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+#fbCard #fbRec{grid-column:1/-1;width:100%;padding:12px;font-size:16px;font-weight:600}
+#fbCard .voice audio{height:36px;width:100%;min-width:0}
 #fbCard .voice .rec{background:#d64a5a;border-color:#d64a5a}
 #fbCard .row{display:flex;gap:8px;justify-content:flex-end}
 #fbCard .row .go{background:#ffd66b;color:#2d1f55;border-color:#ffd66b;font-weight:700}
@@ -70,7 +74,8 @@ wrap.innerHTML=`<div id="fbCard" role="dialog" aria-modal="true" aria-labelledby
   <div class="seg"><button type="button" data-k="bug"></button><button type="button" data-k="opinion"></button></div>
   <textarea id="fbText" maxlength="4000"></textarea>
   <input id="fbNick" type="text" maxlength="40" autocomplete="nickname">
-  <label class="shot"><input id="fbShotOn" type="checkbox" checked><span></span><img id="fbShotImg" alt=""></label>
+  <label class="shot"><input id="fbShotOn" type="checkbox" checked><span></span></label>
+  <div class="pic" id="fbPic"><img id="fbShotImg" alt=""><span class="wait" id="fbShotWait">…</span></div>
   <div class="voice"><button type="button" id="fbRec"></button><audio id="fbAud" controls hidden></audio><button type="button" id="fbAudDel" hidden></button></div>
   <div class="msg" id="fbMsg"></div>
   <div class="row"><button type="button" id="fbCancel"></button><button type="button" class="go" id="fbSend"></button></div>
@@ -80,7 +85,37 @@ const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg but
 ['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape') close(); }));
 btn.addEventListener('keydown',e=>e.stopPropagation());
 
-let snap=null, shot=null, kind='bug', rec=null, voice=null, sending=false;
+let snap=null, shot=null, shotP=null, kind='bug', rec=null, voice=null, sending=false;
+/* The screenshot: the level's backdrop and the WebGL frame (the game draws them, FB.shot), the page over it — HUD, menus, overlays —
+   drawn by html-to-image (beta/vendor, MIT) from a clone of the DOM; the feedback UI itself is left out */
+const BASE=(document.currentScript && document.currentScript.src || location.href).replace(/[^/]*(\?.*)?$/,'');
+let h2i=null;
+const h2iLoad=()=>h2i || (h2i=new Promise(ok=>{ if(window.htmlToImage) return ok(window.htmlToImage);
+  const s=document.createElement('script'); s.src=BASE+'vendor/html-to-image.js'; s.onload=()=>ok(window.htmlToImage||null); s.onerror=()=>ok(null); document.head.append(s); }));
+h2iLoad();
+const SKIP=new Set(['fbBtn','fbWrap','stage','sky']);
+/* Hidden overlays and menu sections are not drawn — they are most of the DOM (the level grids) and cost seconds to clone */
+const keep=n=>!(n.id && SKIP.has(n.id)) && !n.hidden && !(n.classList && (n.classList.contains('hidden') || n.classList.contains('msec') && !n.classList.contains('on')));
+/* The page's web fonts for the picture (an SVG image cannot use the document's): the Google Fonts CSS with its latin and cyrillic
+   files inlined, built once; the library itself would try to read the cross-origin sheet and log errors */
+let fontCss=null;
+const toData=u=>fetch(u).then(r=>r.blob()).then(b=>new Promise(ok=>{ const f=new FileReader(); f.onload=()=>ok(f.result); f.onerror=()=>ok(u); f.readAsDataURL(b); }));
+const fontsLoad=()=>fontCss || (fontCss=(async()=>{
+  const l=document.querySelector('link[rel=stylesheet][href*="fonts.googleapis.com"]'); if(!l) return '';
+  try{ const css=await (await fetch(l.href)).text(), out=[];
+    for(const m of css.matchAll(/\/\*\s*([\w-]+)\s*\*\/\s*(@font-face\s*{[^}]*})/g)){ if(!/^(latin|cyrillic)$/.test(m[1])) continue;
+      const u=(m[2].match(/url\(([^)]+)\)/)||[])[1]; out.push(u ? m[2].replace(u,await toData(u.replace(/['"]/g,''))) : m[2]); }
+    return out.join('\n'); }catch(e){ return ''; } })());
+setTimeout(fontsLoad,4000);   // ready before the first tap
+async function capture(){
+  const base=FB.shot(1280); if(!base) return null;
+  try{ const [lib,fc]=await Promise.all([h2iLoad(),fontsLoad()]);
+    if(lib){ const page=await lib.toCanvas(document.body,{ width:innerWidth, height:innerHeight, pixelRatio:base.width/innerWidth, backgroundColor:null,
+        style:{ background:'transparent', margin:'0' }, filter:keep, fontEmbedCSS:fc, cacheBust:false, imagePlaceholder:'data:image/gif;base64,R0lGODlhAQABAAAAACw=' });
+      base.getContext('2d').drawImage(page,0,0,base.width,base.height); } }
+  catch(e){ console.warn('feedback: page capture',e); }
+  return base.toDataURL('image/jpeg',.78);
+}
 function texts(){
   $('fbH').textContent=t('Feedback'); seg[0].textContent=t('Bug'); seg[1].textContent=t('Impression');
   $('fbText').placeholder=t('What happened? Or what do you think of this moment?'); $('fbNick').placeholder=t('Your name (optional)');
@@ -94,19 +129,22 @@ function msg(s,ok){ const m=$('fbMsg'); m.textContent=s||''; m.classList.toggle(
 function open(){
   if(!wrap.hidden) return;
   try{ snap=FB.snap(); }catch(e){ console.error(e); snap=null; }
-  shot=FB.shot();
   FB.pause(true);
+  shot=null; shotP=capture().then(d=>{ shot=d; showShot(); return d; });
   texts(); setKind(kind); msg(''); sending=false; $('fbSend').disabled=false;
   $('fbNick').value=LSget('cube-tester-nm','');
-  $('fbShotImg').src=shot||''; $('fbShotImg').hidden=!shot; $('fbShotOn').checked=!!shot; $('fbShotOn').disabled=!shot;
+  $('fbShotImg').removeAttribute('src'); $('fbShotWait').hidden=false; $('fbShotOn').checked=true; $('fbShotOn').disabled=false; showShot();
   wrap.hidden=false; setTimeout(()=>$('fbText').focus({ preventScroll:true }),50);
 }
+function showShot(){ const on=$('fbShotOn').checked; $('fbPic').classList.toggle('off',!on);
+  if(shot){ $('fbShotImg').src=shot; $('fbShotWait').hidden=true; } else if(shotP===null){ $('fbShotWait').hidden=true; } }
 function close(){
   if(wrap.hidden) return; recStop(true); wrap.hidden=true; FB.pause(false);
-  $('fbText').value=''; voiceDel(); snap=shot=null; btn.blur();
+  $('fbText').value=''; voiceDel(); snap=shot=shotP=null; btn.blur();
 }
 btn.onclick=open;
 $('fbCancel').onclick=close;
+$('fbShotOn').onchange=showShot;
 wrap.addEventListener('pointerdown',e=>{ if(e.target===wrap) wrap.dataset.out='1'; });
 wrap.addEventListener('click',e=>{ if(e.target===wrap && wrap.dataset.out && !sending) close(); delete wrap.dataset.out; });
 
@@ -142,7 +180,8 @@ $('fbSend').onclick=async()=>{
   const nick=$('fbNick').value.trim(); LSset('cube-tester-nm',nick);
   sending=true; $('fbSend').disabled=true; msg(t('Sending…'),true);
   try{
-    const body={ tester, nick, kind, text, snap, shot:$('fbShotOn').checked ? shot : null,
+    const pic=$('fbShotOn').checked ? await shotP : null;
+    const body={ tester, nick, kind, text, snap, shot:pic,
       audio:voice ? { data:await b64(voice.blob), dur:voice.dur } : null };
     const r=await fetch(API.replace(/\/$/,'')+'/fb',{ method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) });
     if(!r.ok) throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,200));
