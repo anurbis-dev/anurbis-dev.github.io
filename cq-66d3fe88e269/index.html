@@ -826,7 +826,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.92.0';
+const VERSION = '1.92.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
@@ -13280,6 +13280,7 @@ function dashStep(dx,dz,left,soft){                                 // soft — 
   dust(p0.x,p0.y-HALF,p0.z,surfAt(P.x,P.z),.35); if(!soft) streak(.14);
   const iceGo=entering && iceSlip(k) && !slopes[k] || iceSlip(K(nx+dx,nz+dz)) && !slopes[K(nx+dx,nz+dz)];
   const last=left<=1 && entering && !iceGo, dur=last?.2:.075;           // ice ahead — no dash brake, the slide takes over
+  if(entering && lowRoof(nx,nz,top)) stuckDone('niche');               // slid in under a low roof — the player knows how
   const lean=last && !lowRoof(nx,nz,top);                // under a low roof — no lean (it would tip into the roof)                                        // the lean starts in the last cell, before the stop (the tail is dashLean from LEAN_PRE)
   play(dur, q=>{ const e=last?1-(1-q)*(1-q):q; root.position.lerpVectors(p0,to.pos,e); qt.copy(t0).slerp(to.tilt,e); pMesh.quaternion.copy(qt).multiply(qq.copy(q0).slerp(q1,e));
     if(lean) leanApply(dx,dz,q*LEAN_PRE/(LEAN_T+LEAN_PRE)); }, ()=>{
@@ -14411,7 +14412,7 @@ function wpBuild(){
    or a crate does as well. A plain roll just bumps into an obstacle kind. The blown cover flies apart, then the tile pops in and works
    (the cube standing on it is served right away)
    ===================================================================== */
-let covers={}, coverTip=false, coverAll=[];                           // covers: 'x,z' → { x, z, kind, mesh, hid:[{m,s}], open, g }; g — the mound the cell belongs to (see parseCovers); coverAll — every cell key
+let covers={}, coverAll=[];                           // covers: 'x,z' → { x, z, kind, mesh, hid:[{m,s}], open, g }; g — the mound the cell belongs to (see parseCovers); coverAll — every cell key
 const COVER={ leaves:{}, sand:{}, stones:{ ob:'K' }, crate:{ ob:'X' }, drift:{ ob:'M' }, dune:{ ob:'M' } };
 const COVER_R=1.6, COVER_POP=.3;                                      // slam radius (the 8 neighbours); the tile pops in COVER_POP s after the blow
 const LEAF_PILE=[0xc8702a,0xe0a030,0x9a5a24,0xd9582e,0xb8862e];
@@ -14422,7 +14423,7 @@ const coverLeaves=()=>T.crowns ? T.crowns.flat() : T.snowy ? [0x8a6a40,0xa07a48,
    a slam bites the nearest cell out of the hill (one per slam), a dash into a cell bites that cell, the rest stays */
 const MOUND=['drift','dune'], MOUND_FOOT=.8;
 function parseCovers(def,inMap,bad){
-  covers={}; coverTip=false; coverAll=[];
+  covers={}; coverAll=[];
   const rockOk=(ck,kind)=>MOUND.includes(kind) && obst[ck] && obst[ck].type==='K' && !obst[ck].cover;   // a mound may bury a rock (granite too): it stands there once the snow is blown off
   const plain=(x,z,ck,kind)=>inMap(x,z) && terr[z][x]!==null && !(water[ck] || slopes[ck] || (obst[ck] && !rockOk(ck,kind)) || gates[ck] || ice[ck] || traps[ck] || brk[ck] || press[ck] || ovh[ck] || bvq[ck] || sticky[ck]
     || pieceCellAt(x,z) || crates.some(c=>c.x===x && c.z===z) || (start.x===x && start.z===z) || pushers.some(p=>p.x===x && p.z===z) || covers[ck]);
@@ -14525,7 +14526,8 @@ function coverSlam(x0,z0,L){
 /* The cover flies apart (leaves swirl up and drift down, sand and snow spray, stones and planks scatter), then the tile pops in */
 function coverBlow(k){
   const cv=covers[k]; if(!cv || cv.gone) return; cv.open=cv.gone=true;
-  const o=obst[k]; if(o && o.cover){ if(o.under) coverRock(k,o.under); else delete obst[k]; }   // the way is free at once (a dash goes on into the cell) — unless a rock was buried there
+  const o=obst[k]; if(o && o.type==='M') stuckDone('mound');
+  if(o && o.cover){ if(o.under) coverRock(k,o.under); else delete obst[k]; }   // the way is free at once (a dash goes on into the cell) — unless a rock was buried there
   const { x, z, kind }=cv, h=th(x,z), m=cv.mesh; if(cv.g) cv.g.cells=cv.g.cells.filter(c=>c!==k);
   SND.uncover(kind); shake=Math.max(shake,kind==='drift'||kind==='dune'?.25:.15); if(navigator.vibrate) navigator.vibrate(20);
   if(kind==='leaves'){ const cols=coverLeaves();
@@ -14559,10 +14561,10 @@ function coverReveal(k){
   if(any && !MOUND.includes(cv.kind)){ SND.loot(); sparkle(cv.x,h+.3,cv.z,[0xfff0a0,0xffffff,0xc9a8ff],16); }
   if(state==='idle' && P.x===cv.x && P.z===cv.z && !P.wall && !P.ceil && !P.float && !P.st && !P.on && Math.abs(P.l-h)<.01) settle(k,true);   // standing on it — it works at once
 }
-/* A roll into a mound only bumps it: once per level a toast tells how to get through */
+/* A roll into a mound only bumps it: a toast tells how to get through (again if the player keeps bumping — stuckTip; not after a mound cell is broken) */
 function coverBump(k){
-  const o=obst[k]; if(!o || o.type!=='M' || coverTip) return; coverTip=true;
-  toast(loc(o.cover==='drift'?'Snowdrift':'Sand dune'),loc('A dash breaks through it'),true);
+  const o=obst[k]; if(!o || o.type!=='M') return;
+  stuckTip('mound',loc(o.cover==='drift'?'Snowdrift':'Sand dune'),loc('A dash breaks through it'));
 }
 /* =====================================================================
    NICHES AND TUNNELS
@@ -14570,7 +14572,7 @@ function coverBump(k){
    is less than NICHE above the floor under it. The cube fits under it only lying flat: a roll swings its edge √2 high, so it can't roll
    there — it slides. In: a dash (dashStep), or from the air (a jump, a leap, a fall, a wind stream, a wall kick) a swipe toward the
    niche's mouth while the cube is at its floor height (nicheFromAir → nicheGlide; doLeap — a niche up to the jump's height further on).
-   A plain roll into it bumps (nicheBump, a toast once per level). Inside: a swipe slides one cell (tunnelSlide → dashStep(…, soft):
+   A plain roll into it bumps (nicheBump, a toast — stuckTip). Inside: a swipe slides one cell (tunnelSlide → dashStep(…, soft):
    breaks nothing, knocks no crate), a dash slides on; a tap does nothing (no room to jump — doJump). Out: the same slide onto open
    ground, then rolling as usual. Roofed cells aren't checkpoints (danger: the ship can't drop the cube in). Low roofs and tunnel rock
    near the cube fade (updateRoofs: own materials, ROOF_A), and camRay sees through the faded ones.
@@ -14580,7 +14582,6 @@ function coverBump(k){
    A cracked wall X in o on a tunnel cell plugs it (a dash breaks it). Stars in tunnel cells and in def.secret count as secrets
    ===================================================================== */
 const NICHE=1.45, ROOF_R=2.6, ROOF_A=.22;
-let nicheTold=false;
 /* The floor of a niche (a low-roofed cell) or null */
 function nicheFloor(x,z){
   for(const o of ovhsOf(K(x,z))){
@@ -14595,7 +14596,6 @@ const lowRoof=(x,z,l)=>{
 const tunCell=(def,x,z)=>(def.tunnels||[]).some(([x0,z0,x1,z1])=>x>=x0 && x<=x1 && z>=z0 && z<=z1);
 const secretStar=(def,k)=>(def.secret||[]).includes(k) || tunCell(def,...k.split(',').map(Number));   // a star in a tunnel or behind it (def.secret) — a secret
 function parseTunnels(def,inMap,bad){
-  nicheTold=false;
   const cells={};
   (def.tunnels||[]).forEach(([x0,z0,x1,z1,y])=>{ y=y|0; for(let z=z0;z<=z1;z++) for(let x=x0;x<=x1;x++){
     const k=K(x,z); (cells[k]||(cells[k]={x,z,ys:[]})).ys.includes(y)||cells[k].ys.push(y); } });
@@ -14618,9 +14618,9 @@ function parseTunnels(def,inMap,bad){
     });
   });
 }
-/* A plain roll into a niche: it doesn't fit — a bump, and once per level a toast with what to do */
+/* A plain roll into a niche: it doesn't fit — a bump and a toast with what to do (again if the player keeps bumping — stuckTip; not after sliding in) */
 function nicheBump(dx,dz){
-  if(!nicheTold){ nicheTold=true; toast(loc('Too low to roll'),loc('Dash to slide under'),true); }
+  stuckTip('niche',loc('Too low to roll'),loc('Dash to slide under'));
   return bump(dx,dz);
 }
 /* Inside a niche or a tunnel a swipe slides one cell (no room to roll); a short swipe or a hold doesn't slide it out over a drop */
@@ -14644,7 +14644,7 @@ function nicheFromAir(dx,dz){
 /* Into a niche from the air: to the mouth column (mx,mz) at the floor height f (an arc with `rolls` quarter turns when it flies there
    from further away — doLeap), the cube levelled to the nearest grid orientation, then a slide in under the roof */
 function nicheGlide(mx,mz,tx,tz,dx,dz,f,rolls){
-  anim=null; airLock=false; queue=[]; holdDir=null; leapUsed=true; bncCtl=null; depart();
+  anim=null; airLock=false; queue=[]; holdDir=null; leapUsed=true; bncCtl=null; depart(); stuckDone('niche');
   P.fly=false; P.spin=false; P.void=false; P.float=false; P.st=null; P.wall=null; P.ceil=false; state='leap'; P.target=[tx,tz];
   const p0=root.position.clone(), M=new V3(mx,f+HALF,mz), E=new V3(tx,f+HALF,tz), qc=pMesh.quaternion.clone(), qs=snapQ(qc),
     axis=new V3(dz,0,-dx), ang=Math.PI/2*rolls, qr=new Q(), qa=new Q(), hd=Math.hypot(M.x-p0.x,M.z-p0.z),
@@ -16436,6 +16436,15 @@ function toastOn(t,a,b,ms,shown){ const put=()=>{ t.textContent=''; t.append(a);
 function toastOff(t){ clearTimeout(t._tm); t.classList.remove('show'); }
 function toastTap(force){ if(!toastHeld || !force && performance.now()-toastHeld<400) return;   // not the very touch that earned it
   toastHeld=0; toastOff($('toast')); }
+/* Stuck tips: a bump into something that needs another move shows a toast; it comes back only while the player keeps bumping
+   (STUCK_N bumps since the last one and at least STUCK_CD s later); once the move is done (stuckDone) — never again this level */
+const STUCK_N=3, STUCK_CD=12;
+let stuckT={};                                                         // id → { n — bumps since the last show, t — when shown (s), done }
+function stuckTip(id,a,b){ const s=stuckT[id]||(stuckT[id]={ n:0, t:null }); if(s.done) return;
+  const now=performance.now()/1000; s.n++;
+  if(s.t!==null && (s.n<STUCK_N || now-s.t<STUCK_CD)) return;
+  s.n=0; s.t=now; toast(a,b,true); }
+function stuckDone(id){ (stuckT[id]||(stuckT[id]={ n:0, t:null })).done=true; }
 const livesLeft=()=>P.lives===1?loc('Last life left'):loc('Lives left: {0}',P.lives);
 function hudTitle(){ $('lvlNum').textContent=loc('Level {0} of {1}',lvNo(cur),AREAS[areaOf(cur)].n); $('lvlName').textContent=lvName(curDef()); }
 document.addEventListener('visibilitychange', ()=>{ SND.hold('hidden',document.hidden); if(document.hidden) dropInput(); else { needDraw=true; if(texLost && !glLost) refreshTextures(); } });
@@ -19285,7 +19294,9 @@ function loadLevel(i,retry,defer,sv){
   if(lastTheme!==def.theme||!retry) SND.setAmbient(T.weather||T.amb||(waterCells.length?'water':null));
   lastTheme=def.theme;
   trails=[]; P.lives=lvLives=bankLives(); updateLives();
-  if(!sv) P.studs=false;                                               // stone corners last the run: a sublevel visit keeps them
+  if(!sv) P.studs=false;
+  if(!sv && !retry) stuckT={};                                         // a new level: the tips start over (a retry or a sublevel visit — the player already knows)
+                                                // stone corners last the run: a sublevel visit keeps them
   resetPlayer(start.x,start.z,terr[start.z][start.x],def.mat||'normal','w'); P.hist=[]; saveCheck();
   STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; SH.carry=false; shipBeam(0,0); SH.a=0;
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
