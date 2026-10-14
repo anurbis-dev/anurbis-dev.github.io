@@ -563,6 +563,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 #title.opt .xrow:nth-child(4){ animation-delay:.18s; } #title.opt .xrow:nth-child(5){ animation-delay:.24s; }
 #title.opt:not(.dead){ cursor:default; }
 .tg .pill{ flex:none; margin-left:10px; padding:6px 14px; border-radius:12px; background:rgba(255,255,255,.14); font-size:14px; }
+.tg .pill.ico{ display:flex; gap:6px; padding:5px 10px; } .tg .pill.ico svg{ width:18px; height:18px; display:block; }
 /* Landscape: the language globe sits in the bottom-right corner (its flags unfold to the left), so the title keeps a slim bottom margin.
    A low screen: the cube block is compact from the start (nothing jumps when the list opens), the rows a little smaller, the list
    scrolls in the room left above the button */
@@ -19154,8 +19155,11 @@ function setLang(l){ if(!LANGS.some(x=>x[0]===l)) return; lang=l; LS.set('cube-l
 applyLang(); modalSync(document.querySelector('.overlay:not(.hidden)'));
 /* The camera buttons (a device setting, cube-cam), a tap steps through: '0' none, '1' one universal button, '3' three in a row — turn, zoom, pan */
 const CAMB_MODES={ '0':'Off', '1':'One', '3':'Three' };
+const camBtnIco=ids=>ids.map(id=>$(id).querySelector('svg').outerHTML).join('');   // the setting shows the buttons themselves: their icons
+const CAMB_ICO={ '1':camBtnIco(['btnCam']), '3':camBtnIco(['btnCamR','btnCamZ','btnCamP']) };
 let camBtnN=LS.get('cube-cam','1'); if(!CAMB_MODES[camBtnN]) camBtnN='1';
-function camBtnSet(n){ camBtnN=n; const v=$('tgCamV'); v.dataset.src=CAMB_MODES[n]; v.textContent=loc(CAMB_MODES[n]);
+function camBtnSet(n){ camBtnN=n; const v=$('tgCamV'); v.dataset.src=CAMB_ICO[n]||CAMB_MODES[n]; v.innerHTML=CAMB_ICO[n]||loc(CAMB_MODES[n]); v.classList.toggle('ico',!!CAMB_ICO[n]);
+  v.setAttribute('aria-label',loc(CAMB_MODES[n]));
   document.body.classList.toggle('nocam',n==='0'); document.body.classList.toggle('cam3',n==='3'); }
 camBtnSet(camBtnN);
 $('tgCam').onclick=()=>{ camBtnSet({ '0':'1', '1':'3', '3':'0' }[camBtnN]); LS.set('cube-cam',camBtnN); };
