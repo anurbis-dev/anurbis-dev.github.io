@@ -89,15 +89,20 @@ body.night::before{ opacity:0; }
 .btn:active{ transform:scale(.92); }
 /* The camera button: drag sideways — turn, up/down — zoom, tap — back onto the cube (camHome); the settings can hide it (body.nocam).
    Portrait: it sits at the bottom centre, a little above the edge (the system's swipe zone), hidden while the level hint shows */
-#btnCam{ touch-action:none; } #btnCam.pan{ background:var(--cream); color:#4a2f78; } body.nocam #btnCam{ display:none; }
+#btnCam,#camRow .btn{ touch-action:none; } #btnCam.pan,#camRow .btn.pan{ background:var(--cream); color:#4a2f78; } body.nocam #btnCam, body.cam3 #btnCam{ display:none; }
 @media (orientation:portrait){ #btnCam{ position:fixed; left:50%; margin-left:-22px; bottom:calc(env(safe-area-inset-bottom,0px) + 52px); }
   body:has(#hint:not(.dim)) #btnCam{ opacity:0; transform:scale(.7); visibility:hidden; pointer-events:none; transition:opacity .25s ease, transform .25s ease, visibility 0s .25s; } }
+/* Three camera buttons (the setting's third state, body.cam3): turn · zoom · pan in a row at the bottom centre, hidden while the level hint shows */
+#camRow{ display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 52px); gap:10px; transition:opacity .25s ease, visibility 0s; }
+body.cam3 #camRow{ display:flex; }
+body:has(#hint:not(.dim)) #camRow{ opacity:0; visibility:hidden; pointer-events:none; transition:opacity .25s ease, visibility 0s .25s; }
+@media (orientation:landscape){ #camRow{ bottom:calc(env(safe-area-inset-bottom,0px) + 16px); } }
 .btn.hidden{ opacity:0; transform:scale(.7); visibility:hidden; pointer-events:none; transition:opacity .25s ease, transform .25s ease, visibility 0s .25s; }
 /* Menu/settings/help open: the menu button stays above the dimmer and closes it (a cross), the rest of the HUD hides */
 #hud > div:first-child{ transition:opacity .25s ease; }
 #btnReset{ transition:opacity .25s ease, transform .25s ease, background .2s; }
 body.mopen #hud{ z-index:21; }
-body.mopen #hud > div:first-child, body.mopen #btnReset, body.mopen #btnCam, body.mopen #btnLv{ opacity:0; pointer-events:none; }
+body.mopen #hud > div:first-child, body.mopen #btnReset, body.mopen #btnCam, body.mopen #camRow, body.mopen #btnLv{ opacity:0; pointer-events:none; }
 #btnMenu path{ transition:transform .25s ease, opacity .2s ease; transform-origin:12px 12px; }
 body.mopen #btnMenu{ background:var(--panel-strong); }
 body.mopen #btnMenu .m1{ transform:translateY(5px) rotate(45deg); }
@@ -635,6 +640,17 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
     <button class="btn" id="btnCam" aria-label="Camera: swipe sideways to turn, up or down to zoom, hold to pan, tap to reset" data-ta>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5a2 2 0 0 1 2-2h2.2l1.6-2.2h5.4l1.6 2.2h2.2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg>
     </button>
+    <div id="camRow">
+      <button class="btn" id="btnCamR" aria-label="Camera: swipe to turn, tap to reset" data-ta>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg>
+      </button>
+      <button class="btn" id="btnCamZ" aria-label="Camera: swipe up or down to zoom, tap to reset" data-ta>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg>
+      </button>
+      <button class="btn" id="btnCamP" aria-label="Camera: drag to pan, tap to reset" data-ta>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>
+      </button>
+    </div>
     <button class="btn" id="btnReset" aria-label="Restart level" data-ta>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>
     </button>
@@ -770,7 +786,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
       </div>
       <div class="sl"><span data-t>Language</span><div class="shiprow langrow" id="langRow"></div></div>
       <!--web--><button class="tg" id="tgFs" aria-pressed="true"><span data-t>Auto fullscreen</span> <span class="sw"></span></button><!--/web-->
-      <button class="tg" id="tgCam" aria-pressed="true"><span data-t>Camera button</span> <span class="sw"></span></button>
+      <button class="tg" id="tgCam"><span data-t>Camera button</span> <span class="pill" id="tgCamV" data-t></span></button>
       <label class="sl vr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg><input type="range" id="cRot" min="25" max="300" step="25" data-ta aria-label="Camera turn speed"><b id="cRotV"></b></label>
       <label class="sl vr"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg><input type="range" id="cZoom" min="25" max="300" step="25" data-ta aria-label="Camera zoom speed"><b id="cZoomV"></b></label>
       <label class="sl vr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg><input type="range" id="cPan" min="25" max="300" step="25" data-ta aria-label="Camera pan speed"><b id="cPanV"></b></label>
@@ -837,7 +853,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.98.0';
+const VERSION = '1.99.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1097,6 +1113,11 @@ const L10N={
   "Frame rate limit":["Ограничение FPS","Límite de FPS","Limite de FPS","FPS-Begrenzung","Limite d’images/s","帧率上限","フレームレート上限","프레임 제한"],
   "Soft particles":["Мягкие частицы","Partículas suaves","Partículas suaves","Weiche Partikel","Particules douces","柔和粒子","ソフトパーティクル","부드러운 입자"],
   "Glass blur":["Размытие под панелями","Desenfoque de paneles","Desfoque dos painéis","Unschärfe hinter Feldern","Flou des panneaux","面板模糊","パネルのぼかし","패널 흐림"],
+  "One":["Одна","Uno","Um","Eine","Un","一个","1つ","하나"],
+  "Three":["Три","Tres","Três","Drei","Trois","三个","3つ","셋"],
+  "Camera: swipe to turn, tap to reset":["Камера: свайп — поворот, тап — сброс","Cámara: desliza para girar, toca para restablecer","Câmera: deslize para girar, toque para redefinir","Kamera: wischen zum Drehen, tippen zum Zurücksetzen","Caméra : glisser pour tourner, toucher pour réinitialiser","镜头：滑动旋转，轻点复位","カメラ：スワイプで回転、タップでリセット","카메라: 밀어서 회전, 탭하면 초기화"],
+  "Camera: swipe up or down to zoom, tap to reset":["Камера: свайп вверх-вниз — зум, тап — сброс","Cámara: desliza arriba o abajo para el zoom, toca para restablecer","Câmera: deslize para cima ou para baixo para o zoom, toque para redefinir","Kamera: nach oben oder unten wischen zum Zoomen, tippen zum Zurücksetzen","Caméra : glisser vers le haut ou le bas pour zoomer, toucher pour réinitialiser","镜头：上下滑动缩放，轻点复位","カメラ：上下にスワイプでズーム、タップでリセット","카메라: 위아래로 밀어 확대·축소, 탭하면 초기화"],
+  "Camera: drag to pan, tap to reset":["Камера: перетаскивание — сдвиг, тап — сброс","Cámara: arrastra para desplazar, toca para restablecer","Câmera: arraste para deslocar, toque para redefinir","Kamera: ziehen zum Verschieben, tippen zum Zurücksetzen","Caméra : faire glisser pour déplacer, toucher pour réinitialiser","镜头：拖动平移，轻点复位","カメラ：ドラッグで移動、タップでリセット","카메라: 끌어서 이동, 탭하면 초기화"],
   "Off":["Выкл.","Desact.","Desl.","Aus","Désact.","关","オフ","끔"],
   "Hard":["Чёткие","Nítidas","Nítidas","Hart","Nettes","清晰","くっきり","선명"],
   "Soft":["Мягкие","Suaves","Suaves","Weich","Douces","柔和","ソフト","부드럽게"],
@@ -16400,28 +16421,32 @@ canvas.addEventListener('wheel', e=>{ e.preventDefault(); camTouched(); zoomBy(e
 const CAMB_A=.012, CAMB_Z=.006, CAMB_P=2, CAMB_HOLD=.35; let camG=null, camBEat=-1;
 /* The button's speeds (settings sliders, a device setting cube-cam-rot/zoom/pan, in %): multipliers on CAMB_A, CAMB_Z, CAMB_P */
 const camK={}; for(const k of ['rot','zoom','pan']) camK[k]=clamp(+LS.get('cube-cam-'+k,'100')||100,25,300)/100;
-const camB=$('btnCam');
-camB.addEventListener('pointerdown',e=>{ if(cine || camG) return; camTouched(); SND.init(); camBEat=-1;   // a new touch: the old drag's click is forgotten
-  try{ camB.setPointerCapture(e.pointerId); }catch(_){}
-  const g=camG={ id:e.pointerId, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY, on:false, h:false, pan:false };
-  setTimeout(()=>{ if(camG!==g || g.on || cine) return; g.pan=g.on=true; dragging=true; camTw=null; camB.classList.add('pan'); SND.uiTick(); },CAMB_HOLD*1e3); });
-camB.addEventListener('pointermove',e=>{
-  const g=camG; if(!g || g.id!==e.pointerId) return;
-  camTouch=time; const dx=e.clientX-g.x, dy=e.clientY-g.y; g.x=e.clientX; g.y=e.clientY;
-  if(!g.on){ const tx=e.clientX-g.x0, ty=e.clientY-g.y0; if(Math.hypot(tx,ty)<TAP_MOVE) return;
-    g.on=true; g.h=Math.abs(tx)>=Math.abs(ty); dragging=true; camTw=null; }
-  if(cine) return;
-  if(g.pan) panBy(dx*CAMB_P*camK.pan,dy*CAMB_P*camK.pan);
-  else if(g.h){ az-=dx*CAMB_A*camK.rot; azT=az; } else zoomBy(Math.exp(-dy*CAMB_Z*camK.zoom));      // up — closer
-});
-function camBEnd(e){
-  const g=camG; if(!g || g.id!==e.pointerId) return; camG=null;
-  camB.classList.remove('pan');
-  if(g.on){ dragging=false; if(!g.pan){ azT=snapAz(az); camHand=time; } camBEat=performance.now(); }   // the click after a drag or a hold isn't a tap
+/* camBind(b, m): m '' — the universal button; 'rot', 'zoom', 'pan' — the three-button row (cube-cam '3'): each one does only its own
+   action, whatever way the drag goes (pan — right away, no hold). A tap on any of them — camHome */
+function camBind(b,m){
+  b.addEventListener('pointerdown',e=>{ if(cine || camG) return; camTouched(); SND.init(); camBEat=-1;   // a new touch: the old drag's click is forgotten
+    try{ b.setPointerCapture(e.pointerId); }catch(_){}
+    const g=camG={ b, id:e.pointerId, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY, on:false, h:m==='rot', pan:m==='pan', m };
+    if(!m) setTimeout(()=>{ if(camG!==g || g.on || cine) return; g.pan=g.on=true; dragging=true; camTw=null; b.classList.add('pan'); SND.uiTick(); },CAMB_HOLD*1e3); });
+  b.addEventListener('pointermove',e=>{
+    const g=camG; if(!g || g.id!==e.pointerId) return;
+    camTouch=time; const dx=e.clientX-g.x, dy=e.clientY-g.y; g.x=e.clientX; g.y=e.clientY;
+    if(!g.on){ const tx=e.clientX-g.x0, ty=e.clientY-g.y0; if(Math.hypot(tx,ty)<TAP_MOVE) return;
+      g.on=true; if(!m) g.h=Math.abs(tx)>=Math.abs(ty); dragging=true; camTw=null; if(m==='pan') b.classList.add('pan'); }
+    if(cine) return;
+    if(g.pan) panBy(dx*CAMB_P*camK.pan,dy*CAMB_P*camK.pan);
+    else if(g.h){ az-=dx*CAMB_A*camK.rot; azT=az; } else zoomBy(Math.exp(-dy*CAMB_Z*camK.zoom));      // up — closer
+  });
+  function end(e){
+    const g=camG; if(!g || g.id!==e.pointerId) return; camG=null;
+    b.classList.remove('pan');
+    if(g.on){ dragging=false; if(!g.pan){ azT=snapAz(az); camHand=time; } camBEat=performance.now(); }   // the click after a drag or a hold isn't a tap
+  }
+  b.addEventListener('pointerup',end); b.addEventListener('pointercancel',end);
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+  b.onclick=()=>{ if(camG&&camG.on || performance.now()-camBEat<500 || cine) return; camHome(); };   // camG.on: tapOn's click comes on pointerup before end
 }
-camB.addEventListener('pointerup',camBEnd); camB.addEventListener('pointercancel',camBEnd);
-camB.addEventListener('contextmenu',e=>e.preventDefault());
-camB.onclick=()=>{ if(camG&&camG.on || performance.now()-camBEat<500 || cine) return; camHome(); };   // camG.on: tapOn's click comes on pointerup before camBEnd
+camBind($('btnCam'),''); camBind($('btnCamR'),'rot'); camBind($('btnCamZ'),'zoom'); camBind($('btnCamP'),'pan');
 function camHome(){ camTouched(); camRecenter(true); }                 // back onto the cube at zoom 1; the turn stays as it is
 function canCharge(){                                                 // in water, sucked into quicksand, on a ceiling, in a stream — nothing to push off from
   return !(P.ceil || P.fly || P.float || P.under || P.sink>.2 && surfAt(P.x,P.z)==='quick');   // sunk in sand or snow — a charged jump still works (a dash doesn't: dash)
@@ -19026,11 +19051,11 @@ function modalSync(ov){
   ov=ov||null; if(ov===modalOv) return; const was=modalOv;
   if(ov && !was){ const a=document.activeElement; modalRet=a && a!==document.body && !a.closest('.overlay') ? a : null; }
   modalOv=ov;
-  ['stage','hudL','btnReset','btnCam','btnLv'].forEach(id=>$(id).inert=!!ov); $('btnMenu').inert=!!ov && ov.id!=='menu';
+  ['stage','hudL','btnReset','btnCam','camRow','btnLv'].forEach(id=>$(id).inert=!!ov); $('btnMenu').inert=!!ov && ov.id!=='menu';
   document.querySelectorAll('.overlay').forEach(o=>o.inert=o!==ov);
   if(!ov){ const r=modalRet; modalRet=null; if(r && was && was.id!=='title' && r.isConnected && !r.closest('[inert],.hidden,[hidden]')) try{ r.focus({ preventScroll:true }); }catch(e){} }
 }
-function dropInput(){ holdDir=null; gest=null; kbHold=null; chargeV=0; pts.clear(); dragging=false; if(camG){ camG=null; azT=snapAz(az); camB.classList.remove('pan'); } }   // pause, lost focus, hidden tab: no held input survives
+function dropInput(){ holdDir=null; gest=null; kbHold=null; chargeV=0; pts.clear(); dragging=false; if(camG){ azT=snapAz(az); camG.b.classList.remove('pan'); camG=null; } }   // pause, lost focus, hidden tab: no held input survives
 function openMenu(){ if(goalLock || statBusy || lvWipe || cine) return; SND.init(); lvMarks(); areaGo(areaOf(cur)); placeMenu(); lvdClose(); setSecNow(''); showOverlay('menu'); }   // not under the level curtain or a cinematic
 function closeMenu(){ autoFS(); closeOverlays(); }
 /* Menu sections: an icon opens its panel (the icon lit), the same icon again closes it — back to the PAUSED label */
@@ -19126,11 +19151,13 @@ function applyLang(){
   lvRows(); if(lvList) requestAnimationFrame(lvListPaint); moreAll(); document.dispatchEvent(new Event('cube-lang')); }   // the beta's own UI (beta/feedback.js) follows
 function setLang(l){ if(!LANGS.some(x=>x[0]===l)) return; lang=l; LS.set('cube-lang',l); applyLang(); }
 applyLang(); modalSync(document.querySelector('.overlay:not(.hidden)'));
-/* The camera button can be switched off (a device setting, cube-cam) */
-let camBtnOn=LS.get('cube-cam','1')==='1';
-function camBtnSet(on){ camBtnOn=!!on; setTg('tgCam',camBtnOn); document.body.classList.toggle('nocam',!camBtnOn); }
-camBtnSet(camBtnOn);
-$('tgCam').onclick=()=>{ camBtnSet(!camBtnOn); LS.set('cube-cam',camBtnOn?'1':'0'); };
+/* The camera buttons (a device setting, cube-cam), a tap steps through: '0' none, '1' one universal button, '3' three in a row — turn, zoom, pan */
+const CAMB_MODES={ '0':'Off', '1':'One', '3':'Three' };
+let camBtnN=LS.get('cube-cam','1'); if(!CAMB_MODES[camBtnN]) camBtnN='1';
+function camBtnSet(n){ camBtnN=n; const v=$('tgCamV'); v.dataset.src=CAMB_MODES[n]; v.textContent=loc(CAMB_MODES[n]);
+  document.body.classList.toggle('nocam',n==='0'); document.body.classList.toggle('cam3',n==='3'); }
+camBtnSet(camBtnN);
+$('tgCam').onclick=()=>{ camBtnSet({ '0':'1', '1':'3', '3':'0' }[camBtnN]); LS.set('cube-cam',camBtnN); };
 [['cRot','rot'],['cZoom','zoom'],['cPan','pan']].forEach(([id,k])=>{             // the camera button's speeds, in %
   const el=$(id), out=$(id+'V'), show=()=>{ out.textContent=el.value+'%'; };
   el.value=Math.round(camK[k]*100); show();
