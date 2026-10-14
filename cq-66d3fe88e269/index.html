@@ -15999,7 +15999,7 @@ function shipDrop(x,z,l){
 /* Underground drop: no ship — a beam reaches down from above the frame onto the cell, the cube comes down in it, then the beam fades */
 const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.74,.74,1,4,1,true), beamMat(0x9ff4ff,.9));   // fades toward the top: bright at the floor, the far end off-frame
 pillar.geometry.rotateY(Math.PI/4); pillar.geometry.translate(0,.5,0); pillar.visible=false; scene.add(pillar);
-const PIL={ x:0, z:0, l:0, bot:0, a:0, aT:0 };
+const PIL={ x:0, z:0, l:0, bot:0, a:0, aT:0, up:false };   // up — the cube is being taken away (the camera stays on the cell)
 function pillarTop(x,z,l){                                            // the lowest height over the cell that is off-frame
   const f=camFrustum(); let H=6;
   while(H<50 && f.intersectsSphere(_sph.set(_v.set(x,l+H,z),1.2))) H*=1.15;
@@ -16012,6 +16012,16 @@ function pillarDrop(x,z,l){
   play(.45, q=>{ PIL.bot=lerp(y0,l-.6,ease(q)); }, ()=>{                // the beam reaches the floor (its soft lower edge sinks into the ground)
     play(1.25, q=>{ root.position.y=lerp(y0,y1,1-Math.pow(1-q,2.4)); }, ()=>{   // the cube comes down in it, braking
       root.position.y=y1; setMeshQ(); afterLand(null,null,'soft'); SND.drop(); camSoft=1.2; PIL.aT=0;
+    });
+  });
+}
+function pillarPickup(done){                                          // the goal underground: the beam comes down onto the cube and draws it up off-frame
+  const x=P.x, z=P.z, l=P.l, y0=root.position.y, top=pillarTop(x,z,l)+1;
+  Object.assign(PIL,{ x, z, l, bot:top, a:0, aT:.9, up:true }); SND.beam();
+  play(.45, q=>{ PIL.bot=lerp(top,l-.6,ease(q)); }, ()=>{
+    SND.suck(); goalFade(1.6);
+    play(1.6, q=>{ const e=Math.pow(Math.max(0,(q-.15)/.85),2.2); root.position.y=lerp(y0,top,e); pMesh.rotateY(dt*(2+6*q)); }, ()=>{   // a slow start, then faster and faster
+      pMesh.visible=false; PIL.aT=0; after(.4, ()=>{ PIL.up=false; done&&done(); });
     });
   });
 }
@@ -16030,6 +16040,7 @@ function goalFade(d){
     ()=>{ if(fx.goal!==G) return; G.k=0; G.tile.visible=G.post.visible=false; });
 }
 function shipPickup(done){
+  if(T.cave) return pillarPickup(done);                               // underground — the beam takes the cube up, no ship
   const hover=new V3(P.x,shipHoverY(P.l,P.x,P.z),P.z);
   SH.a=0; shipBeam(0,0); SND.shipIn();
   shipArrive(hover,()=>{
@@ -16092,7 +16103,7 @@ function camShipZoom(des){
 }
 function updateCam(snap){
   if(camSoft>0) camSoft=Math.max(0,camSoft-dt);
-  const fixed=state==='dead'||state==='intro'||(state==='fall'&&camSoft>0);   // death, ship arrival and the ship's cube drop — the camera looks at the cell, not the cube (no jumping up and down)
+  const fixed=state==='dead'||state==='intro'||(state==='win'&&PIL.up)||(state==='fall'&&camSoft>0);   // death, ship arrival and the ship's cube drop — the camera looks at the cell, not the cube (no jumping up and down)
   const des=_des.set(fixed?P.x:root.position.x, P.void ? root.position.y-HALF+.3 : (state==='jump'||state==='pound'||fixed)?P.l+.3:root.position.y-HALF+.3, fixed?P.z:root.position.z);   // into a drop — the camera follows the cube
   const shipZ=camShipZoom(des);                                                 // during drop/pickup keep both the ship and the cube in frame
   if(camLeadK) camAhead(des);
@@ -19325,7 +19336,7 @@ function loadLevel(i,retry,defer,sv){
   if(!sv && !retry) stuckT={};                                         // a new level: the tips start over (a retry or a sublevel visit — the player already knows)
                                                 // stone corners last the run: a sublevel visit keeps them
   resetPlayer(start.x,start.z,terr[start.z][start.x],def.mat||'normal','w'); P.hist=[]; saveCheck();
-  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; PIL.a=PIL.aT=0; pillar.visible=false; SH.carry=false; shipBeam(0,0); SH.a=0;
+  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; PIL.a=PIL.aT=0; PIL.up=false; pillar.visible=false; SH.carry=false; shipBeam(0,0); SH.a=0;
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
   if(!defer) startLevel();
   if(sv) subPlace();                                                   // at the door it came through, with the run's lives and time
