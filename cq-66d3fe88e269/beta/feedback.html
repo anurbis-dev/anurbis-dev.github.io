@@ -43,6 +43,9 @@ main{display:grid;grid-template-columns:minmax(300px,400px) 1fr;height:calc(100%
 .item.on{background:var(--card)}
 .item.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
 .item.closed{opacity:.55}
+.item.new .it-top b::after{content:'новый';margin-left:6px;padding:0 6px;border-radius:8px;background:var(--gold);color:#000;font-size:11px;font-weight:600}
+.item.chg .it-top b::after{content:'изменён';margin-left:6px;padding:0 6px;border-radius:8px;background:rgba(255,255,255,.18);font-size:11px;font-weight:600}
+#live{color:var(--dim);font-size:12px;white-space:nowrap}
 .thumb{width:92px;height:58px;border-radius:7px;background:#0d0819 center/cover no-repeat;border:1px solid var(--line);display:grid;place-items:center;color:var(--dim);font-size:20px;overflow:hidden}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .it-top{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
@@ -108,7 +111,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
   <div class="stats" id="stats"></div>
   <span class="sp"></span>
   <button class="btn" id="tpOpen" title="Аккаунты тестеров">👥 Тестеры</button>
-  <button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
+  <span id="live" title="Список обновляется сам"></span><button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
 </header>
 <div class="bar" id="bar">
   <input type="search" id="q" placeholder="Поиск: текст, тестер, уровень, устройство…">
@@ -147,14 +150,46 @@ const F={ q:'', kind:'', state:LSg('cube-fb-state','open'), tester:'', ver:'', l
 let all=[], shown=[], cur=null;
 
 /* Data */
-async function load(){
-  $('reload').disabled=true;
+/* Live: the list polls the worker (POLL while the tab is shown, POLL_BG behind it, at once on return); objects keep their identity
+   across loads (the open report, its buttons and the reply box stay), new reports get a «новый» mark, the tab title counts them */
+const POLL=20e3, POLL_BG=60e3, sig=r=>[r.state,r.comments,r.up,r.title,r.nick].join('|');
+let loadAt=0, loading=false, unseen=0, firstLoad=true, defer=false;
+async function load(quiet){
+  if(loading) return; loading=true; if(!quiet) $('reload').disabled=true;
   try{ const r=await fetch(API+'/list?k='+encodeURIComponent(KEY),{ cache:'no-store' });
     if(r.status===403) return gate('Неверный ключ');
     if(!r.ok) throw new Error('HTTP '+r.status+' '+await r.text());
-    all=(await r.json()).map(norm); LSs('cube-fb-key',KEY); $('gate').hidden=true; $('main').hidden=false; fill(); render(); }
-  catch(e){ $('list').innerHTML='<div class="empty err">Не удалось загрузить: '+esc(e.message)+'</div>'; $('main').hidden=false; }
-  finally{ $('reload').disabled=false; }
+    const old=new Map(all.map(x=>[x.n,x])), was=cur && sig(cur), n0=all.length; let fresh=0, diff=false;
+    all=(await r.json()).map(norm).map(x=>{ const o=old.get(x.n);
+      if(!o){ if(!firstLoad){ x.fresh=true; fresh++; } return x; }
+      const ch=sig(o)!==sig(x); if(ch) diff=true; const keep={ fresh:o.fresh, chg:o.chg||(ch && !firstLoad && o!==cur), reps:o.reps };
+      for(const k of Object.keys(o)) delete o[k]; return Object.assign(o,x,keep); });
+    const hash=firstLoad && location.hash.match(/^#(\d+)$/), hr=hash && all.find(x=>x.n===+hash[1]);   // a link from a notification
+    if(hr) [['stateSeg','state'],['kindSeg','kind']].forEach(([id,k])=>{ if(F[k] && hr[k]!==F[k]){ F[k]=''; [...$(id).children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===''))); } });
+    const c0=cur; firstLoad=false; LSs('cube-fb-key',KEY); $('gate').hidden=true; $('main').hidden=false;
+    if(fresh){ unseen+=fresh; ping(fresh); }
+    if(diff || fresh || all.length!==n0 || !quiet){ fill(); render(); }   // nothing new: the list is left alone (hover, scroll, images)
+    if(hr) show(hr); else if(c0) detRefresh(was); loadAt=Date.now(); liveTxt(); title(); }
+  catch(e){ if(quiet && all.length) $('live').textContent='⚠ нет связи'; else { $('list').innerHTML='<div class="empty err">Не удалось загрузить: '+esc(e.message)+'</div>'; $('main').hidden=false; } }
+  finally{ loading=false; $('reload').disabled=false; }
+}
+/* The open report: drawn again only when it changed (the reply draft and its caret survive; a playing voice note waits for its end),
+   its replies are re-read on every load (a reply just read in the game turns ✓) */
+function detRefresh(was){
+  if(!cur || !all.includes(cur)) return;
+  if(was===sig(cur) && !defer){ if(cur.tester && $('repList')) repLoad(cur); return; }
+  const a=$('det').querySelector('audio'); if(a && !a.paused){ defer=true; a.onpause=a.onended=()=>{ if(defer) detRefresh(null); }; return; }
+  defer=false; const t=$('repText'), v=t && t.value, f=t && document.activeElement===t, s0=t && t.selectionStart, s1=t && t.selectionEnd, y=$('det').scrollTop;
+  show(cur,true); $('det').scrollTop=y;
+  if(v && $('repText')){ $('repText').value=v; if(f){ $('repText').focus(); $('repText').setSelectionRange(s0,s1); } }
+}
+const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · Отзывы'; };
+const liveTxt=()=>{ if(!loadAt) return; const s=Math.round((Date.now()-loadAt)/1000); $('live').textContent='● обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад'); };
+function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a system notification
+  try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
+    g.gain.setValueAtTime(.0001,c.currentTime); g.gain.exponentialRampToValueAtTime(.15,c.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.45);
+    o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.5); o.onended=()=>c.close(); }catch(e){}
+  if(document.hidden && window.Notification && Notification.permission==='granted') try{ new Notification('Data Cube · новых отзывов: '+n,{ body:all.filter(r=>r.fresh).slice(0,n).map(r=>r.who+': '+(r.text||'').slice(0,80)).join('\n'), tag:'cube-fb' }); }catch(e){}
 }
 function norm(i){ const b=i.body||'', m=i.meta||{}, s=m.sum||{};
   if(!i.meta){ const id=(b.match(/[?&/]id=(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||b.match(/fb\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||[])[1];   // a report filed before the fbmeta comment
@@ -179,7 +214,7 @@ function fill(){
 function render(){
   const t=F.q.trim().toLowerCase();
   shown=all.filter(r=>(!F.kind || r.kind===F.kind) && (!F.state || r.state===F.state) && (!F.tester || r.tester===F.tester) && (!F.ver || r.ver===F.ver) && (!F.lv || r.lv===F.lv) && (!t || r.hay.includes(t)));
-  $('list').innerHTML=shown.length ? shown.map(r=>`<div class="item${r.state==='closed' ? ' closed' : ''}${cur && cur.n===r.n ? ' on' : ''}" data-n="${r.n}">
+  $('list').innerHTML=shown.length ? shown.map(r=>`<div class="item${r.state==='closed' ? ' closed' : ''}${cur && cur.n===r.n ? ' on' : ''}${r.fresh ? ' new' : r.chg ? ' chg' : ''}" data-n="${r.n}">
     <div class="thumb">${r.m.shot ? `<img loading="lazy" src="${media(r.m.id,'shot.jpg')}" alt="">` : (r.kind==='bug' ? '🐞' : '💬')}</div>
     <div style="min-width:0"><div class="it-top"><span class="kind ${r.kind}"></span><b>${esc(r.who)}</b><span>· ${ago(r.at)}</span><span class="sp"></span><span>#${r.n}</span></div>
     <div class="it-text">${esc(r.text||'(без текста)')}</div>
@@ -192,7 +227,9 @@ $('list').onclick=e=>{ const it=e.target.closest('.item'); if(it) show(all.find(
 
 /* Details */
 function show(r,quiet){
-  cur=r; document.querySelectorAll('.item').forEach(e=>e.classList.toggle('on',+e.dataset.n===r.n));
+  cur=r; if(!quiet || document.hasFocus()){ if(r.fresh){ r.fresh=false; unseen=Math.max(0,unseen-1); title(); } r.chg=false; }
+  document.querySelectorAll('.item').forEach(e=>{ e.classList.toggle('on',+e.dataset.n===r.n); if(+e.dataset.n===r.n && !r.fresh && !r.chg) e.classList.remove('new','chg'); });
+  if(history.replaceState) history.replaceState(null,'','#'+r.n);
   if(!quiet){ document.body.classList.add('det'); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
   const s=r.s, m=r.m, q=s.q||{};
   const row=(a,b)=>b ? `<dt>${a}</dt><dd>${b}</dd>` : '';
@@ -300,11 +337,12 @@ const segs=(id,key)=>{ const b=[...$(id).children]; const sync=()=>b.forEach(x=>
 segs('kindSeg','kind'); segs('stateSeg','state');
 ['tester','ver','lv'].forEach(k=>$(k).onchange=()=>{ F[k]=$(k).value; cur=null; render(); });
 $('q').oninput=()=>{ F.q=$('q').value; render(); };
-$('reload').onclick=load;
+$('reload').onclick=()=>load();
 addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')){ if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else if(!$('tp').hidden) $('tp').hidden=true; else document.body.classList.remove('det'); }
   else if(e.key==='ArrowDown' || e.key==='j'){ e.preventDefault(); step(1); } else if(e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); step(-1); }
   else if(e.key==='/'){ e.preventDefault(); $('q').focus(); } else if(e.key==='r') load(); });
+addEventListener('pointerdown',()=>{ if(window.Notification && Notification.permission==='default') Notification.requestPermission(); },{ once:true });
 const top=()=>document.documentElement.style.setProperty('--top',(document.querySelector('header').offsetHeight+$('bar').offsetHeight)+'px');
 addEventListener('resize',top); top();
 
@@ -313,7 +351,10 @@ function gate(msg){ $('main').hidden=true; $('gate').hidden=false; $('gateErr').
 $('keyGo').onclick=()=>{ KEY=$('keyIn').value.trim(); if(KEY) load(); };
 $('keyIn').onkeydown=e=>{ if(e.key==='Enter') $('keyGo').click(); };
 if(KEY) load(); else gate();
-setInterval(()=>{ if(!document.hidden && KEY && $('gate').hidden) load(); },120000);   // new reports come in on their own
+const live=()=>KEY && $('gate').hidden && !loading;
+setInterval(()=>{ if(live() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true); liveTxt(); },5000);
+const back=()=>{ if(!document.hidden && live() && Date.now()-loadAt>5000) load(true); };
+document.addEventListener('visibilitychange',back); addEventListener('focus',back);
 })();
 </script>
 </body>
