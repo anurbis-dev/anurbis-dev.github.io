@@ -92,11 +92,11 @@ body.night::before{ opacity:0; }
 #btnCam,#camRow .btn{ touch-action:none; } #btnCam.pan,#camRow .btn.pan{ background:var(--cream); color:#4a2f78; } body.nocam #btnCam, body.cam3 #btnCam{ display:none; }
 @media (orientation:portrait){ #btnCam{ position:fixed; left:50%; margin-left:-22px; bottom:calc(env(safe-area-inset-bottom,0px) + 52px); }
   body:has(#hint:not(.dim)) #btnCam{ opacity:0; transform:scale(.7); visibility:hidden; pointer-events:none; transition:opacity .25s ease, transform .25s ease, visibility 0s .25s; } }
-/* Three camera buttons (the setting's third state, body.cam3): turn · zoom · pan. Landscape — a column under restart, where the one button sits;
-   portrait — a row at the bottom centre, hidden while the level hint shows */
-#camRow{ display:none; grid-area:cam; flex-direction:column; gap:8px; align-self:start; transition:opacity .25s ease, visibility 0s; }
+/* Three camera buttons (the setting's third state, body.cam3): turn · zoom · pan in a row. Landscape — under restart, where the one button sits
+   (the row's right edge under restart's, it runs to the left); portrait — at the bottom centre, hidden while the level hint shows */
+#camRow{ display:none; grid-area:cam; justify-self:end; align-self:start; gap:8px; transition:opacity .25s ease, visibility 0s; }
 body.cam3 #camRow{ display:flex; } body.cam3 #btnLv{ align-self:start; }
-@media (orientation:portrait){ #camRow{ flex-direction:row; gap:10px; position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 52px); }
+@media (orientation:portrait){ #camRow{ gap:10px; position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 52px); }
   body:has(#hint:not(.dim)) #camRow{ opacity:0; visibility:hidden; pointer-events:none; transition:opacity .25s ease, visibility 0s .25s; } }
 .btn.hidden{ opacity:0; transform:scale(.7); visibility:hidden; pointer-events:none; transition:opacity .25s ease, transform .25s ease, visibility 0s .25s; }
 /* Menu/settings/help open: the menu button stays above the dimmer and closes it (a cross), the rest of the HUD hides */
