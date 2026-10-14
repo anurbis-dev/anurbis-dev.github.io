@@ -853,7 +853,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.0';
+const VERSION = '1.99.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -16427,12 +16427,13 @@ function camBind(b,m){
   b.addEventListener('pointerdown',e=>{ if(cine || camG) return; camTouched(); SND.init(); camBEat=-1;   // a new touch: the old drag's click is forgotten
     try{ b.setPointerCapture(e.pointerId); }catch(_){}
     const g=camG={ b, id:e.pointerId, x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY, on:false, h:m==='rot', pan:m==='pan', m };
-    if(!m) setTimeout(()=>{ if(camG!==g || g.on || cine) return; g.pan=g.on=true; dragging=true; camTw=null; b.classList.add('pan'); SND.uiTick(); },CAMB_HOLD*1e3); });
+    if(m) b.classList.add('pan');                                         // the three-button row: the touched button lights up while held
+    else setTimeout(()=>{ if(camG!==g || g.on || cine) return; g.pan=g.on=true; dragging=true; camTw=null; b.classList.add('pan'); SND.uiTick(); },CAMB_HOLD*1e3); });
   b.addEventListener('pointermove',e=>{
     const g=camG; if(!g || g.id!==e.pointerId) return;
     camTouch=time; const dx=e.clientX-g.x, dy=e.clientY-g.y; g.x=e.clientX; g.y=e.clientY;
     if(!g.on){ const tx=e.clientX-g.x0, ty=e.clientY-g.y0; if(Math.hypot(tx,ty)<TAP_MOVE) return;
-      g.on=true; if(!m) g.h=Math.abs(tx)>=Math.abs(ty); dragging=true; camTw=null; if(m==='pan') b.classList.add('pan'); }
+      g.on=true; if(!m) g.h=Math.abs(tx)>=Math.abs(ty); dragging=true; camTw=null; }
     if(cine) return;
     if(g.pan) panBy(dx*CAMB_P*camK.pan,dy*CAMB_P*camK.pan);
     else if(g.h){ az-=dx*CAMB_A*camK.rot; azT=az; } else zoomBy(Math.exp(-dy*CAMB_Z*camK.zoom));      // up — closer
