@@ -6,8 +6,9 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Data Cube · Отзывы</title>
 <!-- The beta feedback dashboard: every report from the worker's /list (GitHub issues of the private feedback repo), filters, the screenshot,
-     the voice note, the device and game details, close / reopen, and "Open in game" (fb.html replays the moment). Needs the worker's READ_KEY
-     (?k= once — it is remembered in this browser) -->
+     the voice note, the device and game details, close / reopen (a closed bug tells its tester it was fixed), replies to the tester
+     (shown in their game), "Open in game" (fb.html replays the moment), and the testers' accounts (rename, PIN, ban, delete).
+     Needs the worker's READ_KEY (?k= once — it is remembered in this browser) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
 <script src="config.js"></script>
@@ -74,6 +75,24 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
 #gate input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
 .err{color:var(--bug)}
 .back{display:none}
+.rep{margin:16px 0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.rep h3{margin:0;font:600 16px Fredoka,sans-serif}
+.rep .r{background:var(--card);border-radius:10px;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.rep .r small,.rep .note{display:block;color:var(--dim);font-size:12px;white-space:normal}
+.rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-height:70px;resize:vertical;font:inherit;color:inherit;width:100%}
+.rep .row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+#tp{position:fixed;inset:0;background:rgba(5,3,12,.75);z-index:8;display:grid;place-items:start center;padding:6vh 12px;overflow:auto}
+#tp[hidden]{display:none}
+#tpCard{width:min(860px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;gap:12px}
+#tpCard h2{margin:0;font:600 20px Fredoka,sans-serif;display:flex;align-items:center;gap:10px}
+#tpCard table{width:100%;border-collapse:collapse;font-size:13.5px}
+#tpCard th{text-align:left;color:var(--dim);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--line)}
+#tpCard td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+#tpCard td.a{white-space:nowrap;text-align:right}
+#tpCard td.a .btn{padding:3px 8px;font-size:13px}
+#tpCard tr.ban td:first-child{color:var(--bug)}
+#tpCard .nk{cursor:pointer;font-weight:800} #tpCard .nk:hover{color:var(--gold)}
+@media (max-width:640px){ #tpCard td.id,#tpCard th.id,#tpCard td.reg,#tpCard th.reg{display:none} }
 @media (max-width:860px){
   main{grid-template-columns:1fr}
   #det{display:none;position:fixed;inset:0;background:var(--bg);z-index:5;padding:14px 16px 40px}
@@ -88,6 +107,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
   <h1><svg viewBox="0 0 32 32"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="#7a5bd0"/><path d="M16 3 28 9.5 16 16 4 9.5z" fill="#ffd66b"/><path d="M16 16v13L4 22.5v-13z" fill="#5a3fb0"/></svg>Data Cube · Отзывы</h1>
   <div class="stats" id="stats"></div>
   <span class="sp"></span>
+  <button class="btn" id="tpOpen" title="Аккаунты тестеров">👥 Тестеры</button>
   <button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
 </header>
 <div class="bar" id="bar">
@@ -107,6 +127,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Conso
   <span class="err" id="gateErr"></span>
 </div>
 <div id="lb" hidden><img alt=""></div>
+<div id="tp" hidden><div id="tpCard"><h2>👥 Тестеры <span class="sp"></span><button class="btn" id="tpClose">✕</button></h2><div id="tpBody"></div></div></div>
 <script>
 (function(){
 'use strict';
@@ -141,8 +162,9 @@ function norm(i){ const b=i.body||'', m=i.meta||{}, s=m.sum||{};
     m.text=((b.match(/^> (.*)$/gm)||[]).map(l=>l.slice(2)).join('\n'))||null; }
   const tester=m.tester||(i.labels.find(l=>l.startsWith('tester:'))||'').slice(7);
   const kind=m.kind||(i.labels.includes('opinion') ? 'opinion' : 'bug'), text=m.text??(i.body||'').replace(/<[^>]+>/g,'').slice(0,600);
-  return { ...i, m, s, tester, nick:m.nick||'', who:m.nick||tester||'—', kind, text, ver:s.ver||(i.labels.find(l=>/^v\d/.test(l))||'').slice(1),
-    lv:s.level||'', hay:[text,m.nick,tester,s.level,s.sub,s.area,s.ua,s.ui,s.lang,'#'+i.n].join(' ').toLowerCase() }; }
+  const nick=i.nick||m.nick||'';
+  return { ...i, m, s, tester, nick, who:nick||tester||'—', kind, text, ver:s.ver||(i.labels.find(l=>/^v\d/.test(l))||'').slice(1),
+    lv:s.level||'', hay:[text,nick,tester,s.level,s.sub,s.area,s.ua,s.ui,s.lang,'#'+i.n].join(' ').toLowerCase() }; }
 function opts(sel,key,label,list){ const v=$(sel).value; const c={}; for(const r of all) if(r[key]) c[r[key]]=(c[r[key]]||0)+1;
   const keys=Object.keys(c).sort(list||((a,b)=>c[b]-c[a]));
   $(sel).innerHTML='<option value="">'+label+'</option>'+keys.map(k=>`<option value="${esc(k)}">${esc(sel==='tester' ? (all.find(r=>r.tester===k).nick||k) : k)} (${c[k]})</option>`).join('');
@@ -181,7 +203,7 @@ function show(r,quiet){
     <div class="acts">
       ${replay ? `<a class="btn pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : ''}
       <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>
-      <button class="btn" id="st">${r.state==='open' ? '✓ Закрыть' : '↺ Открыть снова'}</button>
+      <button class="btn" id="st"${r.state==='open' && r.kind==='bug' && r.tester ? ' title="Тестер получит сообщение «Баг исправлен»"' : ''}>${r.state==='open' ? '✓ Закрыть' : '↺ Открыть снова'}</button>
       <span class="sp"></span><button class="btn" id="prev" title="Предыдущий (↑ / K)">↑</button><button class="btn" id="next" title="Следующий (↓ / J)">↓</button>
     </div>
     ${m.shot ? `<img class="shot" id="shot" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">` : ''}
@@ -197,11 +219,71 @@ function show(r,quiet){
       ${row('Версия', r.ver ? 'v'+esc(r.ver) : '')}
       ${row('Устройство', esc(s.ua))}
     </dl>
+    ${r.tester ? `<div class="rep" id="rep"><h3>↩ Ответы тестеру</h3><div id="repList"><span class="note">Загрузка…</span></div>
+      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter — отправить)"></textarea>
+      <div class="row"><span class="note" id="repMsg"></span><span class="sp"></span><button class="btn pri" id="repGo">Отправить ответ</button></div></div>` : ''}
     ${(s.errs||[]).length ? `<details open><summary>⚠ Ошибки консоли (${s.errs.length})</summary><pre>${esc(s.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}`;
+  if(r.tester){ $('repGo').onclick=()=>replySend(r); $('repText').onkeydown=e=>{ if(e.key==='Enter' && (e.ctrlKey || e.metaKey)) replySend(r); }; repLoad(r); }
   $('st').onclick=()=>setState(r); $('prev').onclick=()=>step(-1); $('next').onclick=()=>step(1);
   $('back').onclick=()=>document.body.classList.remove('det');
   if($('shot')) $('shot').onclick=()=>{ $('lb').querySelector('img').src=$('shot').src; $('lb').hidden=false; };
 }
+/* Replies: GitHub comments marked by the worker, plus a message in the tester's inbox until their game shows it */
+const api=(path,body)=>fetch(`${API}${path}${path.includes('?') ? '&' : '?'}k=${encodeURIComponent(KEY)}`,body ? { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) } : { cache:'no-store' })
+  .then(async x=>{ let d={}; try{ d=await x.json(); }catch(e){} if(!x.ok) throw new Error(d.error||'HTTP '+x.status); return d; });
+const repRow=p=>`<div class="r">${esc(p.text)}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан тестеру'}</small></div>`;
+async function repLoad(r){
+  try{ const d=await api(`/issue/${r.n}/reply`); if(cur!==r) return; r.reps=d.replies;
+    $('repList').innerHTML=(d.replies.map(repRow).join('')||'<span class="note">Ответов пока нет</span>')
+      +(d.fixed ? `<span class="note">🔔 Сообщение «Баг исправлен» — ${d.fixedWait ? '⏳ ещё не прочитано в игре' : '✓ показано тестеру'}</span>` : ''); }
+  catch(e){ if(cur===r) $('repList').innerHTML='<span class="note err">Не удалось загрузить ответы: '+esc(e.message)+'</span>'; }
+}
+async function replySend(r){
+  const text=$('repText').value.trim(); if(!text || $('repGo').disabled) return;
+  $('repGo').disabled=true; $('repMsg').textContent='Отправка…';
+  try{ await api(`/issue/${r.n}/reply`,{ text }); r.comments=(r.comments||0)+1; if(cur!==r) return;
+    $('repText').value=''; $('repMsg').textContent='Отправлено — тестер увидит в игре'; repLoad(r); }
+  catch(e){ if(cur===r) $('repMsg').textContent='Не удалось: '+e.message; }
+  finally{ if(cur===r) $('repGo').disabled=false; }
+}
+
+/* Testers' accounts */
+let tps=[];
+async function tpLoad(){
+  $('tpBody').innerHTML='<div class="empty">Загрузка…</div>';
+  try{ tps=await api('/testers'); tpRender(); }catch(e){ $('tpBody').innerHTML='<div class="empty err">Не удалось: '+esc(e.message)+'</div>'; }
+}
+function tpRender(){
+  const n=id=>all.filter(r=>r.tester===id).length;
+  $('tpBody').innerHTML=tps.length ? `<table><tr><th>Ник</th><th class="id">id</th><th class="reg">Регистрация</th><th>Отзывов</th><th>Прогресс</th><th></th></tr>${tps.map((t,i)=>`<tr class="${t.ban ? 'ban' : ''}" data-i="${i}">
+    <td><span class="nk" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span></td><td class="id"><code>${esc(t.id)}</code></td>
+    <td class="reg">${t.at ? ago(t.at) : '—'}</td><td>${n(t.id)}</td><td>${t.save ? '☁' : '—'}</td>
+    <td class="a"><button class="btn" data-a="rename" title="Переименовать">✎</button> <button class="btn" data-a="pin" title="Новый PIN">🔑</button>
+      <button class="btn" data-a="ban" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button> <button class="btn" data-a="delete" title="Удалить аккаунт">🗑</button></td></tr>`).join('')}</table>
+    <span class="note" style="color:var(--dim);font-size:12px">Переименование и новый PIN не разлогинивают устройства тестера; удаление стирает аккаунт, прогресс и сообщения (отзывы остаются) и разлогинивает его везде.</span>`
+    : '<div class="empty">Тестеров пока нет</div>';
+}
+$('tpBody').onclick=async e=>{
+  const b=e.target.closest('[data-a]'), tr=e.target.closest('tr'); if(!b || !tr) return;
+  const t=tps[+tr.dataset.i], a=b.dataset.a; let body={ id:t.id, nick:t.nick };
+  if(a==='show'){ if(![...$('tester').options].some(o=>o.value===t.id)) return alert('У '+t.nick+' нет отзывов'); F.tester=$('tester').value=t.id; cur=null; render(); $('tp').hidden=true; return; }
+  if(a==='rename'){ const to=prompt('Новый ник для '+t.nick+' (2–20 букв или цифр):',t.nick); if(!to || to.trim()===t.nick) return; body.to=to.trim(); }
+  if(a==='pin'){ const pin=prompt('Новый PIN для '+t.nick+' (4–6 цифр). Сообщите его тестеру:',''); if(!pin) return; if(!/^\d{4,6}$/.test(pin.trim())) return alert('PIN — 4–6 цифр'); body.pin=pin.trim(); }
+  if(a==='ban'){ body.on=!t.ban; if(body.on && !confirm('Забанить '+t.nick+'? Не сможет войти, слать отзывы и синхронизировать прогресс.')) return; }
+  if(a==='delete' && !confirm('Удалить аккаунт '+t.nick+'? Прогресс в облаке и сообщения сотрутся, ник освободится. Отзывы останутся.')) return;
+  b.disabled=true;
+  try{ const d=await api('/testers/'+a,body);
+    if(a==='rename'){ t.nick=d.nick; all.filter(r=>r.tester===t.id).forEach(r=>{ r.who=r.nick=d.nick; }); fill(); render(); }
+    if(a==='ban') t.ban=body.on;
+    if(a==='delete') tps.splice(+tr.dataset.i,1);
+    if(a==='pin') alert('PIN для '+t.nick+' изменён');
+    tpRender(); }
+  catch(e){ b.disabled=false; alert('Не удалось: '+({ taken:'ник занят', nick:'неверный ник', pin:'неверный PIN', 'no tester':'тестер не найден' }[e.message]||e.message)); }
+};
+$('tpOpen').onclick=()=>{ $('tp').hidden=false; tpLoad(); };
+$('tpClose').onclick=()=>{ $('tp').hidden=true; };
+$('tp').onclick=e=>{ if(e.target===$('tp')) $('tp').hidden=true; };
+
 function step(d){ if(!shown.length) return; const i=cur ? shown.findIndex(r=>r.n===cur.n) : -1; const r=shown[Math.max(0,Math.min(shown.length-1,i+d))]; if(r) show(r,!document.body.classList.contains('det')); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
 async function setState(r){
   const to=r.state==='open' ? 'closed' : 'open'; $('st').disabled=true;
@@ -220,7 +302,7 @@ segs('kindSeg','kind'); segs('stateSeg','state');
 $('q').oninput=()=>{ F.q=$('q').value; render(); };
 $('reload').onclick=load;
 addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')){ if(e.key==='Escape') e.target.blur(); return; }
-  if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else document.body.classList.remove('det'); }
+  if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else if(!$('tp').hidden) $('tp').hidden=true; else document.body.classList.remove('det'); }
   else if(e.key==='ArrowDown' || e.key==='j'){ e.preventDefault(); step(1); } else if(e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); step(-1); }
   else if(e.key==='/'){ e.preventDefault(); $('q').focus(); } else if(e.key==='r') load(); });
 const top=()=>document.documentElement.style.setProperty('--top',(document.querySelector('header').offsetHeight+$('bar').offsetHeight)+'px');

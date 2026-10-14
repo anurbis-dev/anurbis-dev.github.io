@@ -39,6 +39,11 @@ const TR={
   'Too many reports for now. Try again later.':['Слишком много отзывов подряд. Попробуйте позже.','Demasiados comentarios por ahora. Inténtalo más tarde.','Muitos comentários por agora. Tente mais tarde.','Gerade zu viele Rückmeldungen. Versuche es später erneut.','Trop d\'avis pour le moment. Réessayez plus tard.','反馈太多了，请稍后再试。','送信が多すぎます。 しばらくしてからお試しください。','피드백이 너무 많습니다. 나중에 다시 시도하세요.'],
   'Syncing progress…':['Синхронизация прогресса…','Sincronizando progreso…','Sincronizando progresso…','Fortschritt wird abgeglichen…','Synchronisation de la progression…','正在同步进度…','進行状況を同期中…','진행 상황 동기화 중…'],
   'Microphone unavailable':['Микрофон недоступен','Micrófono no disponible','Microfone indisponível','Mikrofon nicht verfügbar','Micro indisponible','麦克风不可用','マイクが使えません','마이크를 사용할 수 없습니다'],
+  'Message from the developers':['Сообщение от разработчиков','Mensaje de los desarrolladores','Mensagem dos desenvolvedores','Nachricht von den Entwicklern','Message des développeurs','来自开发者的消息','開発者からのメッセージ','개발자의 메시지'],
+  'Reply to your feedback':['Ответ на ваш отзыв','Respuesta a tu comentario','Resposta ao seu comentário','Antwort auf deine Rückmeldung','Réponse à votre avis','对你反馈的回复','フィードバックへの返信','피드백에 대한 답변'],
+  'The bug from your feedback has been fixed. Thank you for taking part!':['Баг по вашему отзыву был исправлен, спасибо за ваше участие!','El error que reportaste ha sido corregido. ¡Gracias por participar!','O bug que você relatou foi corrigido. Obrigado por participar!','Der Fehler aus deiner Rückmeldung wurde behoben. Danke fürs Mitmachen!','Le bug signalé dans votre avis a été corrigé. Merci de votre participation !','你反馈的错误已修复，感谢你的参与！','ご報告いただいたバグは修正されました。ご協力ありがとうございます！','알려주신 버그가 수정되었어요. 참여해 주셔서 감사합니다!'],
+  'Your feedback':['Ваш отзыв','Tu comentario','Seu comentário','Deine Rückmeldung','Votre avis','你的反馈','あなたのフィードバック','내 피드백'],
+  'Got it':['Понятно','Entendido','Entendi','Verstanden','Compris','知道了','わかった','확인'],
   'Write a few words or record your voice':['Напишите пару слов или запишите голос','Escribe unas palabras o graba tu voz','Escreva algumas palavras ou grave sua voz','Schreib ein paar Worte oder nimm eine Sprachnachricht auf','Écrivez quelques mots ou enregistrez votre voix','写几句话或录一段语音','ひとこと書くか、音声を録音してください','몇 마디 적거나 음성을 녹음하세요']
 };
 const t=s=>{ const i=LANGS.indexOf(FB.lang); return i>=0 && TR[s] ? TR[s][i] : s; };
@@ -56,10 +61,18 @@ css.textContent=`
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #fbBtn:hover,#fbBtn:focus-visible{opacity:1}
 #fbBtn svg{width:18px;height:18px}
-#fbWrap{position:fixed;inset:0;z-index:2147483001;display:grid;place-items:center;background:rgba(10,6,24,.55);padding:16px;font:15px/1.35 Quicksand,Nunito,system-ui,sans-serif;color:#f3eefc}
-#fbWrap[hidden]{display:none}
-#fbCard{width:min(420px,100%);max-height:100%;overflow:auto;box-sizing:border-box;background:linear-gradient(180deg,#2d1f55,#46307a);border:1px solid rgba(255,255,255,.18);
+#fbWrap,#fbIn{position:fixed;inset:0;z-index:2147483001;display:grid;place-items:center;background:rgba(10,6,24,.55);padding:16px;font:15px/1.35 Quicksand,Nunito,system-ui,sans-serif;color:#f3eefc}
+#fbWrap[hidden],#fbIn[hidden]{display:none}
+#fbIn{z-index:2147483002}
+#fbCard,#fbInCard{width:min(420px,100%);max-height:100%;overflow:auto;box-sizing:border-box;background:linear-gradient(180deg,#2d1f55,#46307a);border:1px solid rgba(255,255,255,.18);
   border-radius:16px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.45);display:grid;gap:10px}
+#fbInCard h2{margin:0;font:600 19px Fredoka,Quicksand,system-ui,sans-serif;letter-spacing:.02em;text-align:center}
+#fbInList{display:grid;gap:10px}
+#fbInList .it{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+#fbInList .it b{font-weight:700;color:#ffd66b}
+#fbInList .it .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+#fbInList .it .q{font-size:13px;opacity:.7;overflow-wrap:anywhere}
+#fbInOk{font:inherit;font-size:16px;font-weight:700;border:0;border-radius:12px;padding:11px;background:#ffd66b;color:#2d1f55;cursor:pointer}
 #fbCard h2{margin:0;font:600 19px Fredoka,Quicksand,system-ui,sans-serif;letter-spacing:.02em}
 #fbCard .seg{display:flex;gap:6px}
 #fbCard button{font:inherit;color:inherit;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;cursor:pointer}
@@ -114,7 +127,9 @@ wrap.innerHTML=`<div id="fbCard" role="dialog" aria-modal="true" aria-labelledby
   <div class="msg" id="fbMsg"></div>
   <div class="row"><button type="button" id="fbCancel"></button><button type="button" class="go" id="fbSend"></button></div>
 </div>`;
-document.body.append(btn,wrap);
+const inb=document.createElement('div'); inb.id='fbIn'; inb.hidden=true;
+inb.innerHTML='<div id="fbInCard" role="dialog" aria-modal="true" aria-labelledby="fbInH"><h2 id="fbInH"></h2><div id="fbInList"></div><button type="button" id="fbInOk"></button></div>';
+document.body.append(btn,wrap,inb);
 const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg button')];
 ['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape') close(); }));
 btn.addEventListener('keydown',e=>e.stopPropagation());
@@ -161,7 +176,7 @@ seg.forEach(b=>b.onclick=()=>setKind(b.dataset.k));
 function msg(s,ok){ const m=$('fbMsg'); m.textContent=s||''; m.classList.toggle('ok',!!ok); }
 
 function open(){
-  if(!wrap.hidden) return;
+  if(!wrap.hidden || !inb.hidden) return;
   try{ snap=FB.snap(); }catch(e){ console.error(e); snap=null; }
   FB.pause(true);
   shot=null; shotP=capture().then(d=>{ shot=d; showShot(); return d; });
@@ -173,7 +188,7 @@ function showShot(){ const on=$('fbShotOn').checked; $('fbPic').classList.toggle
   if(shot){ $('fbShotImg').src=shot; $('fbShotWait').hidden=true; } else if(shotP===null){ $('fbShotWait').hidden=true; } }
 function close(){
   if(wrap.hidden) return; recStop(true); wrap.hidden=true; FB.pause(false);
-  $('fbText').value=''; voiceDel(); snap=shot=shotP=null; btn.blur();
+  $('fbText').value=''; voiceDel(); snap=shot=shotP=null; btn.blur(); setTimeout(inShow,300);
 }
 btn.onclick=open;
 $('fbCancel').onclick=close;
@@ -245,19 +260,20 @@ function gSync(){
   const on=!!acct; $('fgMe').hidden=!on; $('fgForm').hidden=on; if(on) $('fgNm').textContent=acct.nick;
   document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on || syncing; $('fgSy').hidden=!(on && syncing);
 }
-$('fgChg').onclick=()=>{ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gMode_('old'); gSync(); $('fgNick').focus(); };
+function signOut(){ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gSync(); }
+$('fgChg').onclick=()=>{ signOut(); gMode_('old'); $('fgNick').focus(); };
 $('fgGo').onclick=async()=>{
   if(gBusy) return; const nick=$('fgNick').value.trim().replace(/\s+/g,' '), pin=$('fgPin').value.trim(), M=s=>{ $('fgMsg').textContent=s; };
   if(!/^[\p{L}\p{N}][\p{L}\p{N} _.\-]{0,18}[\p{L}\p{N}]$/u.test(nick)) return M(t('Nickname: 2–20 letters or digits'));
   if(!/^\d{4,6}$/.test(pin)) return M(t('PIN: 4–6 digits'));
   gBusy=true; $('fgGo').disabled=true; M('…');
   try{ const d=await post(gMode==='new' ? '/tester/register' : '/tester/login',{ nick, pin, id:tester });
-    acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); }
+    acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); inPull(); }
   catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' || e.status===429 ? 'Too many attempts. Try again in 15 minutes.'
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }
 };
-document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); });
+document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); if(!inb.hidden) inRender(); });
 
 /* Progress sync: the expeditions (save slots) of a signed-in tester live in the worker too (/save). On the beta notice — after the
    sign-in and at every launch — this device's expeditions go up and the merged list comes back ("I agree" waits, SYNC_WAIT at most):
@@ -288,11 +304,51 @@ async function syncStart(){
   if(!acct || syncing || FB.busy) return; syncing=true; gSync();
   const me=acct, stop=setTimeout(()=>{ syncing=false; gSync(); },SYNC_WAIT);
   try{ const d=await syncSend(true); if(acct===me && syncing && !FB.busy) syncMerge(d.exps); }
-  catch(e){ console.warn('progress sync:',e); if(e.status===401){ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(x){} } }
+  catch(e){ console.warn('progress sync:',e); if(e.status===401) signOut(); }
   finally{ clearTimeout(stop); syncing=false; gSync(); }
 }
 const syncLater=keep=>{ if(acct && !syncing && FB.busy && atMax(FB.exps())!==sentAt) syncSend(false,keep).catch(e=>console.warn('progress sync:',e)); };
 setInterval(()=>syncLater(false),SYNC_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater(true); });
-gMode_('new'); gSync(); syncStart();
+
+/* Messages from the developers (the worker's inbox, /tester/me): a reply to a report, or "the bug you reported is fixed". Asked for on
+   start, after the sign-in, every MSG_EVERY and on return to the page; shown in a panel over everything (the game pauses), not over the
+   feedback form; "Got it" drops them (/tester/ack). The same call brings a nickname the dashboard changed; a deleted account signs out */
+const MSG_EVERY=180e3;
+let inMsgs=[], inBusy=false;
+async function inPull(){
+  if(!acct || inBusy || document.hidden) return; inBusy=true; const me=acct;
+  try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick });
+    if(acct!==me) return;
+    if(d.nick && d.nick!==acct.nick){ acct={ ...acct, nick:d.nick, tok:d.tok||acct.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); gSync(); }
+    const had=new Set(inMsgs.map(m=>m.id)); for(const m of d.msgs||[]) if(!had.has(m.id)) inMsgs.push(m);
+    inShow(); }
+  catch(e){ if(e.status===401 && acct===me) signOut(); }
+  finally{ inBusy=false; }
+}
+function inRender(){
+  $('fbInH').textContent=t('Message from the developers'); $('fbInOk').textContent=t('Got it');
+  const L=$('fbInList'); L.textContent='';
+  for(const m of inMsgs){ const it=document.createElement('div'); it.className='it';
+    const h=document.createElement('b'); h.textContent=t(m.t==='fixed' ? 'The bug from your feedback has been fixed. Thank you for taking part!' : 'Reply to your feedback'); it.append(h);
+    if(m.t!=='fixed'){ const x=document.createElement('div'); x.className='tx'; x.textContent=m.text||''; it.append(x); }
+    if(m.q){ const q=document.createElement('div'); q.className='q'; q.textContent=t('Your feedback')+': «'+m.q+(m.q.length>=160 ? '…' : '')+'»'; it.append(q); }
+    L.append(it); }
+}
+function inShow(){
+  if(!inMsgs.length || !inb.hidden || !wrap.hidden) return;
+  inRender(); inb.hidden=false; FB.pause(true); setTimeout(()=>$('fbInOk').focus({ preventScroll:true }),50);
+}
+function inClose(){
+  if(inb.hidden) return; inb.hidden=true; FB.pause(false);
+  const ids=inMsgs.map(m=>m.id); inMsgs=[];
+  if(acct) post('/tester/ack',{ tok:acct.tok, ids }).catch(e=>console.warn('feedback messages:',e));
+}
+$('fbInOk').onclick=inClose;
+['keydown','keyup','keypress'].forEach(ev=>inb.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && (e.key==='Escape' || e.key==='Enter')){ e.preventDefault(); inClose(); } }));
+inb.addEventListener('click',e=>e.stopPropagation());
+setInterval(inPull,MSG_EVERY);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) inPull(); });
+
+gMode_('new'); gSync(); syncStart(); inPull();
 })();
