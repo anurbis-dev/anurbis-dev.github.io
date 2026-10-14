@@ -14370,7 +14370,7 @@ function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
   lvSave((cur+1)%N); starsProg=bankStars();
-  after(.5,()=>{ if(state==='win') { smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
+  after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
   const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
 }
 /* =====================================================================
@@ -16114,9 +16114,9 @@ function pillarDrop(x,z,l){
 }
 function pillarPickup(done){                                          // the goal underground: the beam comes down onto the cube and draws it up off-frame
   const x=P.x, z=P.z, l=P.l, y0=root.position.y, top=pillarTop(x,z,l)+1;
-  Object.assign(PIL,{ x, z, l, bot:top, a:0, aT:.9, up:true }); SND.beam();
+  Object.assign(PIL,{ x, z, l, bot:top, a:0, aT:.9, up:true }); SND.beam(); SH.at=false;
   play(.45, q=>{ PIL.bot=lerp(top,l-.6,ease(q)); }, ()=>{
-    SND.suck(); goalFade(1.6);
+    SH.at=true; smartSayOff(); SND.suck();   // the beam is on the cube: the radio line to the ship is over goalFade(1.6);
     play(1.6, q=>{ const e=Math.pow(Math.max(0,(q-.15)/.85),2.2); root.position.y=lerp(y0,top,e); pMesh.rotateY(dt*(2+6*q)); }, ()=>{   // a slow start, then faster and faster
       pMesh.visible=false; PIL.aT=0; after(.4, ()=>{ PIL.up=false; done&&done(); });
     });
@@ -16139,8 +16139,9 @@ function goalFade(d){
 function shipPickup(done){
   if(T.cave) return pillarPickup(done);                               // underground — the beam takes the cube up, no ship
   const hover=new V3(P.x,shipHoverY(P.l,P.x,P.z),P.z);
-  SH.a=0; shipBeam(0,0); SND.shipIn();
+  SH.a=0; shipBeam(0,0); SND.shipIn(); SH.at=false;
   shipArrive(hover,()=>{
+    SH.at=true; smartSayOff();                                         // the ship is over the cube: the radio line to it is over
     SND.beam(); SND.suck(); const y0=root.position.y, top=hover.y-.45, full=hover.y-y0+.2;
     shipBeam(full,.9); goalFade(1.6);
     play(1.3, k=>{ const e=ease(Math.max(0,(k-.25)/.75)); root.position.y=lerp(y0,top,e); root.scale.setScalar(1-e*.75); pMesh.rotateY(dt*5); SH.len=full*(1-e*.9); },
