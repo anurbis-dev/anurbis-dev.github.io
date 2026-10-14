@@ -826,10 +826,14 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.93.0';
+const VERSION = '1.94.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
+const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
 const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
+if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).slice(0,600)]); if(FB_LOG.length>30) FB_LOG.shift(); }, ce=console.error.bind(console);
+  console.error=(...a)=>{ lg(a.map(x=>x && x.stack || x).join(' ')); ce(...a); };
+  addEventListener('error',e=>lg((e.error && e.error.stack) || e.message)); addEventListener('unhandledrejection',e=>lg('promise: '+((e.reason && e.reason.stack) || e.reason))); }
 /* =====================================================================
    STORAGE AND EXPEDITIONS (save slots)
    Every key goes through LS. Players sharing a device keep their own expedition — one of SLOTS slots, the current one in cube-slot.
@@ -842,7 +846,11 @@ const SLOTS=5, PROG=/^cube-(level|lives|stars-total|(best|got|lv|art|gift|met)-[
 const XNAMES=['The Brave March','The Great Tumble','Beyond the Horizon','The Heroic Roll','The Fearless Stroll','The Mapless Trek',
   'The Legendary Detour','The Triumphant Wandering','The Grand Roll','Madness and Valor'];   // expedition names (see xNameGive)
 let lsWarned=false, persistAsked=false;
-const LSR = {
+/* A feedback replay (?fbx — beta/fb.html put the snapshot into sessionStorage): every key lives in memory, seeded from the snapshot;
+   the viewer's own saves are never read or written (fbsnap.js) */
+const FBS=(()=>{ if(!/[?&]fbx\b/.test(location.search)) return null; try{ const s=JSON.parse(sessionStorage.getItem('cube-fb-snap')); return s && s.ls && s.st ? s : null; }catch(e){ return null; } })();
+const LSM=FBS ? new Map(Object.entries(FBS.ls)) : null;
+const LSR = LSM ? { get:(k,d)=>LSM.has(k) ? LSM.get(k) : d, set(k,v){ LSM.set(k,String(v)); return true; }, del:k=>{ LSM.delete(k); }, keys:()=>[...LSM.keys()] } : {
   get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ lsFail(); return false; } },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} },
@@ -18980,18 +18988,18 @@ if(Object.keys(SHIP_MODEL).length) buildShip();                       // the shi
 function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur)); }
 function setTg(id,on){ $(id).setAttribute('aria-pressed',on?'true':'false'); }
 /* The menu pauses the game. Sound fades, except in the settings section — the volume must be audible there */
-let paused=false, mSec='', modalOv, modalRet=null;
+let paused=false, mSec='', modalOv, modalRet=null, fbPaused=false;   // fbPaused: the beta feedback form is open (fbsnap.js)
 function showOverlay(id){ document.querySelectorAll('.overlay').forEach(o=>o.classList.toggle('hidden',o.id!==id)); updatePause(); }
 function closeOverlays(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden')); updatePause(); }
 let menuOn=false;
 function updatePause(){
   const ov=document.querySelector('.overlay:not(.hidden)');
-  paused=!!ov && ov.id!=='title';
-  document.body.classList.toggle('mopen', paused && ov.id==='menu');   // the menu button on top — closes
-  document.body.classList.toggle('artopen', paused && ov.id==='art');
-  SND.hold('menu', paused && !(ov.id==='menu' && mSec==='settings') && ov.id!=='stats' && ov.id!=='art' && ov.id!=='xp');   // the expedition screen keeps the title's music (the game is held by 'title' anyway)
-  SND.hold('art', paused && ov.id==='art');
-  const mo=paused && ov.id==='menu'; if(mo!==menuOn){ menuOn=mo; mo ? SND.pauseOn() : SND.pauseOff(); }   // the pause menu opens / the game resumes
+  paused=!!ov && ov?.id!=='title' || fbPaused;
+  document.body.classList.toggle('mopen', paused && ov?.id==='menu');   // the menu button on top — closes
+  document.body.classList.toggle('artopen', paused && ov?.id==='art');
+  SND.hold('menu', paused && !(ov?.id==='menu' && mSec==='settings') && ov?.id!=='stats' && ov?.id!=='art' && ov?.id!=='xp');   // the expedition screen keeps the title's music (the game is held by 'title' anyway)
+  SND.hold('art', paused && ov?.id==='art');
+  const mo=paused && ov?.id==='menu'; if(mo!==menuOn){ menuOn=mo; mo ? SND.pauseOn() : SND.pauseOff(); }   // the pause menu opens / the game resumes
   if(paused) dropInput();
   modalSync(ov);
   needDraw=true;
@@ -19213,6 +19221,7 @@ function xShow(m,kb){
 function xNewTxt(){ $('xNew').textContent=loc([...Array(SLOTS)].some((_,j)=>slotUsed(j+1)) ? 'New expedition' : 'Start expedition'); }   // none yet — just start (setLang calls it too)
 function titleTap(e){ const t=$('title'); if(xMode || ['hidden','boot','dead'].some(c=>t.classList.contains(c))) return;
   if(t.classList.contains('beta')){ if(e && e.type==='keydown') betaAgree(e); return; }   // the beta notice: only its button (or Enter/Space) goes on
+  if(FBS){ SND.init(); SND.uiTap(); fbGo(); return; }                 // a feedback replay: straight into the recorded moment
   SND.init(); autoFS(); SND.uiTap(); xShow('opt',e && e.type==='keydown'); }
 function xBack(){ if($('tLang').classList.contains('open')){ tlOpen(false); SND.uiTap(.8); return; } const a=$('xList').querySelector('.xrow.ask'); if(a){ a.classList.remove('ask'); SND.uiTap(.8); } else if(xMode){ xShow(''); SND.uiTap(.8); } }
 async function enter(k){ if(!xGo && xpFresh!==k) xpFresh=0;                                               // open slot k: its level (rebuilt behind the title if needed), the expedition screen, then "Let's go!" lets the ship in
@@ -19261,7 +19270,7 @@ function toTitle(){                                                    // the me
 /* Closed beta (BETA builds only): the title opens with a confidentiality notice instead of "Tap anywhere to play"; "I agree" is that first tap.
    Shown at every launch, not after End expedition (the class stays off) */
 function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot')) return; t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); }
-if(BETA){ $('title').classList.add('beta'); $('tBeta').hidden=false; }
+if(BETA && !FBS){ $('title').classList.add('beta'); $('tBeta').hidden=false; }
 $('tBetaOk').onclick=e=>{ e.stopPropagation(); betaAgree(e); };
 $('title').onclick=e=>{ if(xMode){ if(!e.target.closest('#xBox')) xBack(); } else titleTap(e); };   // a tap beside the list and its button hides it: back to the start screen
 $('xNew').onclick=()=>{ SND.uiTap(); newExp(); };
@@ -19339,7 +19348,7 @@ function loadLevel(i,retry,defer,sv){
   STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; PIL.a=PIL.aT=0; PIL.up=false; pillar.visible=false; SH.carry=false; shipBeam(0,0); SH.a=0;
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
   if(!defer) startLevel();
-  if(sv) subPlace();                                                   // at the door it came through, with the run's lives and time
+  if(sv===true) subPlace();                                            // at the door it came through, with the run's lives and time ('fb' — a feedback replay places the cube itself)
   hudTitle(); updateStars(); introHide(); hintClear(); toastTap(true); hudLeft(!!retry); hudArt();   // a new level: the HUD corner waits for the intro
   camRc=null; pan.set(0,0,0); zoomT=1; cam.zoom=1; cam.updateProjectionMatrix(); const cv=def.cam||{}; camBase=cv.az!=null?cv.az*Math.PI/180:STEP; el=cv.el!=null?cv.el*Math.PI/180:EL0; camLeadK=cv.lead||0; camLeadD=camLead=camLeadA=0; camLeadX=null;   // def.cam {az, el} in degrees: a level's own view (a side-scroller — az 0, low el)
   az=azT=camBase; camTw=null; updateCam(true);   // the default camera on every load (a retry too)
@@ -20042,6 +20051,71 @@ Object.defineProperties(window.__cube,{ lamps:{ get:()=>lamps && { open:lamps.op
   wall:Object.values(lampWall).map(w=>({ x:w.x, z:w.z, h:terr[w.z][w.x], shown:!!(w.mesh && w.mesh.visible) })) } } });
 }
 
+/* =====================================================================
+   FEEDBACK SNAPSHOT AND REPLAY (closed beta)
+   fbSnap() — everything needed to see where a tester was: all cube- keys (progress of every slot, settings), the level and sublevel,
+   the run so far (the same record subSave keeps for a sublevel visit: stars, covers, broken things, crates, boulders, bridges…),
+   the cube, the camera, the open overlay and menu section, area, level card, scroll positions, the window and device, recent errors.
+   The beta UI (beta/feedback.js, loaded only when BETA — not in the release page, not in Android) calls it through window.__cubeFb.
+   Replay: beta/fb.html puts a snapshot into sessionStorage and opens index.html?fbx: LS lives in memory seeded from it (storage.js),
+   the title's tap calls fbGo() — the level is built with the run re-applied (subApply) and the ship brings the cube to where it stood
+   (to its last checkpoint if it was in the air, on a wall or on a moving piece); then the camera and the menu are put back
+   ===================================================================== */
+function fbSnap(){
+  const ls={}; LSR.keys().filter(k=>k.startsWith('cube-')).forEach(k=>{ ls[k]=LSR.get(k,''); });
+  const R0=subRun, R=R0||{ i:cur, got:new Set(), lv:{} };
+  let run=null;
+  try{ subRun=R; subSave(); run={ got:[...R.got], lv:R.lv, door:R.door??null, via:R.via||null, from:R.from??null }; }catch(e){ console.error(e); }
+  finally{ subRun=R0; if(!R0) R.lv={}; }
+  const ov=document.querySelector('.overlay:not(.hidden)'), scr=[...document.querySelectorAll('.scr')].map(e=>Math.round(e.scrollTop));
+  const ground=state==='idle' && !P.wall && !P.ceil && !P.float && !P.fly && !P.on && !P.st && !P.bv;
+  const st={ lv:lvId(cur), sub:subLv, run, lives:P.lives, lvLives, t:STAT.t, mat:P.mat, color:P.color, studs:!!P.studs,
+    cube:{ x:P.x, z:P.z, l:P.l, ground, state }, check:P.check && { x:P.check.x, z:P.check.z, l:P.check.l },
+    cam:{ az, zoom:zoomT },
+    ui:{ ov:ov ? ov.id : '', sec:mSec, area:aCur, card:lvdI, art:lvdArtOn ? lvdAk : null, x:xMode, scr } };
+  const sum={ ver:VERSION, lang, slot, level:lvName(LEVELS[cur]), lvId:lvId(cur), area:AREAS[areaOf(cur)] && AREAS[areaOf(cur)].name, sub:subLv && curDef().name,
+    n:lvNo(cur), state, ui:st.ui.ov+(st.ui.ov==='menu' && mSec ? ':'+mSec : '')+(lvdI>=0 ? ' card '+lvId(lvdI) : ''), lives:P.lives, stars:starGot+'/'+starTotal, t:Math.round(STAT.t),
+    w:innerWidth, h:innerHeight, dpr:devicePixelRatio, orient:innerWidth>innerHeight ? 'landscape' : 'portrait', ua:navigator.userAgent,
+    q:{ mode:qMode, step:qStep, fps:Math.round(1/qAvg), dpr:renderer.getPixelRatio() }, errs:FB_LOG.slice() };
+  return { app:'data-cube-fb', v:1, at:Date.now(), sum, st, ls };
+}
+/* The game canvas as a JPEG (the WebGL buffer is read right after a fresh render; HTML overlays are not in it) */
+function fbShot(max=960,qy=.72){
+  try{ renderer.render(scene,cam); const c=renderer.domElement, k=Math.min(1,max/Math.max(c.width,c.height)), o=document.createElement('canvas');
+    o.width=Math.round(c.width*k); o.height=Math.round(c.height*k); const g=o.getContext('2d');
+    g.fillStyle=T.bg[1]; g.fillRect(0,0,o.width,o.height); g.drawImage(c,0,0,o.width,o.height); return o.toDataURL('image/jpeg',qy); }
+  catch(e){ console.error(e); return null; }
+}
+let fbDone=false;
+function fbGo(){
+  if(fbDone || !FBS) return; fbDone=true; const s=FBS.st, i=Math.max(0,lvIdx(s.lv));
+  SND.titleAmb(false); document.activeElement?.blur?.(); closeOverlays();
+  subLv=s.sub && SUBLEVELS[s.sub] ? s.sub : null;
+  subRun=s.run ? { i:((i%N)+N)%N, got:new Set(s.run.got), lv:s.run.lv||{}, door:s.run.door, via:s.run.via||'cave', from:s.run.from||'' } : null;
+  loadLevel(i,true,true,'fb');
+  P.studs=!!s.studs; P.lives=s.lives; lvLives=s.lvLives; updateLives(); STAT.t=s.t||0;
+  const c=s.cube.ground || !s.check ? s.cube : s.check;
+  resetPlayer(c.x,c.z,c.l,s.mat||'normal',s.color||'w'); P.hist=[]; saveCheck();
+  root.position.set(P.x,-50,P.z); startLevel();
+  az=azT=s.cam.az; zoomT=cam.zoom=s.cam.zoom||1; cam.updateProjectionMatrix(); updateCam(true);
+  const u=s.ui||{};
+  setTimeout(()=>{
+    if(u.ov==='menu'){ openMenu(); setSecNow(u.sec||'');
+      if(u.sec==='levels'){ areaGo(u.area); if(u.card>=0){ lvdOpen(u.card); if(u.art!=null) setTimeout(()=>lvdArtSet(true,true,true,typeof u.art==='string' ? u.art : undefined),400); } } }
+    else if(u.ov==='quit') $('btnReset').onclick();
+    else if(u.ov==='art') artView();
+    setTimeout(()=>[...document.querySelectorAll('.scr')].forEach((e,j)=>{ if(u.scr && u.scr[j]) e.scrollTop=u.scr[j]; }),500);
+  },300);
+  console.info('feedback replay:',FBS.sum);
+}
+/*web{*/
+if(BETA && !FBS){
+  window.__cubeFb={ snap:fbSnap, shot:fbShot, get lang(){ return lang; }, ver:VERSION,
+    pause(on){ fbPaused=!!on; updatePause(); } };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION; s.onload=then; s.onerror=then; document.head.append(s); };
+  js('config.js',()=>js('feedback.js'));   // the worker's address, then the button
+}
+/*}web*/
 resize();
 /* Boot: the title is revealed only when everything is ready — fonts (or their timeout), the first level built and drawn once — all at once */
 let booted=false;
