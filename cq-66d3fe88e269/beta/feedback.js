@@ -311,14 +311,17 @@ const syncLater=keep=>{ if(acct && !syncing && FB.busy && atMax(FB.exps())!==sen
 setInterval(()=>syncLater(false),SYNC_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater(true); });
 
-/* Messages from the developers (the worker's inbox, /tester/me): a reply to a report, or "the bug you reported is fixed". Asked for on
+/* Messages from the developers (the worker's inbox, /tester/me): a reply to a report, "the bug you reported is fixed", or news to
+   everyone (the Telegram bot's /all). Asked for on
    start, after the sign-in, every MSG_EVERY and on return to the page; shown in a panel over everything (the game pauses), not over the
-   feedback form; "Got it" drops them (/tester/ack). The same call brings a nickname the dashboard changed; a deleted account signs out */
+   feedback form; "Got it" drops them (/tester/ack). The same call brings a nickname the dashboard changed; a deleted account signs out.
+   play=1 — the game is past the beta notice and shown: the worker counts the play session (Telegram: started / stopped and how long);
+   the first call comes right after "I agree", the page closing sends /tester/bye */
 const MSG_EVERY=180e3;
 let inMsgs=[], inBusy=false;
 async function inPull(){
   if(!acct || inBusy || document.hidden) return; inBusy=true; const me=acct;
-  try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick });
+  try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick, play:FB.busy ? 1 : 0 });
     if(acct!==me) return;
     if(d.nick && d.nick!==acct.nick){ acct={ ...acct, nick:d.nick, tok:d.tok||acct.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); gSync(); }
     const had=new Set(inMsgs.map(m=>m.id)); for(const m of d.msgs||[]) if(!had.has(m.id)) inMsgs.push(m);
@@ -330,7 +333,7 @@ function inRender(){
   $('fbInH').textContent=t('Message from the developers'); $('fbInOk').textContent=t('Got it');
   const L=$('fbInList'); L.textContent='';
   for(const m of inMsgs){ const it=document.createElement('div'); it.className='it';
-    const h=document.createElement('b'); h.textContent=t(m.t==='fixed' ? 'The bug from your feedback has been fixed. Thank you for taking part!' : 'Reply to your feedback'); it.append(h);
+    if(m.t!=='news'){ const h=document.createElement('b'); h.textContent=t(m.t==='fixed' ? 'The bug from your feedback has been fixed. Thank you for taking part!' : 'Reply to your feedback'); it.append(h); }
     if(m.t!=='fixed'){ const x=document.createElement('div'); x.className='tx'; x.textContent=m.text||''; it.append(x); }
     if(m.q){ const q=document.createElement('div'); q.className='q'; q.textContent=t('Your feedback')+': «'+m.q+(m.q.length>=160 ? '…' : '')+'»'; it.append(q); }
     L.append(it); }
@@ -349,6 +352,9 @@ $('fbInOk').onclick=inClose;
 inb.addEventListener('click',e=>e.stopPropagation());
 setInterval(inPull,MSG_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) inPull(); });
+let inPlay=false;
+setInterval(()=>{ const p=!!(acct && FB.busy); if(p && !inPlay) inPull(); inPlay=p; },2000);   // "I agree" — the session starts now
+addEventListener('pagehide',()=>{ if(acct && FB.busy) post('/tester/bye',{ tok:acct.tok },true).catch(()=>{}); });
 
 gMode_('new'); gSync(); syncStart(); inPull();
 })();

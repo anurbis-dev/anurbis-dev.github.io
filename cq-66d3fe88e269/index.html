@@ -324,6 +324,16 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   clip-path:polygon(50% 0,100% 100%,0 100%); box-shadow:none; }
 #toast small{ display:block; margin-top:.3em; font-size:calc(21px*var(--ui)); line-height:1.2; font-weight:800; opacity:.8; letter-spacing:0; }
 #toast.show{ opacity:1; transform:none; }
+/* A newer version is out (verCheck in js/start.js): a strip at the top, above everything but the beta form; not modal */
+#upd{ position:fixed; left:50%; top:calc(8px + env(safe-area-inset-top)); z-index:2147482000; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box;
+  display:flex; align-items:center; gap:10px; padding:10px 10px 10px 16px; border-radius:16px; background:rgba(28,16,52,.92); color:#f3eefc; box-shadow:0 6px 24px rgba(20,6,40,.45);
+  font:700 15px/1.25 Quicksand,Nunito,system-ui,sans-serif; animation:updIn .35s ease; }
+#upd[hidden]{ display:none; }
+#upd p{ margin:0; min-width:0; } #upd b{ display:block; font-weight:800; } #upd small{ display:block; font-size:13px; opacity:.8; }
+#upd button{ flex:none; border:0; border-radius:11px; font:inherit; font-weight:800; cursor:pointer; }
+#updGo{ padding:9px 14px; background:#ffd23f; color:#4a2a00; } #updX{ width:34px; height:34px; background:rgba(255,255,255,.12); color:inherit; font-size:20px; line-height:1; }
+@keyframes updIn{ from{ opacity:0; transform:translate(-50%,-12px); } }
+@media (prefers-reduced-motion: reduce){ #upd{ animation:none; } }
 #lvIntro{ position:fixed; inset:0; z-index:6; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center;
   text-align:center; line-height:1.05; visibility:hidden; text-shadow:0 .05em .3em rgba(40,10,60,.45); color:var(--txt); --sw:.07em; }
 #lvIntro.on{ visibility:visible; }
@@ -640,6 +650,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 
 <div id="hint" class="otl dim" aria-live="polite"></div>
 <div id="toast" class="otl" aria-live="polite"></div>
+<!--web--><div id="upd" role="status" hidden><p><b data-t>A new version of the game is out</b><small data-t>Reload the page to get it — your progress is saved.</small></p><button id="updGo" data-t>Reload</button><button id="updX" aria-label="Later" data-ta>×</button></div><!--/web-->
 <div id="smart" aria-hidden="true">!</div>
 <div id="lvIntro" class="otl" aria-hidden="true"><b id="liName"></b></div>
 <div id="wipe"></div>
@@ -826,7 +837,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.97.1';
+const VERSION = '1.98.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -845,7 +856,7 @@ if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).sli
 const SLOTS=5, PROG=/^cube-(level|lives|stars-total|(best|got|lv|art|gift|met)-[a-z0-9-]+|pal-[a-z]+|time)$/;
 const XNAMES=['The Brave March','The Great Tumble','Beyond the Horizon','The Heroic Roll','The Fearless Stroll','The Mapless Trek',
   'The Legendary Detour','The Triumphant Wandering','The Grand Roll','Madness and Valor'];   // expedition names (see xNameGive)
-let lsWarned=false, persistAsked=false;
+let lsWarned=false, persistAsked=false, verHook=null;   // verHook — the web build's check for a newer version on every progress save (js/start.js)
 /* A feedback replay (?fbx — beta/fb.html put the snapshot into sessionStorage): every key lives in memory, seeded from the snapshot;
    the viewer's own saves are never read or written (fbsnap.js) */
 const FBS=(()=>{ if(!/[?&]fbx\b/.test(location.search)) return null; try{ const s=JSON.parse(sessionStorage.getItem('cube-fb-snap')); return s && s.ls && s.st ? s : null; }catch(e){ return null; } })();
@@ -860,7 +871,7 @@ let slot=(v=>v>=1 && v<=SLOTS ? v : 1)(Math.floor(+LSR.get('cube-slot','1')));
 const slotKey=(k,s=slot)=>s>1 && PROG.test(k) ? 'cube-x'+s+'-'+k.slice(5) : k;
 const LS = {
   get:(k,d)=>LSR.get(slotKey(k),d),
-  set(k,v){ const ok=LSR.set(slotKey(k),v); if(PROG.test(k)){ slotTouch(); if(ok) askPersist(); } return ok; }
+  set(k,v){ const ok=LSR.set(slotKey(k),v); if(PROG.test(k)){ slotTouch(); if(ok) askPersist(); if(verHook) verHook(); } return ok; }
 };
 /* A write that fails (storage full or blocked): the player learns it once per session — a toast once no overlay covers it */
 function lsFail(){ if(lsWarned) return; lsWarned=true;
@@ -1045,6 +1056,10 @@ const L10N={
     "これはクローズドベータテスト用のリリース前バージョンです。内容は機密です。開発者の許可なく、ゲームを共有・複製・録画・公開したり、リンクを他の人に渡したりしないでください。",
     "이것은 비공개 베타 테스트용 출시 전 버전입니다. 기밀 사항이므로 개발자의 허락 없이 게임을 공유, 복사, 녹화, 게시하거나 링크를 다른 사람에게 전달하지 마세요."],
   "I agree":["Принимаю","Acepto","Concordo","Einverstanden","J'accepte","我同意","同意する","동의합니다"],
+  "A new version of the game is out":["Вышла новая версия игры","Hay una nueva versión del juego","Saiu uma nova versão do jogo","Eine neue Version des Spiels ist da","Une nouvelle version du jeu est sortie","游戏有新版本了","ゲームの新しいバージョンが出ました","게임의 새 버전이 나왔습니다"],
+  "Reload the page to get it — your progress is saved.":["Обновите страницу, чтобы получить её, — прогресс сохранён.","Recarga la página para obtenerla: tu progreso está guardado.","Recarregue a página para obtê-la — seu progresso está salvo.","Lade die Seite neu, um sie zu bekommen – dein Fortschritt ist gespeichert.","Rechargez la page pour l’obtenir — votre progression est sauvegardée.","刷新页面即可获取——进度已保存。","ページを再読み込みすると反映されます。進行状況は保存済みです。","페이지를 새로 고치면 받을 수 있습니다. 진행 상황은 저장되어 있습니다."],
+  "Reload":["Обновить","Recargar","Recarregar","Neu laden","Recharger","刷新","再読み込み","새로 고침"],
+  "Later":["Позже","Más tarde","Depois","Später","Plus tard","稍后","あとで","나중에"],
   "Something went wrong":["Что-то пошло не так","Algo salió mal","Algo deu errado","Etwas ist schiefgelaufen","Un problème est survenu","出了点问题","問題が発生しました","문제가 발생했습니다"],
   "The game stopped because of an error. Restarting the level usually helps.":["Игра остановилась из-за ошибки. Обычно помогает начать уровень заново.","El juego se detuvo por un error. Reiniciar el nivel suele ayudar.","O jogo parou por causa de um erro. Reiniciar o nível costuma resolver.","Das Spiel wurde wegen eines Fehlers angehalten. Meist hilft es, das Level neu zu starten.","Le jeu s'est arrêté à cause d'une erreur. Recommencer le niveau aide en général.","游戏因错误而停止。重新开始本关通常可以解决。","エラーのためゲームが停止しました。レベルをやり直すと直ることが多いです。","오류로 게임이 멈췄습니다. 레벨을 다시 시작하면 대개 해결됩니다."],
   "Settings":["Настройки","Ajustes","Ajustes","Einstellungen","Réglages","设置","設定","설정"],
@@ -20146,6 +20161,21 @@ Promise.all([fontsP, warm()]).then(reveal, e=>{ console.error(e); reveal(); });
 /* Offline: the service worker caches the page, three.js, the manifest and icons (and the fonts once seen); its cache follows VERSION */
 const swReg=()=>{ try{ navigator.serviceWorker.register('sw.js?v='+VERSION).catch(()=>{}); }catch(e){} };
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ if(document.readyState==='complete') setTimeout(swReg,1000); else addEventListener('load',swReg); }
+/* A newer version: a tab left open keeps the old game. version.json (written by the build) is polled when the tab comes back,
+   on progress saves and every VER_POLL while it is open (no more often than VER_GAP); a newer VERSION — the strip #upd: "Reload" or "Later" (asks again in VER_SNOOZE) */
+const VER_GAP=60e3, VER_POLL=15*60e3, VER_SNOOZE=30*60e3;
+let verAt=0, verOff=0;
+const verNum=v=>String(v).split('.').map(n=>+n||0), verNewer=(a,b)=>{ a=verNum(a); b=verNum(b); for(let i=0;i<3;i++) if((a[i]||0)!==(b[i]||0)) return (a[i]||0)>(b[i]||0); return false; };
+function verCheck(force){
+  const t=Date.now(); if(TEST || !/^https?:$/.test(location.protocol) || !force && t-verAt<VER_GAP || t<verOff || !$('upd').hidden) return; verAt=t;
+  fetch('version.json?t='+t,{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(j=>{ if(j && verNewer(j.v,VERSION) && Date.now()>=verOff) $('upd').hidden=false; }).catch(()=>{});
+}
+verHook=verCheck;
+$('updGo').onclick=()=>{ try{ xpSave(); }catch(e){} location.reload(); };
+$('updX').onclick=()=>{ $('upd').hidden=true; verOff=Date.now()+VER_SNOOZE; };
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) verCheck(); });
+addEventListener('focus',()=>verCheck());
+setInterval(()=>{ if(!document.hidden) verCheck(true); },VER_POLL);
 /*}web*/
 })();
 </script>
