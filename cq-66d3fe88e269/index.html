@@ -339,6 +339,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   max-width:min(70vw,300px*var(--ui)); padding:calc(9px*var(--ui)) calc(14px*var(--ui)); font-size:calc(15px*var(--ui)); margin-top:calc(-8px*var(--ui));
   transition:opacity .25s ease, transform .35s cubic-bezier(.3,1.6,.5,1); }
 #say.voice.show{ transform:translate(-50%,-100%); }
+#say.voice:not(.show){ pointer-events:none; }   /* a hidden voice plate follows the cube right where the next "!" pops up — it must not eat that tap */
 #say.voice::after{ content:''; position:absolute; left:50%; bottom:calc(-7px*var(--ui)); margin-left:calc(-8px*var(--ui)); border:calc(8px*var(--ui)) solid transparent; border-bottom:0; border-top-color:var(--panel); }
 body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #toast small{ display:block; margin-top:.3em; font-size:calc(21px*var(--ui)); line-height:1.2; font-weight:800; opacity:.8; letter-spacing:0; }
@@ -2067,6 +2068,27 @@ const SND = (() => {
     env(g,t,a,v,d); os.connect(g); out(g,bus,pan,wet);
     voice1(os); os.start(t); lfo.start(t); os.stop(t+d+.1); lfo.stop(t+d+.1);
   }
+  /* The cube's voice (R2-style chirps): ONE whistle voice gliding through segments [f, f2, d, gap, wobble depth Hz, wobble rate Hz] —
+     each a glide from f to f2 over d s; gap>0 — a short silence after it (a separate beep), 0 — legato into the next; a quiet octave rides along */
+  function droid(S,v=.05,r=1){
+    if(!ctx || busy()) return;
+    let t=ctx.currentTime+lead; const os=ctx.createOscillator(), o2=ctx.createOscillator(), g2=ctx.createGain(), lfo=ctx.createOscillator(),
+      lg=ctx.createGain(), lg2=ctx.createGain(), g=ctx.createGain(), t0=t;
+    o2.type='triangle'; g2.gain.value=.2; g.gain.setValueAtTime(0,t); lg.gain.setValueAtTime(0,t); lg2.gain.setValueAtTime(0,t);
+    lfo.connect(lg); lg.connect(os.frequency); lfo.connect(lg2); lg2.connect(o2.frequency);
+    let on=false;
+    for(const [f,f2,d,gap=.03,wd=0,wr=30] of S){
+      os.frequency.setValueAtTime(f*r,t); os.frequency.exponentialRampToValueAtTime(f2*r,t+d);
+      o2.frequency.setValueAtTime(f*r*2,t); o2.frequency.exponentialRampToValueAtTime(f2*r*2,t+d);
+      lg.gain.setValueAtTime(wd*r,t); lg2.gain.setValueAtTime(wd*r*2,t); lfo.frequency.setValueAtTime(wr,t);
+      if(!on){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+.006); on=true; }
+      if(gap>0){ g.gain.setValueAtTime(v,t+d-.012); g.gain.linearRampToValueAtTime(0,t+d); on=false; }
+      t+=d+Math.max(0,gap);
+    }
+    if(on){ g.gain.setValueAtTime(v,t-.012); g.gain.linearRampToValueAtTime(0,t); }
+    os.connect(g); o2.connect(g2); g2.connect(g); out(g,'u',0,0);
+    voice1(os); [os,o2,lfo].forEach(o=>{ o.start(t0); o.stop(t+.05); });
+  }
   /* Bubbles: one sine voice, a short pitch glide per bubble (g — end/start ratio) under its own gain envelope; the bubbles never overlap */
   function bub(o){
     if(!ctx || busy()) return;
@@ -2522,6 +2544,14 @@ const SND = (() => {
     /* The smart-mode alert: a short droid-like chirp — quick gliding notes, the last one rising */
     uiAlert(){ uiPlay('alert',400,()=>{ const n=[[1500,2300],[2100,1300],[1200,2000],[1800,2600],[1400,3100]], r=rand(.92,1.08);
       n.forEach(([f,f2],i)=>{ const w=i*.075; tone({ f:f*r, f2:f2*r, d:.07, type:'sine', v:.05, a:.005, when:w, bus:'u', wet:0 }); tone({ f:f*r*2, f2:f2*r*2, d:.05, type:'triangle', v:.012, a:.005, when:w, bus:'u', wet:0 }); }); }); },
+    /* The cube's lines (smart mode), each its own droid phrase: 'hidden' — a curious wobble and a rising "hm?"; 'shake' — an excited trill;
+       'slam' — a heavy drop, two low thumps, a whoop up; 'ship' — a radio call: static, three beeps and a rising whistle */
+    say(k){ uiPlay('say',150,()=>{ const r=rand(.94,1.06), v=.045;
+      if(k==='ship'){ noise({ d:.09, v:.03, f:2500, q:1.2, type:'bandpass', bus:'u' }); noise({ d:.1, v:.025, f:2200, q:1.2, type:'bandpass', when:.62, bus:'u' }); }
+      droid({ hidden:[[900,1400,.08],[1300,800,.07,.02],[700,720,.13,0,60,28],[720,1900,.17]],
+        shake:[[1600,1650,.2,.04,240,32],[1200,2300,.06,.02],[2300,1200,.06,.02],[1400,2700,.1]],
+        slam:[[1900,480,.13],[480,470,.06,.04],[470,460,.06,.05],[600,2500,.1,0],[2500,950,.15]],
+        ship:[[1800,1800,.05,.04],[1800,1800,.05,.04],[1800,1800,.12,.07],[1100,1500,.07,.02],[1500,2900,.18,0,90,24]] }[k]||[[1000,1800,.12]],v,r); }); },
     /* The smart-mode ability alert: a happy major arpeggio up with a sparkle on top */
     uiAbil(){ uiPlay('abil',400,()=>{ [72,76,79,84].forEach((m,i)=>{ const w=i*.07;
         tone({ f:mtof(m)*1.02, f2:mtof(m), d:.16, type:'triangle', v:.05, a:.005, when:w, bus:'u', wet:0 }); tone({ f:mtof(m+12), d:.08, v:.012, a:.005, when:w, bus:'u', wet:0 }); });
@@ -2731,7 +2761,7 @@ const SND = (() => {
   /* Every sound in fx varies a little in pitch (±VARY) so repeats don't sound the same: one factor per call keeps a sound's layers
      in tune with each other (tone/noise/voice/warble/bub/taps/bushChirp multiply by rk). Only the sounds that must stay
      exactly in tune — the interface and the melodic jingles — are on the NO_VARY list; a new sound is varied by default */
-  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil uiLevel uiRelic click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
+  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
     fx[n]=(...a)=>{ const p=rk; rk=1+rand(-VARY,VARY); try{ return f(...a); } finally{ rk=p; } }; }
   return { init, ready, hold, titleAmb, setAmbient, setMood, setVol, setCave, slip, mach, gust, geyser, get caveMix(){ return cave&&cave.on ? cave.i.gain.value : 0; },
@@ -14340,7 +14370,7 @@ function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
   lvSave((cur+1)%N); starsProg=bankStars();
-  after(.5,()=>{ if(state==='win') smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); });   // a radio line to the ship until it takes the cube
+  after(.5,()=>{ if(state==='win') { smartSay(loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
   const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
 }
 /* =====================================================================
@@ -19806,19 +19836,19 @@ function updateGust(){
    in a rock, a crate, a mound, under a cover or a slab; 'shake' — in a bush, a tree, a lamp); the count resets with a new zone
    ===================================================================== */
 const SMART_CD=15, SMART_SHOW=6, SMART_OUT=.7, SAY_MS=3200, SMART_POP=.4;   // cooldown, how long the bubble stays, extra radius to leave the zone (no flicker on the edge), the plate's time, the tapped bubble's swell-and-fade
-let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1, smartKind='slam', smartTaps=0, smartPop=-1;
+let smartOn=LS.get('cube-smart','1')==='1', smartZone=null, smartCd=0, smartT=-1, smartKind='slam', smartTaps=0, smartPop=-1, smartTgt=null, smartWas=null;   // smartTgt — the secret the zone points at (the nearest), smartWas — the one already alerted
 const smartEl=$('smart'), sayEl=$('say');
 /* The plate: a short line in a panel near the top (head — a small caption above); ms 0 — stays until smartSayOff */
 function smartSay(t,head,ms=SAY_MS){ const f=document.createDocumentFragment(); sayEl.classList.remove('voice');
   if(head) f.append(Object.assign(document.createElement('small'),{ textContent:head })); f.append(t); toastOn(sayEl,f,null,ms); }
 function smartSayOff(){ toastOff(sayEl); }
 const smartVoiceOn=()=>sayEl.classList.contains('voice') && sayEl.classList.contains('show');
-function smartLine(){ smartTaps++;
-  return smartTaps<2 ? loc('Something is hidden nearby…') : smartKind==='shake' ? loc('Shake the plants?…') : loc('Try knocking it out with a slam?…'); }
+function smartLine(){ smartTaps++; const k=smartTaps<2 ? 'hidden' : smartKind;   // the line and its own droid phrase (SND.say)
+  SND.say(k); return k==='hidden' ? loc('Something is hidden nearby…') : k==='shake' ? loc('Shake the plants?…') : loc('Try knocking it out with a slam?…'); }
 smartEl.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); if(smartT<0 || smartPop>=0 || paused || inputOff()) return;
-  SND.init(); SND.uiTap(.8); smartPop=0; const t=smartLine();
-  after(.12,()=>{ toastOn(sayEl,t,null,0); sayEl.classList.add('voice'); smartPlace(); }); });   // the plate pops up as the bubble starts to shrink
-sayEl.addEventListener('pointerdown',e=>{ if(!smartVoiceOn()) return; e.preventDefault(); e.stopPropagation(); SND.uiTap(.7); toastOn(sayEl,smartLine(),null,0); });
+  SND.init(); SND.uiTap(.8); smartPop=0;
+  after(.12,()=>{ toastOn(sayEl,smartLine(),null,0); sayEl.classList.add('voice'); smartPlace(); }); });   // the plate pops up as the bubble starts to shrink
+sayEl.addEventListener('pointerdown',e=>{ if(!smartVoiceOn()) return; e.preventDefault(); e.stopPropagation(); toastOn(sayEl,smartLine(),null,0); });
 document.addEventListener('pointerdown',e=>{ if(smartVoiceOn() && !e.target.closest('#say,#smart')) smartSayOff(); },true);   // the next tap on the screen hides the voice
 function smartSet(on){ smartOn=!!on; setTg('tgSmart',smartOn); if(!smartOn) smartHide(); }
 $('tgSmart').onclick=()=>{ smartSet(!smartOn); LS.set('cube-smart',smartOn?'1':'0'); };
@@ -19830,11 +19860,11 @@ function smartHere(x,z,y,base,r){ return y!==null && Math.hypot(x-P.x,z-P.z)<=r 
 const SMART_ABIL=[ o=>(o.granite || o.under?.granite) && !P.studs ];
 function smartAbil(r){ const base=digBase(P.x,P.z,P.l);
   for(const k in obst){ const o=obst[k]; if(!SMART_ABIL.some(f=>f(o))) continue;
-    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) return 'slam'; }
+    const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)){ smartTgt='a'+k; return 'slam'; } }
   return null; }
 /* the nearest hidden loot within r: how to get it ('slam' | 'shake') or null */
 function smartNear(r){ const base=digBase(P.x,P.z,P.l); let best=null, bd=1e9;
-  const put=(x,z,how)=>{ const d=Math.hypot(x-P.x,z-P.z); if(d<bd){ bd=d; best=how; } };
+  const put=(x,z,how)=>{ const d=Math.hypot(x-P.x,z-P.z); if(d<bd){ bd=d; best=how; smartTgt=K(x,z); } };
   for(const k in buried){ const s=buried[k]; if(digDist(k,s,P.x,P.z,base,r)>=0) put(s.x,s.z,'slam'); }
   for(const k in obst){ const o=obst[k], L=loot[o.lk||k]; if(!L || L.done || buried[o.lk||k]) continue;   // loot inside an object (a pushed one carries it, lk)
     const [x,z]=k.split(',').map(Number); if(smartHere(x,z,o.pcy??th(x,z),base,r)) put(x,z,SHAKY.includes(o.type)?'shake':'slam'); }
@@ -19849,8 +19879,9 @@ function updateSmart(){
     const out=r=>smartZone===r ? DIG_R+SMART_OUT : DIG_R;           // the zone of the kind already shown is left a little further out
     const a=smartAbil(out('abil')), n=a ? null : smartNear(out('loot'));   // an ability outranks loot
     const z=a ? 'abil' : n ? 'loot' : null;
-    if(z){ smartKind=a||n; if(smartZone!==z){ smartZone=z; smartCd=0; smartTaps=0; } smartCd-=dt; if(smartCd<=0 && !smartVoiceOn() && smartPop<0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
-    else { smartZone=null; smartCd=0; smartTaps=0; }
+    if(z){ smartKind=a||n; if(smartZone!==z || smartTgt!==smartWas){ smartZone=z; smartWas=smartTgt; smartCd=0; smartTaps=0; }   // another secret — a fresh alert, lines from the start
+      smartCd-=dt; if(smartCd<=0 && !smartVoiceOn() && smartPop<0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
+    else { smartZone=smartWas=null; smartCd=0; smartTaps=0; }
   }
   if(sayEl.classList.contains('voice')){ sayEl.style.visibility=paused?'hidden':''; if(!paused) smartPlace(); }
   if(smartT<0) return;
