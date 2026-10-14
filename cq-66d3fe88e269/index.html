@@ -826,7 +826,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.92.1';
+const VERSION = '1.93.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
@@ -15852,6 +15852,7 @@ const SH={ fly:null, leave:null, a:0, aT:0, len:0, carry:false, yaw:0, pyaw:0, r
 const SPIN_HOVER=.9, SPIN_FLY=5;
 ship.rotation.order='YXZ';                                            // heading, roll around the long axis, pitch
 function updateShip(){
+  updatePillar();
   if(SH.fly){ const f=SH.fly; f.t+=dt; if(f.t>=0 && flyStep(f)){ SH.fly=null; f.done&&f.done(); } }
   else if(SH.leave){ const L=SH.leave; L.t+=dt;                       // off-screen check every frame: the camera matrices of the last render are enough
     if(L.t>=0 && (flyStep(L) || (L.u>.25 && shipOffScreen(false)))){ SH.leave=null; ship.visible=false; ship.scale.set(1,1,1); L.done&&L.done(); } }
@@ -15974,6 +15975,7 @@ function shipHoverY(l,x,z){ return Math.max(l+HOVER, shipTopY(Math.round(x),Math
 /* Level start and respawn: the ship flies in, holds the cube in the beam and releases it above the cell */
 function shipDrop(x,z,l){
   state='intro'; queue=[]; holdDir=null; SH.drop=(SH.drop||0)+1;
+  if(T.cave) return pillarDrop(x,z,l);                                // underground there's no sky for the ship
   const hover=new V3(x,shipHoverY(l,x,z),z);
   SND.shipIn(); pMesh.visible=true; root.scale.set(1,1,1);
   SH.hang=-1.55; SH.a=0; SH.dropK=0; shipBeam(1.25,.9);              // reset per-drop camera handoff state (restart-safe)
@@ -15993,6 +15995,31 @@ function shipDrop(x,z,l){
     });
   });
   SH.carry=true; root.position.copy(ship.position).add(_v.set(0,SH.hang,0));
+}
+/* Underground drop: no ship — a beam reaches down from above the frame onto the cell, the cube comes down in it, then the beam fades */
+const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.74,.74,1,4,1,true), beamMat(0x9ff4ff,.9));   // fades toward the top: bright at the floor, the far end off-frame
+pillar.geometry.rotateY(Math.PI/4); pillar.geometry.translate(0,.5,0); pillar.visible=false; scene.add(pillar);
+const PIL={ x:0, z:0, l:0, bot:0, a:0, aT:0 };
+function pillarTop(x,z,l){                                            // the lowest height over the cell that is off-frame
+  const f=camFrustum(); let H=6;
+  while(H<50 && f.intersectsSphere(_sph.set(_v.set(x,l+H,z),1.2))) H*=1.15;
+  return l+H;
+}
+function pillarDrop(x,z,l){
+  const y0=pillarTop(x,z,l)+1, y1=l+HALF;
+  SND.beam(); pMesh.visible=true; SH.carry=false; root.scale.set(1,1,1); root.quaternion.identity(); root.position.set(x,y0,z);
+  Object.assign(PIL,{ x, z, l, bot:y0, a:0, aT:.9 });
+  play(.45, q=>{ PIL.bot=lerp(y0,l-.6,ease(q)); }, ()=>{                // the beam reaches the floor (its soft lower edge sinks into the ground)
+    play(1.25, q=>{ root.position.y=lerp(y0,y1,1-Math.pow(1-q,2.4)); }, ()=>{   // the cube comes down in it, braking
+      root.position.y=y1; setMeshQ(); afterLand(null,null,'soft'); SND.drop(); camSoft=1.2; PIL.aT=0;
+    });
+  });
+}
+function updatePillar(){
+  PIL.a+=(PIL.aT-PIL.a)*(1-Math.exp(-dt*(PIL.aT>0?6:3)));
+  pillar.visible=PIL.a>.01; if(!pillar.visible) return;
+  pillar.position.set(PIL.x,PIL.bot,PIL.z); pillar.scale.set(BEAM_W,Math.max(.01,pillarTop(PIL.x,PIL.z,PIL.l)-PIL.bot),BEAM_W);
+  pillar.material.uniforms.a.value=PIL.a;
 }
 /* Goal: the ship hovers above the cube, smoothly turns on the beam and pulls the cube in, then flies off-screen.
    done (level stats) — only once the ship has left the frame */
@@ -19298,7 +19325,7 @@ function loadLevel(i,retry,defer,sv){
   if(!sv && !retry) stuckT={};                                         // a new level: the tips start over (a retry or a sublevel visit — the player already knows)
                                                 // stone corners last the run: a sublevel visit keeps them
   resetPlayer(start.x,start.z,terr[start.z][start.x],def.mat||'normal','w'); P.hist=[]; saveCheck();
-  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; SH.carry=false; shipBeam(0,0); SH.a=0;
+  STAT.t=0; ship.visible=false; ship.scale.set(1,1,1); SH.fly=null; SH.leave=null; SH.drop=(SH.drop||0)+1; PIL.a=PIL.aT=0; pillar.visible=false; SH.carry=false; shipBeam(0,0); SH.a=0;
   root.position.set(P.x,-50,P.z); state='intro'; pendingStart=true;
   if(!defer) startLevel();
   if(sv) subPlace();                                                   // at the door it came through, with the run's lives and time
