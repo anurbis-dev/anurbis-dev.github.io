@@ -1,7 +1,8 @@
 /* Data Cube — closed beta feedback button (loaded only by the beta page: src/js/fbsnap.js adds this script when BETA).
    Always on top of every screen. A tap takes a snapshot of the game (window.__cubeFb.snap) and a screenshot right away, pauses the
    game and opens a small form: bug / impression, text, optional voice note (MediaRecorder, up to VOICE_MAX s), the tester's name.
-   Sent as JSON to the feedback worker (beta/worker), which files a GitHub issue with a link that replays this moment (beta/fb.html) */
+   Sent as JSON to the feedback worker (beta/worker), which files a GitHub issue with a link that replays this moment (beta/fb.html).
+   The tester's progress follows them to another device: see "Progress sync" below */
 (function(){
 'use strict';
 const FB=window.__cubeFb; if(!FB || document.getElementById('fbBtn')) return;
@@ -35,6 +36,7 @@ const TR={
   'Sending…':['Отправка…','Enviando…','Enviando…','Wird gesendet…','Envoi…','发送中…','送信中…','보내는 중…'],
   'Thank you! Sent.':['Спасибо! Отправлено.','¡Gracias! Enviado.','Obrigado! Enviado.','Danke! Gesendet.','Merci ! Envoyé.','谢谢！已发送。','ありがとう！ 送信しました。','감사합니다! 보냈습니다.'],
   'Couldn\'t send. Check the connection and try again.':['Не удалось отправить. Проверьте связь и попробуйте ещё раз.','No se pudo enviar. Revisa la conexión e inténtalo de nuevo.','Não foi possível enviar. Verifique a conexão e tente de novo.','Senden fehlgeschlagen. Prüfe die Verbindung und versuche es erneut.','Envoi impossible. Vérifiez la connexion et réessayez.','发送失败。请检查网络后重试。','送信できませんでした。 接続を確認してもう一度お試しください。','보내지 못했습니다. 연결을 확인하고 다시 시도하세요.'],
+  'Syncing progress…':['Синхронизация прогресса…','Sincronizando progreso…','Sincronizando progresso…','Fortschritt wird abgeglichen…','Synchronisation de la progression…','正在同步进度…','進行状況を同期中…','진행 상황 동기화 중…'],
   'Microphone unavailable':['Микрофон недоступен','Micrófono no disponible','Microfone indisponível','Mikrofon nicht verfügbar','Micro indisponible','麦克风不可用','マイクが使えません','마이크를 사용할 수 없습니다'],
   'Write a few words or record your voice':['Напишите пару слов или запишите голос','Escribe unas palabras o graba tu voz','Escreva algumas palavras ou grave sua voz','Schreib ein paar Worte oder nimm eine Sprachnachricht auf','Écrivez quelques mots ou enregistrez votre voix','写几句话或录一段语音','ひとこと書くか、音声を録音してください','몇 마디 적거나 음성을 녹음하세요']
 };
@@ -43,7 +45,7 @@ const LSget=(k,d)=>{ try{ return localStorage.getItem(k) ?? d; }catch(e){ return
 const tester=LSget('cube-tester','');   // a device id from before the sign-in: a new nickname takes it (its earlier reports join the name)
 let acct=null; try{ acct=JSON.parse(LSget('cube-tester-acct','null')); if(!acct || !acct.tok || !acct.nick) acct=null; }catch(e){}
 FB.up=true;   // fbsnap.js: the beta notice stays locked until the sign-in lets it go
-const post=async(path,body)=>{ const r=await fetch(API.replace(/\/$/,'')+path,{ method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) });
+const post=async(path,body,keep)=>{ const r=await fetch(API.replace(/\/$/,'')+path,{ method:'POST', headers:{ 'content-type':keep ? 'text/plain' : 'application/json' }, body:JSON.stringify(body), keepalive:!!keep });
   let d={}; try{ d=await r.json(); }catch(e){} if(!r.ok) throw Object.assign(new Error(d.error||'HTTP '+r.status),{ status:r.status }); return d; };
 
 const css=document.createElement('style');
@@ -218,7 +220,7 @@ $('fbSend').onclick=async()=>{
 /* Sign-in on the beta notice: a nickname and a PIN — new (register) or one already made on another device (login).
    Until then "I agree" is disabled; signed in — the name is shown with "Change", the feedback button appears */
 const tb=document.getElementById('tBetaOk'), gate=document.createElement('div'); gate.id='fbGate';
-gate.innerHTML=`<div class="me" id="fgMe" hidden><span>👤 <b id="fgNm"></b></span><button type="button" id="fgChg"></button></div>
+gate.innerHTML=`<div class="me" id="fgMe" hidden><span>👤 <b id="fgNm"></b></span><button type="button" id="fgChg"></button></div><small id="fgSy" hidden></small>
   <div id="fgForm" hidden><div style="display:grid;gap:8px">
     <span class="lead" id="fgLead"></span>
     <div class="seg"><button type="button" data-m="new"></button><button type="button" data-m="old"></button></div>
@@ -234,13 +236,13 @@ gate.addEventListener('click',e=>e.stopPropagation());   // the title's own tap 
 function gTexts(){
   $('fgLead').textContent=t('Introduce yourself to start testing'); gm[0].textContent=t('I\'m new'); gm[1].textContent=t('I have a nickname');
   $('fgNick').placeholder=t('Nickname'); $('fgPin').placeholder=t('PIN (4–6 digits)'); $('fgHint').textContent=gMode==='new' ? t('Remember the PIN: with it you sign in on another device.') : '';
-  $('fgGo').textContent=t('Continue'); $('fgChg').textContent=t('Change');
+  $('fgGo').textContent=t('Continue'); $('fgChg').textContent=t('Change'); $('fgSy').textContent=t('Syncing progress…');
 }
 function gMode_(m){ gMode=m; gm.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m))); $('fgPin').autocomplete=m==='new' ? 'new-password' : 'current-password'; $('fgMsg').textContent=''; gTexts(); }
 gm.forEach(b=>b.onclick=()=>gMode_(b.dataset.m));
 function gSync(){
   const on=!!acct; $('fgMe').hidden=!on; $('fgForm').hidden=on; if(on) $('fgNm').textContent=acct.nick;
-  document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on;
+  document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on || syncing; $('fgSy').hidden=!(on && syncing);
 }
 $('fgChg').onclick=()=>{ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gMode_('old'); gSync(); $('fgNick').focus(); };
 $('fgGo').onclick=async()=>{
@@ -249,11 +251,47 @@ $('fgGo').onclick=async()=>{
   if(!/^\d{4,6}$/.test(pin)) return M(t('PIN: 4–6 digits'));
   gBusy=true; $('fgGo').disabled=true; M('…');
   try{ const d=await post(gMode==='new' ? '/tester/register' : '/tester/login',{ nick, pin, id:tester });
-    acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); }
+    acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); }
   catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' ? 'Too many attempts. Try again in 15 minutes.'
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }
 };
 document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); });
-gMode_('new'); gSync();
+
+/* Progress sync: the expeditions (save slots) of a signed-in tester live in the worker too (/save). On the beta notice — after the
+   sign-in and at every launch — this device's expeditions go up and the merged list comes back ("I agree" waits, SYNC_WAIT at most):
+   the same expedition (its creation time c) takes the newer copy, one only the cloud has takes a free slot (or the slot of an older one
+   that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
+   cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
+const SYNC_WAIT=6000, SYNC_EVERY=240e3;
+let syncing=false, sentAt=-1;
+const known=()=>{ try{ const k=JSON.parse(LSget('cube-tester-sync','null')); return k && acct && k.id===acct.id && Array.isArray(k.cs) ? k.cs : []; }catch(e){ return []; } };
+const strip=a=>a.map(({ k, ...e })=>e), atMax=a=>a.reduce((m,e)=>Math.max(m,e.at||0),0);
+async function syncSend(pull,keep){
+  const loc=FB.exps(), gone=known().filter(c=>!loc.some(e=>e.c===c)), at=atMax(loc);
+  const d=await post('/save',{ tok:acct.tok, exps:strip(loc), gone, pull:pull ? 1 : 0 },keep);
+  sentAt=at; LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
+  return d;
+}
+function syncMerge(remote){
+  const loc=FB.exps(), held=new Set(), all=[...Array(FB.slots)].map((_,j)=>j+1);
+  remote=(Array.isArray(remote) ? remote : []).slice().sort((a,b)=>b.at-a.at);
+  for(const e of remote){ const l=loc.find(x=>x.c===e.c); if(!l) continue; held.add(l.k); if(e.at>l.at && FB.expPut(l.k,e)) l.at=e.at; }
+  for(const e of remote){ if(loc.some(x=>x.c===e.c)) continue;
+    let k=all.find(j=>!loc.some(x=>x.k===j));
+    if(!k){ const o=loc.filter(x=>!held.has(x.k)).sort((a,b)=>a.at-b.at)[0]; if(!o || o.at>=e.at) continue; k=o.k; loc.splice(loc.indexOf(o),1); }
+    if(FB.expPut(k,e)){ loc.push({ k, c:e.c, at:e.at }); held.add(k); } }
+  LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:FB.exps().map(e=>e.c) })); sentAt=-1;   // what came in goes up with the next send
+}
+async function syncStart(){
+  if(!acct || syncing || FB.busy) return; syncing=true; gSync();
+  const me=acct, stop=setTimeout(()=>{ syncing=false; gSync(); },SYNC_WAIT);
+  try{ const d=await syncSend(true); if(acct===me && syncing && !FB.busy) syncMerge(d.exps); }
+  catch(e){ console.warn('progress sync:',e); if(e.status===401){ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(x){} } }
+  finally{ clearTimeout(stop); syncing=false; gSync(); }
+}
+const syncLater=keep=>{ if(acct && !syncing && FB.busy && atMax(FB.exps())!==sentAt) syncSend(false,keep).catch(e=>console.warn('progress sync:',e)); };
+setInterval(()=>syncLater(false),SYNC_EVERY);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater(true); });
+gMode_('new'); gSync(); syncStart();
 })();

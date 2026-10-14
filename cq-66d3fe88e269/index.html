@@ -826,7 +826,7 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.95.0';
+const VERSION = '1.96.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -20089,6 +20089,22 @@ function fbShot(max=1280){
     gr.addColorStop(0,T.bg[0]); gr.addColorStop(1,T.bg[1]); g.fillStyle=gr; g.fillRect(0,0,o.width,o.height); g.drawImage(c,0,0,o.width,o.height); return o; }
   catch(e){ console.error(e); return null; }
 }
+/* Progress sync of a signed-in beta tester (beta/feedback.js and the worker's /save): every taken slot as an expedition —
+   { k, c, at, nm, d } (meta and its progress keys, d without the slot prefix: 'cube-level', 'cube-got-<id>'…); the same expedition on
+   another device has the same c (its creation time). fbExpPut writes one into slot k (only on the title before an expedition is chosen) */
+function fbExps(){
+  const o=[]; for(let k=1;k<=SLOTS;k++){ const m=slotMeta(k); if(!m) continue; const d={}, pre='cube-x'+k+'-';
+    slotOwn(k).forEach(x=>{ if(x!==metaKey(k)) d[k>1 ? 'cube-'+x.slice(pre.length) : x]=LSR.get(x,''); });
+    o.push({ k, c:m.c||0, at:m.at||0, nm:m.nm, d }); }
+  return o;
+}
+function fbExpPut(k,e){
+  if(xGo || !(k>=1 && k<=SLOTS) || !e || !e.c || !e.d) return false;
+  slotClear(k); Object.entries(e.d).forEach(([x,v])=>{ if(PROG.test(x)) LSR.set(slotKey(x,k),String(v)); });
+  LSR.set(metaKey(k),JSON.stringify({ c:e.c, at:e.at||e.c, nm:e.nm }));
+  if(!XNAMES[e.nm] || [...Array(SLOTS)].some((_,j)=>j+1!==k && (slotMeta(j+1)||{}).nm===e.nm)) xNameGive(k);   // the name another slot here has — a new one
+  if(lvSlot===k) lvSlot=0; xNewTxt(); return true;
+}
 let fbDone=false;
 function fbGo(){
   if(fbDone || !FBS) return; fbDone=true; const s=FBS.st, i=Math.max(0,lvIdx(s.lv));
@@ -20114,7 +20130,7 @@ function fbGo(){
 /*web{*/
 if(BETA && !FBS){
   window.__cubeFb={ snap:fbSnap, shot:fbShot, get lang(){ return lang; }, ver:VERSION,
-    pause(on){ fbPaused=!!on; updatePause(); } };
+    pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
   const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ if(!window.__cubeFb.up) $('tBetaOk').disabled=false; }));   // the worker's address, then the button and the sign-in (failed to load — the notice is not locked)
 }
