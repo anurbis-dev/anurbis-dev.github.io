@@ -870,7 +870,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.3';
+const VERSION = '1.99.4';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1019,8 +1019,8 @@ const L10N={
   "Try knocking it out with a slam?…":["Попробовать выбить ударом?…","¿Y si lo sacas de un golpe?…","Que tal tirar com uma pancada?…","Vielleicht mit einem Stampfer herausschlagen?…","Et si on le délogeait d'un coup ?…","试试用重击把它砸出来？……","叩きつけて出してみる？…","내려찍어서 꺼내 볼까?…"],
   "Shake the plants?…":["Потрясти растительность?…","¿Sacudir las plantas?…","Sacudir as plantas?…","Die Pflanzen schütteln?…","Secouer les plantes ?…","摇一摇植物？……","草木を揺らしてみる？…","식물을 흔들어 볼까?…"],
   "To the ship":["Кораблю","A la nave","Para a nave","An das Schiff","Au vaisseau","致飞船","船へ","우주선에게"],
-  "I'm here. Get me out of here.":["Я на месте. Заберите меня отсюда.","Estoy en el punto. Sacadme de aquí.","Cheguei. Me tirem daqui.","Bin am Ziel. Holt mich hier raus.","Je suis sur place. Sortez-moi de là.","我已到位。快把我弄出去。","到着した。ここから出してくれ。","도착했다. 여기서 꺼내 줘."],
-  "I'm here. Waiting for the shuttle…":["Я на месте, жду челнок…","Estoy en el punto. Espero la lanzadera…","Cheguei. Aguardando a nave…","Bin am Ziel. Warte auf das Shuttle…","Je suis sur place. J'attends la navette…","我已到位，等待穿梭机……","到着した。シャトルを待っている…","도착했다. 셔틀을 기다리는 중…"],
+  "In position. Get me out of here.":["Я на месте. Заберите меня отсюда.","En posición. Sacadme de aquí.","Em posição. Me tirem daqui.","In Position. Holt mich hier raus.","En position. Sortez-moi de là.","已就位。快把我弄出去。","配置完了。ここから出してくれ。","위치 확보. 여기서 꺼내 줘."],
+  "In position. Waiting for the shuttle…":["Я на месте, жду челнок…","En posición. Espero la lanzadera…","Em posição. Aguardando a nave…","In Position. Warte auf das Shuttle…","En position. J'attends la navette…","已就位，等待穿梭机……","配置完了。シャトルを待っている…","위치 확보. 셔틀을 기다리는 중…"],
   "Too low to roll":["Слишком низко, не перекатиться","Demasiado bajo para rodar","Baixo demais para rolar","Zu niedrig zum Rollen","Trop bas pour rouler","太低了，滚不过去","低すぎて転がれない","너무 낮아서 구를 수 없다"],
   "Dash to slide under":["Въезжай рывком","Entra con una carrera","Entre com uma arrancada","Mit einem Sprint hineinrutschen","Entre d'une ruée","用冲刺滑进去","ダッシュで滑り込もう","돌진으로 미끄러져 들어가자"],
   "hMound":["<b>Сугроб</b> или <b>бархан</b> преграждает путь — пробей его <b>рывком</b>. Под ним может быть что-то спрятано",
@@ -14371,7 +14371,7 @@ function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
   lvSave((cur+1)%N); starsProg=bankStars();
-  after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(T.cave ? loc("I'm here. Get me out of here.") : loc("I'm here. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
+  after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(T.cave ? loc("In position. Get me out of here.") : loc("In position. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
   const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
 }
 /* =====================================================================
