@@ -252,15 +252,27 @@ gate.addEventListener('click',e=>e.stopPropagation());   // the title's own tap 
 function gTexts(){
   $('fgLead').textContent=t('Introduce yourself to start testing'); gm[0].textContent=t('I\'m new'); gm[1].textContent=t('I have a nickname');
   $('fgNick').placeholder=t('Nickname'); $('fgPin').placeholder=t('PIN (4–6 digits)'); $('fgHint').textContent=gMode==='new' ? t('Remember the PIN: with it you sign in on another device.') : '';
-  $('fgGo').textContent=t('Continue'); $('fgChg').textContent=t('Change'); $('fgSy').textContent=t('Syncing progress…');
+  $('fgGo').textContent=t('Continue'); $('fgChg').textContent=t('Change');
+  if(!acct) $('fgSy').textContent='';
+  else if(syncing) $('fgSy').textContent=t('Syncing progress…');
+  else if(syncDone) $('fgSy').textContent=t('Progress synchronized.');
+  else $('fgSy').textContent='';
 }
 function gMode_(m){ gMode=m; gm.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m))); $('fgPin').autocomplete=m==='new' ? 'new-password' : 'current-password'; $('fgMsg').textContent=''; gTexts(); }
 gm.forEach(b=>b.onclick=()=>gMode_(b.dataset.m));
 function gSync(){
   const on=!!acct; $('fgMe').hidden=!on; $('fgForm').hidden=on; if(on) $('fgNm').textContent=acct.nick;
-  document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on || syncing; $('fgSy').hidden=!(on && syncing);
+  document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on || syncing;
+  if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=on ? t('Welcome back! Have a pleasant game!') : t('Closed beta'); tb.textContent=on ? t('Enter the game') : t('I agree'); }
+  const showSync=on && (syncing || syncDone);
+  $('fgSy').hidden=!showSync;
+  if(showSync){
+    $('fgSy').textContent = syncing ? t('Syncing progress…') : t('Progress synchronized.');
+  } else {
+    $('fgSy').textContent='';
+  }
 }
-function signOut(){ acct=null; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gSync(); }
+function signOut(){ acct=null; syncDone=false; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gSync(); }
 $('fgChg').onclick=()=>{ signOut(); gMode_('old'); $('fgNick').focus(); };
 $('fgGo').onclick=async()=>{
   if(gBusy) return; const nick=$('fgNick').value.trim().replace(/\s+/g,' '), pin=$('fgPin').value.trim(), M=s=>{ $('fgMsg').textContent=s; };
@@ -268,7 +280,7 @@ $('fgGo').onclick=async()=>{
   if(!/^\d{4,6}$/.test(pin)) return M(t('PIN: 4–6 digits'));
   gBusy=true; $('fgGo').disabled=true; M('…');
   try{ const d=await post(gMode==='new' ? '/tester/register' : '/tester/login',{ nick, pin, id:tester });
-    acct={ id:d.id, nick:d.nick, tok:d.tok }; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); inPull(); }
+    acct={ id:d.id, nick:d.nick, tok:d.tok }; syncDone=false; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); inPull(); }
   catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' || e.status===429 ? 'Too many attempts. Try again in 15 minutes.'
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }
@@ -281,13 +293,13 @@ document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); 
    that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
    cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
 const SYNC_WAIT=6000, SYNC_EVERY=600e3;   // the worker takes SAVE_DAY writes a tester a day
-let syncing=false, sentAt=-1;
+let syncing=false, syncDone=false, sentAt=-1;
 const known=()=>{ try{ const k=JSON.parse(LSget('cube-tester-sync','null')); return k && acct && k.id===acct.id && Array.isArray(k.cs) ? k.cs : []; }catch(e){ return []; } };
 const strip=a=>a.map(({ k, ...e })=>e), atMax=a=>a.reduce((m,e)=>Math.max(m,e.at||0),0);
 async function syncSend(pull,keep){
   const loc=FB.exps(), gone=known().filter(c=>!loc.some(e=>e.c===c)), at=atMax(loc);
   const d=await post('/save',{ tok:acct.tok, exps:strip(loc), gone, pull:pull ? 1 : 0 },keep);
-  sentAt=at; LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
+  sentAt=at; syncDone=true; LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
   return d;
 }
 function syncMerge(remote){
