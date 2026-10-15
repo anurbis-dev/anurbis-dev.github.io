@@ -409,7 +409,7 @@ function tpRender(){
     <div class="tc-m"><span>id <code>${esc(t.id)}</code></span><span>регистрация ${t.at ? `<span title="${full(t.at)}">${ago(t.at)}</span>` : '—'}</span>
       <span>${t.live ? 'в игре сейчас' : x.last ? `последняя игра <span title="${full(x.last)}">${ago(x.last)}</span>` : 'ещё не играл'}</span>
       <span>${r.length ? `<a data-a="show">отзывов ${r.length}</a>${r.length ? ' (🐞 '+bugs+' · 💬 '+(r.length-bugs)+')' : ''}` : 'отзывов нет'}</span><span>${t.save ? '☁ прогресс в облаке' : 'прогресса в облаке нет'}</span>${t.stats && t.stats.ccs && Object.keys(t.stats.ccs).length>1 ? '<span>страны: '+Object.keys(t.stats.ccs).map(ccTxt).join(', ')+'</span>' : ''}</div>
-    ${t.stats ? `<div class="ks"><div><b>${hm(x.ms)}</b><span>наиграно всего</span></div><div><b>${x.n}</b><span>${nf(x.n,'сессия','сессии','сессий')}</span></div>
+    ${t.stats ? `<div class="ks"><div><b>${hm(x.savedMs)}</b><span>наиграно всего</span>${x.liveMs ? `<small>+ ${hm(x.liveMs)} сейчас</small>` : ''}</div><div><b>${x.n}</b><span>${nf(x.n,'сессия','сессии','сессий')}</span></div>
       <div><b>${hm(x.avg)}</b><span>средняя сессия</span></div><div><b>${x.devs.length}</b><span>${nf(x.devs.length,'устройство','устройства','устройств')}</span></div>
       <div><b>${x.st.first ? new Date(x.st.first).toLocaleDateString('ru') : '—'}</b><span>первая игра</span></div></div>
     ${x.devs.length ? `<div class="tbl"><table><tr><th>Устройство</th><th>Браузер</th><th>Экран</th><th>Видеокарта</th><th>Сессий</th><th>Время</th><th>Последний раз</th></tr>${x.devs.map(d=>{ const u=uaOf(d);
