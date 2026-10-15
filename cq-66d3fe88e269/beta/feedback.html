@@ -124,6 +124,11 @@ body.tpv #bar,body.tpv #main{display:none!important}
 .tbl tr.now td:first-child b::after{content:' ●';color:var(--ok)}
 .tc details{margin:0;background:none;border:0;padding:0}
 .tc .none{color:var(--dim);font-size:13px}
+.cc{font-size:13px;color:var(--dim);font-weight:700}
+.xp{display:grid;gap:6px}
+.xp h4{margin:4px 0 0;font-size:14px} .xp h4 small{color:var(--dim);font-weight:600;font-size:12.5px;margin-left:8px}
+.tbl tr.ar td{color:var(--dim);font-weight:800;font-size:12px;padding-top:10px}
+.tbl tr.cur td:nth-child(2) b::after{content:' ◀ сейчас';color:var(--ok);font-size:11.5px}
 @media (max-width:640px){ #tp{padding:12px 10px 40px} .tc{padding:12px} .tc-h .a{margin-left:0} }
 @media (max-width:860px){
   main{grid-template-columns:1fr}
@@ -139,11 +144,11 @@ body.tpv #bar,body.tpv #main{display:none!important}
   <h1><svg viewBox="0 0 32 32"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="#7a5bd0"/><path d="M16 3 28 9.5 16 16 4 9.5z" fill="#ffd66b"/><path d="M16 16v13L4 22.5v-13z" fill="#5a3fb0"/></svg>Data Cube · Отзывы</h1>
   <div class="stats" id="stats"></div>
   <span class="sp"></span>
-  <button class="btn" id="tpOpen" title="Тестеры: устройства, сессии, время игры" aria-pressed="false">👥 Тестеры <span class="n" id="tpN"></span><span class="on" id="tpOn"></span></button>
+  <button class="btn" id="tpOpen" title="Игроки: устройства, сессии, время игры" aria-pressed="false">👥 Игроки <span class="n" id="tpN"></span><span class="on" id="tpOn"></span></button>
   <span id="live" title="Список обновляется сам"></span><button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
 </header>
 <div class="bar" id="bar">
-  <input type="search" id="q" placeholder="Поиск: текст, тестер, уровень, устройство…">
+  <input type="search" id="q" placeholder="Поиск: текст, игрок, уровень, устройство…">
   <div class="seg" id="kindSeg"><button data-v="">Все</button><button data-v="bug">🐞 Ошибки</button><button data-v="opinion">💬 Впечатления</button></div>
   <div class="seg" id="stateSeg"><button data-v="open">Открытые</button><button data-v="closed">Закрытые</button><button data-v="">Все</button></div>
   <select id="tester"></select>
@@ -159,7 +164,7 @@ body.tpv #bar,body.tpv #main{display:none!important}
   <span class="err" id="gateErr"></span>
 </div>
 <div id="lb" hidden><img alt=""></div>
-<div id="tp"><div class="tpw"><div class="tph"><button class="btn" id="tpClose" title="К отзывам (Esc)">← Отзывы</button><h2>👥 Тестеры</h2><span class="sp"></span><input type="search" id="tpQ" placeholder="Ник, устройство, браузер…"><select id="tpSort"><option value="last">Недавно играли</option><option value="time">Больше всего играли</option><option value="at">Новые</option><option value="nick">По нику</option></select></div><div class="tiles" id="tpSum"></div><div id="tpBody" class="tpw"></div></div></div>
+<div id="tp"><div class="tpw"><div class="tph"><button class="btn" id="tpClose" title="К отзывам (Esc)">← Отзывы</button><h2>👥 Игроки</h2><span class="sp"></span><input type="search" id="tpQ" placeholder="Ник, устройство, браузер…"><select id="tpSort"><option value="last">Недавно играли</option><option value="time">Больше всего играли</option><option value="at">Новые</option><option value="nick">По нику</option></select></div><div class="tiles" id="tpSum"></div><div id="tpBody" class="tpw"></div></div></div>
 <script>
 (function(){
 'use strict';
@@ -213,7 +218,7 @@ function detRefresh(was){
   show(cur,true); $('det').scrollTop=y;
   if(v && $('repText')){ $('repText').value=v; if(f){ $('repText').focus(); $('repText').setSelectionRange(s0,s1); } }
 }
-const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · '+(tpv() ? 'Тестеры' : 'Отзывы'); };
+const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · '+(tpv() ? 'Игроки' : 'Отзывы'); };
 const liveTxt=()=>{ if(!loadAt) return; const s=Math.round((Date.now()-loadAt)/1000); $('live').textContent='● обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад'); };
 function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a system notification
   try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
@@ -235,9 +240,9 @@ function opts(sel,key,label,list){ const v=$(sel).value; const c={}; for(const r
   $(sel).innerHTML='<option value="">'+label+'</option>'+keys.map(k=>`<option value="${esc(k)}">${esc(sel==='tester' ? (all.find(r=>r.tester===k).nick||k) : k)} (${c[k]})</option>`).join('');
   $(sel).value=keys.includes(v) ? v : ''; }
 function fill(){
-  opts('tester','tester','Все тестеры'); opts('ver','ver','Все версии',(a,b)=>b.localeCompare(a,undefined,{ numeric:true })); opts('lv','lv','Все уровни');
+  opts('tester','tester','Все игроки'); opts('ver','ver','Все версии',(a,b)=>b.localeCompare(a,undefined,{ numeric:true })); opts('lv','lv','Все уровни');
   const open=all.filter(r=>r.state==='open'), n=k=>open.filter(r=>r.kind===k).length;
-  $('stats').innerHTML=`<span class="pill"><i style="background:var(--bug)"></i>${n('bug')} ошибок</span><span class="pill"><i style="background:var(--op)"></i>${n('opinion')} впечатлений</span><span class="pill" style="color:var(--dim)">${all.length} всего · ${new Set(all.map(r=>r.tester)).size} тестеров</span>`;
+  $('stats').innerHTML=`<span class="pill"><i style="background:var(--bug)"></i>${n('bug')} ошибок</span><span class="pill"><i style="background:var(--op)"></i>${n('opinion')} впечатлений</span><span class="pill" style="color:var(--dim)">${all.length} всего · ${new Set(all.map(r=>r.tester)).size} игроков</span>`;
 }
 
 /* List */
@@ -266,11 +271,11 @@ function show(r,quiet){
   const replay=m.snap && m.id ? `fb.html?id=${m.id}&k=${encodeURIComponent(KEY)}` : null;
   $('det').innerHTML=`
     <div class="dh"><button class="btn back" id="back">← Назад</button><span class="badge ${r.kind}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'}</span>${r.state==='closed' ? '<span class="badge closed">✓ закрыт</span>' : ''}<h2>${esc(r.who)}</h2><span style="color:var(--dim)">#${r.n}</span></div>
-    <div class="sub">${full(r.at)} · ${ago(r.at)}${r.tester ? ' · тестер <code>'+esc(r.tester)+'</code>' : ''}</div>
+    <div class="sub">${full(r.at)} · ${ago(r.at)}${r.tester ? ' · игрок <code>'+esc(r.tester)+'</code>' : ''}</div>
     <div class="acts">
       ${replay ? `<a class="btn pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : ''}
       <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>
-      <button class="btn" id="st"${r.state==='open' && r.kind==='bug' && r.tester ? ' title="Тестер получит сообщение «Баг исправлен»"' : ''}>${r.state==='open' ? '✓ Закрыть' : '↺ Открыть снова'}</button>
+      <button class="btn" id="st"${r.state==='open' && r.kind==='bug' && r.tester ? ' title="Игрок получит сообщение «Баг исправлен»"' : ''}>${r.state==='open' ? '✓ Закрыть' : '↺ Открыть снова'}</button>
       <span class="sp"></span><button class="btn" id="prev" title="Предыдущий (↑ / K)">↑</button><button class="btn" id="next" title="Следующий (↓ / J)">↓</button>
     </div>
     ${m.shot ? `<img class="shot" id="shot" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">` : ''}
@@ -286,7 +291,7 @@ function show(r,quiet){
       ${row('Версия', r.ver ? 'v'+esc(r.ver) : '')}
       ${row('Устройство', esc(s.ua))}
     </dl>
-    ${r.tester ? `<div class="rep" id="rep"><h3>↩ Ответы тестеру</h3><div id="repList"><span class="note">Загрузка…</span></div>
+    ${r.tester ? `<div class="rep" id="rep"><h3>↩ Ответы игроку</h3><div id="repList"><span class="note">Загрузка…</span></div>
       <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter — отправить)"></textarea>
       <div class="row"><span class="note" id="repMsg"></span><span class="sp"></span><button class="btn pri" id="repGo">Отправить ответ</button></div></div>` : ''}
     ${(s.errs||[]).length ? `<details open><summary>⚠ Ошибки консоли (${s.errs.length})</summary><pre>${esc(s.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}`;
@@ -298,18 +303,18 @@ function show(r,quiet){
 /* Replies: GitHub comments marked by the worker, plus a message in the tester's inbox until their game shows it */
 const api=(path,body)=>fetch(`${API}${path}${path.includes('?') ? '&' : '?'}k=${encodeURIComponent(KEY)}`,body ? { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) } : { cache:'no-store' })
   .then(async x=>{ let d={}; try{ d=await x.json(); }catch(e){} if(!x.ok) throw new Error(d.error||'HTTP '+x.status); return d; });
-const repRow=p=>`<div class="r">${esc(p.text)}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан тестеру'}</small></div>`;
+const repRow=p=>`<div class="r">${esc(p.text)}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`;
 async function repLoad(r){
   try{ const d=await api(`/issue/${r.n}/reply`); if(cur!==r) return; r.reps=d.replies;
     $('repList').innerHTML=(d.replies.map(repRow).join('')||'<span class="note">Ответов пока нет</span>')
-      +(d.fixed ? `<span class="note">🔔 Сообщение «Баг исправлен» — ${d.fixedWait ? '⏳ ещё не прочитано в игре' : '✓ показано тестеру'}</span>` : ''); }
+      +(d.fixed ? `<span class="note">🔔 Сообщение «Баг исправлен» — ${d.fixedWait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : ''); }
   catch(e){ if(cur===r) $('repList').innerHTML='<span class="note err">Не удалось загрузить ответы: '+esc(e.message)+'</span>'; }
 }
 async function replySend(r){
   const text=$('repText').value.trim(); if(!text || $('repGo').disabled) return;
   $('repGo').disabled=true; $('repMsg').textContent='Отправка…';
   try{ await api(`/issue/${r.n}/reply`,{ text }); r.comments=(r.comments||0)+1; if(cur!==r) return;
-    $('repText').value=''; $('repMsg').textContent='Отправлено — тестер увидит в игре'; repLoad(r); }
+    $('repText').value=''; $('repMsg').textContent='Отправлено — игрок увидит в игре'; repLoad(r); }
   catch(e){ if(cur===r) $('repMsg').textContent='Не удалось: '+e.message; }
   finally{ if(cur===r) $('repGo').disabled=false; }
 }
@@ -336,45 +341,74 @@ function uaOf(d){
   return { name:name||'?', os, br:(/; wv\)/.test(ua) ? 'WebView · ' : '')+br, kind };
 }
 const devLine=d=>{ const u=uaOf(d); return u.kind+' '+u.name+(u.os ? ' · '+u.os : ''); };
+/* Country — Cloudflare's guess from the IP (ISO code): flag and Russian name */
+const ccN=(()=>{ try{ return new Intl.DisplayNames(['ru'],{ type:'region' }); }catch(e){ return null; } })();
+const ccName=c=>{ try{ return (ccN && ccN.of(c))||c; }catch(e){ return c; } }, ccFlag=c=>String.fromCodePoint(...[...c].map(x=>0x1F1A5+x.charCodeAt(0)));
+const ccTxt=c=>c ? ccFlag(c)+' '+esc(ccName(c)) : '—';
+const ccOfT=t=>(t.live && t.live.cc) || (t.stats && t.stats.cc) || t.cc || '';
+/* Level names and order (levels.json — written by tools/beta-levels.mjs when the beta is published); without it — the ids */
+let LVS=null; fetch('levels.json',{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(d=>{ if(!d) return; LVS=d; if(tpv()) tpRender(); }).catch(()=>{});
+const sec=v=>{ v=+v||0; const m=Math.floor(v/60), x=v-m*60; return m ? m+':'+x.toFixed(0).padStart(2,'0') : x.toFixed(1)+' с'; };
+function progHtml(t){
+  if(!t.prog || !t.prog.length) return '';
+  const xn=e=>(LVS && LVS.xnames[e.nm]) || 'Экспедиция', order=LVS ? LVS.areas.flatMap(a=>a.levels.map((l,i)=>({ ...l, a, i }))) : null;
+  return `<details class="xp"${tpOp.has(t.id+':p') ? ' open' : ''} data-o="${esc(t.id)}:p"><summary>Прогресс — ${t.prog.length} ${nf(t.prog.length,'экспедиция','экспедиции','экспедиций')}</summary>`
+  + t.prog.map(e=>{ const ids=Object.keys(e.lv), done=ids.filter(id=>e.lv[id].n>0);
+    let rows=[], area='';
+    const known=order ? order.filter(l=>e.lv[l.id] || l.id===e.cur) : [], rest=ids.filter(id=>!order || !order.some(l=>l.id===id)).map(id=>({ id, name:id }));
+    for(const l of [...known,...rest]){ const r=e.lv[l.id]||{};
+      if(l.a && l.a.id!==area){ area=l.a.id; rows.push(`<tr class="ar"><td colspan="6">${esc(l.a.icon||'')} ${esc(l.a.name)}</td></tr>`); }
+      rows.push(`<tr class="${l.id===e.cur ? 'cur' : ''}"><td>${l.a ? l.i+1 : ''}</td><td><b>${esc(l.name)}</b>${l.name!==l.id ? '<small>'+esc(l.id)+'</small>' : ''}</td>
+        <td>${r.n ? r.n : '—'}</td><td>${r.best ? sec(r.best) : '—'}</td><td>${r.got!=null ? '★ '+r.got : '—'}</td>
+        <td>${r.at ? `<span title="${full(r.at)}">${ago(r.at)}</span>` : '—'}</td></tr>`); }
+    return `<h4>${esc(xn(e))}<small>начата ${e.c ? new Date(e.c).toLocaleDateString('ru') : '—'} · последняя игра ${e.at ? ago(e.at) : '—'} · на уровнях ${hm(e.time*1e3)} · пройдено уровней ${done.length} · ★ ${e.stars}</small></h4>
+      ${rows.length ? `<div class="tbl"><table><tr><th>№</th><th>Уровень</th><th>Пройден</th><th>Лучшее время</th><th>Звёзды</th><th>Последний раз</th></tr>${rows.join('')}</table></div>` : '<span class="note">Уровни ещё не пройдены</span>'}`; }).join('')
+  + '</details>';
+}
+let tpOp=new Set();
 async function tpLoad(quiet){
   if(tpBusy) return; tpBusy=true;
   if(!quiet && !tps.length) $('tpBody').innerHTML='<div class="empty">Загрузка…</div>';
-  try{ tps=await api('/testers'); tpAt=Date.now(); tpCount(); if(tpv()) tpRender(); }
+  try{ tps=await api('/testers'); tpAt=Date.now(); tpCount(); tpRender(); }
   catch(e){ if(!quiet || !tps.length) $('tpBody').innerHTML='<div class="empty err">Не удалось: '+esc(e.message)+'</div>'; }
   finally{ tpBusy=false; }
 }
 function tpCount(){
   const on=tps.filter(t=>t.live).length;
   $('tpN').textContent=tps.length; $('tpOn').textContent=on ? '● '+on : '';
-  $('tpOpen').title=tps.length+' '+nf(tps.length,'тестер','тестера','тестеров')+(on ? ', сейчас '+nf(on,'играет','играют','играют')+' '+on : '')+' — устройства, сессии, время игры';
+  $('tpOpen').title=tps.length+' '+nf(tps.length,'игрок','игрока','игроков')+(on ? ', сейчас '+nf(on,'играет','играют','играют')+' '+on : '')+' — устройства, сессии, время игры';
 }
-/* One tester's numbers: the time includes the session going on now; the average — of the finished sessions */
+/* liveMs — only the active session right now; savedMs — all finished sessions recorded by the worker. The dashboard must not mix
+   them as one number: a running session can show 10 minutes while the last saved expedition is still only 1 minute. */
 function tpNums(t){
-  const st=t.stats||{ n:0, ms:0, devs:{}, ss:[] }, now=Date.now(), cur=t.live ? Math.max(0,now-t.live.s) : 0;
+  const st=t.stats||{ n:0, ms:0, devs:{}, ss:[] }, now=Date.now(), liveMs=t.live ? Math.max(0,now-t.live.s) : 0;
   const done=Math.max(0,(st.n||0)-(t.live ? 1 : 0)), devs=Object.entries(st.devs||{}).map(([id,d])=>({ ...d, id })).sort((a,b)=>(b.last||0)-(a.last||0));
-  return { st, n:st.n||0, ms:(st.ms||0)+cur, avg:done ? st.ms/done : 0, cur, devs, last:t.live ? now : st.last||0, ss:st.ss||[] };
+  const savedMs = Number.isFinite(st.ms) ? st.ms : 0;
+  return { st, n:st.n||0, savedMs, liveMs, ms:savedMs + liveMs, avg:done ? savedMs/done : 0, cur:liveMs, devs, last:t.live ? now : st.last||0, ss:st.ss||[] };
 }
 function tpRender(){
   const now=Date.now(), N=tps.map(t=>({ t, x:tpNums(t) })), q=($('tpQ').value||'').trim().toLowerCase(), so=$('tpSort').value;
-  const tot=N.reduce((a,{ x })=>{ a.ms+=x.ms; a.n+=x.n; a.d+=x.devs.length; a.done+=x.n-(x.cur ? 1 : 0); a.dms+=x.ms-x.cur; return a; },{ ms:0, n:0, d:0, done:0, dms:0 });
+  const tot=N.reduce((a,{ x })=>{ a.saved+=x.savedMs; a.live+=x.liveMs; a.n+=x.n; a.d+=x.devs.length; a.done+=x.n-(x.live ? 1 : 0); a.dms+=x.savedMs; return a; },{ saved:0, live:0, n:0, d:0, done:0, dms:0 });
   const on=tps.filter(t=>t.live).length, played=N.filter(({ x })=>x.n).length;
-  $('tpSum').innerHTML=[[tps.length,'тестеров'+(played<tps.length ? ' · играли '+played : '')],[on,'играют сейчас'],[hm(tot.ms),'всего наиграно'],[tot.n,'сессий'],
-    [hm(tot.done ? tot.dms/tot.done : 0),'средняя сессия'],[hm(played ? tot.ms/played : 0),'в среднем на тестера'],[tot.d,'устройств']]
+  $('tpSum').innerHTML=[[tps.length,'игроков'+(played<tps.length ? ' · играли '+played : '')],[on,'играют сейчас'],[hm(tot.saved + tot.live),'всего наиграно'],
+    [hm(tot.live),'сейчас активно'],[hm(tot.saved),'по завершённым сессиям'],[tot.n,'сессий'],
+    [hm(tot.done ? tot.dms/tot.done : 0),'средняя сессия'],[hm(played ? (tot.saved + tot.live)/played : 0),'в среднем на игрока'],[tot.d,'устройств'],[new Set(tps.map(ccOfT).filter(Boolean)).size,'стран']]
     .map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
-  const hay=({ t, x })=>[t.nick,t.id,...x.devs.map(d=>{ const u=uaOf(d); return [u.name,u.os,u.br,d.gpu].join(' '); })].join(' ').toLowerCase();
+  const hay=({ t, x })=>[t.nick,t.id,ccOfT(t),ccOfT(t) && ccName(ccOfT(t)),...x.devs.map(d=>{ const u=uaOf(d); return [u.name,u.os,u.br,d.gpu].join(' '); })].join(' ').toLowerCase();
   const L=N.filter(r=>!q || hay(r).includes(q)).sort(so==='time' ? (a,b)=>b.x.ms-a.x.ms : so==='at' ? (a,b)=>(b.t.at||0)-(a.t.at||0) : so==='nick' ? (a,b)=>a.t.nick.localeCompare(b.t.nick,'ru')
     : (a,b)=>(b.x.last||0)-(a.x.last||0) || (b.t.at||0)-(a.t.at||0));
-  const op=new Set([...document.querySelectorAll('#tpBody details[open]')].map(d=>d.closest('[data-id]').dataset.id));
+  const op=new Set([...document.querySelectorAll('#tpBody details[open]:not(.xp)')].map(d=>d.closest('[data-id]').dataset.id));
+  tpOp=new Set([...document.querySelectorAll('#tpBody details.xp[open]')].map(d=>d.dataset.o));
   const rep=id=>all.filter(r=>r.tester===id), devName=(x,id)=>{ const d=x.devs.find(d=>d.id===id); return d ? devLine(d) : '—'; };
   $('tpBody').innerHTML=L.length ? L.map(({ t, x })=>{ const i=tps.indexOf(t), r=rep(t.id), bugs=r.filter(r=>r.kind==='bug').length;
     return `<section class="tc${t.ban ? ' ban' : ''}" data-i="${i}" data-id="${esc(t.id)}">
-    <div class="tc-h"><span class="tn" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span>
+    <div class="tc-h"><span class="tn" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span>${ccOfT(t) ? `<span class="cc" title="${esc(ccName(ccOfT(t)))} — по IP">${ccTxt(ccOfT(t))}</span>` : ''}
       ${t.live ? `<span class="lv">играет ${hm(x.cur)}${t.live.dev ? ' · '+esc(devName(x,t.live.dev)) : ''}</span>` : ''}
       <span class="a"><button class="btn" data-a="rename" title="Переименовать">✎</button><button class="btn" data-a="pin" title="Новый PIN">🔑</button>
       <button class="btn" data-a="ban" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button><button class="btn" data-a="delete" title="Удалить аккаунт">🗑</button></span></div>
     <div class="tc-m"><span>id <code>${esc(t.id)}</code></span><span>регистрация ${t.at ? `<span title="${full(t.at)}">${ago(t.at)}</span>` : '—'}</span>
       <span>${t.live ? 'в игре сейчас' : x.last ? `последняя игра <span title="${full(x.last)}">${ago(x.last)}</span>` : 'ещё не играл'}</span>
-      <span>${r.length ? `<a data-a="show">отзывов ${r.length}</a>${r.length ? ' (🐞 '+bugs+' · 💬 '+(r.length-bugs)+')' : ''}` : 'отзывов нет'}</span><span>${t.save ? '☁ прогресс в облаке' : 'прогресса в облаке нет'}</span></div>
+      <span>${r.length ? `<a data-a="show">отзывов ${r.length}</a>${r.length ? ' (🐞 '+bugs+' · 💬 '+(r.length-bugs)+')' : ''}` : 'отзывов нет'}</span><span>${t.save ? '☁ прогресс в облаке' : 'прогресса в облаке нет'}</span>${t.stats && t.stats.ccs && Object.keys(t.stats.ccs).length>1 ? '<span>страны: '+Object.keys(t.stats.ccs).map(ccTxt).join(', ')+'</span>' : ''}</div>
     ${t.stats ? `<div class="ks"><div><b>${hm(x.ms)}</b><span>наиграно всего</span></div><div><b>${x.n}</b><span>${nf(x.n,'сессия','сессии','сессий')}</span></div>
       <div><b>${hm(x.avg)}</b><span>средняя сессия</span></div><div><b>${x.devs.length}</b><span>${nf(x.devs.length,'устройство','устройства','устройств')}</span></div>
       <div><b>${x.st.first ? new Date(x.st.first).toLocaleDateString('ru') : '—'}</b><span>первая игра</span></div></div>
@@ -384,20 +418,21 @@ function tpRender(){
       <td>${d.sw ? d.sw+'×'+d.sh : '—'}${d.dpr ? '<small>DPR '+(+d.dpr).toFixed(2).replace(/\.?0+$/,'')+(d.touch ? ' · сенсор' : '')+'</small>' : ''}</td>
       <td>${esc(d.gpu||'—')}${d.cores || d.mem ? `<small>${d.cores ? d.cores+' ядер' : ''}${d.cores && d.mem ? ' · ' : ''}${d.mem ? '≥'+d.mem+' ГБ' : ''}</small>` : ''}</td>
       <td>${d.n||0}</td><td>${hm(d.ms)}${d.n>1 ? '<small>≈ '+hm(d.ms/d.n)+' за раз</small>' : ''}</td>
-      <td><span title="${d.last ? full(d.last) : ''}">${d.last ? ago(d.last) : '—'}</span><small>${d.lang ? esc(d.lang) : ''}${d.tz ? ' · '+esc(d.tz) : ''}</small></td></tr>`; }).join('')}</table></div>` : ''}
-    ${x.ss.length ? `<details${op.has(t.id) ? ' open' : ''}><summary>Последние сессии (${x.ss.length})</summary><div class="tbl"><table><tr><th>Начало</th><th>Длительность</th><th>Устройство</th></tr>
-      ${x.ss.map(s=>`<tr><td>${full(s.s)}</td><td>${hm(s.e-s.s)}</td><td>${esc(devName(x,s.d))}</td></tr>`).join('')}</table></div></details>` : ''}`
+      <td><span title="${d.last ? full(d.last) : ''}">${d.last ? ago(d.last) : '—'}</span><small>${d.cc ? ccFlag(d.cc)+' ' : ''}${d.lang ? esc(d.lang) : ''}${d.tz ? ' · '+esc(d.tz) : ''}</small></td></tr>`; }).join('')}</table></div>` : ''}
+    ${x.ss.length ? `<details${op.has(t.id) ? ' open' : ''}><summary>Последние сессии (${x.ss.length})</summary><div class="tbl"><table><tr><th>Начало</th><th>Длительность</th><th>Устройство</th><th>Страна</th></tr>
+      ${x.ss.map(s=>`<tr><td>${full(s.s)}</td><td>${hm(s.e-s.s)}</td><td>${esc(devName(x,s.d))}</td><td>${s.cc ? ccTxt(s.cc) : '—'}</td></tr>`).join('')}</table></div></details>` : ''}`
     : '<div class="none">Статистики игры пока нет: она копится с первой сессии после обновления воркера.</div>'}
+    ${progHtml(t)}
     </section>`; }).join('')
-    + '<span class="note" style="color:var(--dim);font-size:12px">Сессия — от «I agree» до закрытия страницы или 8 минут без связи; время считается с точностью до 3 минут. Устройство — браузер на устройстве (другой браузер на том же телефоне — другое устройство). Переименование и новый PIN не разлогинивают устройства тестера; удаление стирает аккаунт, прогресс, статистику и сообщения (отзывы остаются) и разлогинивает его везде.</span>'
-    : `<div class="empty">${tps.length ? 'Никого не найдено' : 'Тестеров пока нет'}</div>`;
+    + '<span class="note" style="color:var(--dim);font-size:12px">Сессия — от «I agree» до закрытия страницы или 8 минут без связи; время считается с точностью до 3 минут. Устройство — браузер на устройстве (другой браузер на том же телефоне — другое устройство). Переименование и новый PIN не разлогинивают устройства игрока; удаление стирает аккаунт, прогресс, статистику и сообщения (отзывы остаются) и разлогинивает его везде.</span>'
+    : `<div class="empty">${tps.length ? 'Никого не найдено' : 'Игроков пока нет'}</div>`;
 }
 $('tpBody').onclick=async e=>{
   const b=e.target.closest('[data-a]'), tr=e.target.closest('[data-i]'); if(!b || !tr) return;
   const t=tps[+tr.dataset.i], a=b.dataset.a; let body={ id:t.id, nick:t.nick };
   if(a==='show'){ if(![...$('tester').options].some(o=>o.value===t.id)) return alert('У '+t.nick+' нет отзывов'); F.tester=$('tester').value=t.id; cur=null; tpShow(false); render(); return; }
   if(a==='rename'){ const to=prompt('Новый ник для '+t.nick+' (2–20 букв или цифр):',t.nick); if(!to || to.trim()===t.nick) return; body.to=to.trim(); }
-  if(a==='pin'){ const pin=prompt('Новый PIN для '+t.nick+' (4–6 цифр). Сообщите его тестеру:',''); if(!pin) return; if(!/^\d{4,6}$/.test(pin.trim())) return alert('PIN — 4–6 цифр'); body.pin=pin.trim(); }
+  if(a==='pin'){ const pin=prompt('Новый PIN для '+t.nick+' (4–6 цифр). Сообщите его игроку:',''); if(!pin) return; if(!/^\d{4,6}$/.test(pin.trim())) return alert('PIN — 4–6 цифр'); body.pin=pin.trim(); }
   if(a==='ban'){ body.on=!t.ban; if(body.on && !confirm('Забанить '+t.nick+'? Не сможет войти, слать отзывы и синхронизировать прогресс.')) return; }
   if(a==='delete' && !confirm('Удалить аккаунт '+t.nick+'? Прогресс в облаке, статистика и сообщения сотрутся, ник освободится. Отзывы останутся.')) return;
   b.disabled=true;
@@ -407,7 +442,7 @@ $('tpBody').onclick=async e=>{
     if(a==='delete') tps.splice(tps.indexOf(t),1);
     if(a==='pin') alert('PIN для '+t.nick+' изменён');
     tpCount(); tpRender(); }
-  catch(e){ b.disabled=false; alert('Не удалось: '+({ taken:'ник занят', nick:'неверный ник', pin:'неверный PIN', 'no tester':'тестер не найден' }[e.message]||e.message)); }
+  catch(e){ b.disabled=false; alert('Не удалось: '+({ taken:'ник занят', nick:'неверный ник', pin:'неверный PIN', 'no tester':'игрок не найден' }[e.message]||e.message)); }
 };
 /* The page: #testers in the address (a reload stays on it, the browser's Back returns to the reports) */
 function tpShow(on,nav=true){

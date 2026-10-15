@@ -303,11 +303,11 @@ function syncMerge(remote){
 async function syncStart(){
   if(!acct || syncing || FB.busy) return; syncing=true; gSync();
   const me=acct, stop=setTimeout(()=>{ syncing=false; gSync(); },SYNC_WAIT);
-  try{ const d=await syncSend(true); if(acct===me && syncing && !FB.busy) syncMerge(d.exps); }
+  try{ const d=await syncSend(true); if(acct===me && syncing && !FB.busy) { syncMerge(d.exps); if(typeof tpLoad==='function' && tpv()) tpLoad(true); } }
   catch(e){ console.warn('progress sync:',e); if(e.status===401) signOut(); }
   finally{ clearTimeout(stop); syncing=false; gSync(); }
 }
-const syncLater=keep=>{ if(acct && !syncing && FB.busy && atMax(FB.exps())!==sentAt) syncSend(false,keep).catch(e=>console.warn('progress sync:',e)); };
+const syncLater=keep=>{ if(acct && !syncing && FB.busy && atMax(FB.exps())!==sentAt) syncSend(false,keep).then(()=>{ if(typeof tpLoad==='function' && tpv()) tpLoad(true); }).catch(e=>console.warn('progress sync:',e)); };
 setInterval(()=>syncLater(false),SYNC_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater(true); });
 
