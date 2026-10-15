@@ -48,8 +48,15 @@ const TR={
 };
 const t=s=>{ const i=LANGS.indexOf(FB.lang); return i>=0 && TR[s] ? TR[s][i] : s; };
 const LSget=(k,d)=>{ try{ return localStorage.getItem(k) ?? d; }catch(e){ return d; } }, LSset=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
+const betaClear=()=>{ for(const k of ['cube-tester-acct','cube-tester','cube-tester-sync']){ try{ localStorage.removeItem(k); }catch(e){} } };
 const tester=LSget('cube-tester','');   // a device id from before the sign-in: a new nickname takes it (its earlier reports join the name)
-let acct=null; try{ acct=JSON.parse(LSget('cube-tester-acct','null')); if(!acct || !acct.tok || !acct.nick) acct=null; }catch(e){}
+let acct=null;
+try{
+  const saved=JSON.parse(LSget('cube-tester-acct','null'));
+  const savedId=LSget('cube-tester','');
+  if(saved && typeof saved==='object' && saved.tok && typeof saved.nick==='string' && saved.nick.trim() && saved.id && (!savedId || String(saved.id)===String(savedId))) acct=saved;
+  else betaClear();
+}catch(e){ betaClear(); }
 FB.up=true;   // fbsnap.js: the beta notice stays locked until the sign-in lets it go
 const post=async(path,body,keep)=>{ const r=await fetch(API.replace(/\/$/,'')+path,{ method:'POST', headers:{ 'content-type':keep ? 'text/plain' : 'application/json' }, body:JSON.stringify(body), keepalive:!!keep });
   let d={}; try{ d=await r.json(); }catch(e){} if(!r.ok) throw Object.assign(new Error(d.error||'HTTP '+r.status),{ status:r.status }); return d; };
@@ -258,21 +265,35 @@ function gTexts(){
   else if(syncDone) $('fgSy').textContent=t('Progress synchronized.');
   else $('fgSy').textContent='';
 }
+function syncStatusText(){
+  if(!acct) return '';
+  if(syncing) return t('Syncing progress…');
+  if(syncDone && performance.now() - syncDoneAt <= SYNC_DONE_TTL) return t('Progress synchronized.');
+  if(syncDone){ syncDone=false; syncDoneAt=0; if(syncDoneTimer){ clearTimeout(syncDoneTimer); syncDoneTimer=null; } }
+  return '';
+}
 function gMode_(m){ gMode=m; gm.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m))); $('fgPin').autocomplete=m==='new' ? 'new-password' : 'current-password'; $('fgMsg').textContent=''; gTexts(); }
 gm.forEach(b=>b.onclick=()=>gMode_(b.dataset.m));
 function gSync(){
-  const on=!!acct; $('fgMe').hidden=!on; $('fgForm').hidden=on; if(on) $('fgNm').textContent=acct.nick;
-  document.body.classList.toggle('fbin',on); if(tb) tb.disabled=!on || syncing;
-  if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=on ? t('Welcome back! Have a pleasant game!') : t('Closed beta'); tb.textContent=on ? t('Enter the game') : t('I agree'); }
-  const showSync=on && (syncing || syncDone);
-  $('fgSy').hidden=!showSync;
-  if(showSync){
-    $('fgSy').textContent = syncing ? t('Syncing progress…') : t('Progress synchronized.');
-  } else {
-    $('fgSy').textContent='';
+  if(!acct){
+    $('fgMe').hidden=true; $('fgForm').hidden=false; $('fgSy').hidden=true; $('fgSy').textContent='';
+    document.body.classList.toggle('fbin',false);
+    if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=t('Closed beta'); tb.textContent=t('I agree'); }
+    if(tb) tb.disabled=true;
+    return;
   }
+  const on=true; $('fgMe').hidden=false; $('fgForm').hidden=true; $('fgNm').textContent=acct.nick;
+  document.body.classList.toggle('fbin',on);
+  if(tb) tb.disabled=syncing;
+  if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=t('Welcome back! Have a pleasant game!'); tb.textContent=t('Enter the game'); }
+  const txt=syncStatusText(); $('fgSy').hidden=!txt; $('fgSy').textContent=txt;
 }
-function signOut(){ acct=null; syncDone=false; try{ localStorage.removeItem('cube-tester-acct'); }catch(e){} gSync(); }
+function signOut(){
+  acct=null; syncing=false; syncDone=false; sentAt=-1; if(syncDoneTimer){ clearTimeout(syncDoneTimer); syncDoneTimer=null; }
+  betaClear();
+  if(tb) tb.disabled=true;
+  gSync();
+}
 $('fgChg').onclick=()=>{ signOut(); gMode_('old'); $('fgNick').focus(); };
 $('fgGo').onclick=async()=>{
   if(gBusy) return; const nick=$('fgNick').value.trim().replace(/\s+/g,' '), pin=$('fgPin').value.trim(), M=s=>{ $('fgMsg').textContent=s; };
@@ -292,14 +313,22 @@ document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); 
    the same expedition (its creation time c) takes the newer copy, one only the cloud has takes a free slot (or the slot of an older one
    that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
    cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
-const SYNC_WAIT=6000, SYNC_EVERY=600e3;   // the worker takes SAVE_DAY writes a tester a day
-let syncing=false, syncDone=false, sentAt=-1;
+const SYNC_WAIT=6000, SYNC_EVERY=600e3, SYNC_DONE_TTL=4000;   // the worker takes SAVE_DAY writes a tester a day
+let syncing=false, syncDone=false, sentAt=-1, syncDoneTimer=null, syncDoneAt=0;
 const known=()=>{ try{ const k=JSON.parse(LSget('cube-tester-sync','null')); return k && acct && k.id===acct.id && Array.isArray(k.cs) ? k.cs : []; }catch(e){ return []; } };
 const strip=a=>a.map(({ k, ...e })=>e), atMax=a=>a.reduce((m,e)=>Math.max(m,e.at||0),0);
+function syncDoneSet(){
+  syncDone=true; syncDoneAt=performance.now();
+  if(syncDoneTimer) clearTimeout(syncDoneTimer);
+  syncDoneTimer=setTimeout(()=>{
+    syncDoneTimer=null;
+    if(!syncing && syncDone){ syncDone=false; syncDoneAt=0; gSync(); }
+  },SYNC_DONE_TTL);
+}
 async function syncSend(pull,keep){
   const loc=FB.exps(), gone=known().filter(c=>!loc.some(e=>e.c===c)), at=atMax(loc);
   const d=await post('/save',{ tok:acct.tok, exps:strip(loc), gone, pull:pull ? 1 : 0 },keep);
-  sentAt=at; syncDone=true; LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
+  sentAt=at; syncDoneSet(); LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
   return d;
 }
 function syncMerge(remote){
