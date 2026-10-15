@@ -44,7 +44,11 @@ const TR={
   'The bug from your feedback has been fixed. Thank you for taking part!':['Баг по вашему отзыву был исправлен, спасибо за ваше участие!','El error que reportaste ha sido corregido. ¡Gracias por participar!','O bug que você relatou foi corrigido. Obrigado por participar!','Der Fehler aus deiner Rückmeldung wurde behoben. Danke fürs Mitmachen!','Le bug signalé dans votre avis a été corrigé. Merci de votre participation !','你反馈的错误已修复，感谢你的参与！','ご報告いただいたバグは修正されました。ご協力ありがとうございます！','알려주신 버그가 수정되었어요. 참여해 주셔서 감사합니다!'],
   'Your feedback':['Ваш отзыв','Tu comentario','Seu comentário','Deine Rückmeldung','Votre avis','你的反馈','あなたのフィードバック','내 피드백'],
   'Got it':['Понятно','Entendido','Entendi','Verstanden','Compris','知道了','わかった','확인'],
-  'Write a few words or record your voice':['Напишите пару слов или запишите голос','Escribe unas palabras o graba tu voz','Escreva algumas palavras ou grave sua voz','Schreib ein paar Worte oder nimm eine Sprachnachricht auf','Écrivez quelques mots ou enregistrez votre voix','写几句话或录一段语音','ひとこと書くか、音声を録音してください','몇 마디 적거나 음성을 녹음하세요']
+  'Write a few words or record your voice':['Напишите пару слов или запишите голос','Escribe unas palabras o graba tu voz','Escreva algumas palavras ou grave sua voz','Schreib ein paar Worte oder nimm eine Sprachnachricht auf','Écrivez quelques mots ou enregistrez votre voix','写几句话或录一段语音','ひとこと書くか、音声を録音してください','몇 마디 적거나 음성을 녹음하세요'],
+  'Closed beta':['Закрытый бета-тест','Beta cerrada','Beta fechado','Geschlossene Beta','Bêta fermée','封闭测试版','クローズドベータ','비공개 베타'],
+  'Welcome back! Have a pleasant game!':['Рады вам снова, приятной игры!','¡Qué alegría verte de nuevo! ¡Que tengas buena partida!','Que bom te ver de volta! Divirta-se!','Willkommen zurück! Viel Spaß!','Bon retour ! Amusez-vous bien !','欢迎回来！祝你玩得开心！','おかえりなさい！楽しいゲームを！','다시 오신 걸 환영해요! 즐겁게 플레이하세요!'],
+  'Enter the game':['Войти в игру','Entrar al juego','Entrar no jogo','Ins Spiel gehen','Entrer dans le jeu','进入游戏','ゲームに入る','게임에 입장'],
+  'Progress synchronized.':['Прогресс синхронизирован.','Progreso sincronizado.','Progresso sincronizado.','Fortschritt synchronisiert.','Progression synchronisée.','进度已同步。','進行状況が同期されました。','진행 상황이 동기화되었습니다.']
 };
 const t=s=>{ const i=LANGS.indexOf(FB.lang); return i>=0 && TR[s] ? TR[s][i] : s; };
 const LSget=(k,d)=>{ try{ return localStorage.getItem(k) ?? d; }catch(e){ return d; } }, LSset=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
@@ -116,6 +120,8 @@ body:not(.fbin) #fbBtn{display:none}
 #fbGate .msg{min-height:1.2em;font-size:13px;color:#ffb3c0;text-align:center}
 #fbGate .me{display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px}
 #fbGate .me button{font:inherit;font-size:13px;color:inherit;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:3px 12px;cursor:pointer}
+#fbGate [hidden]{display:none}
+#tBetaOk[hidden]{display:none}
 #tBetaOk:disabled{opacity:.4;filter:grayscale(.6);cursor:default}
 `;
 document.head.append(css);
@@ -241,7 +247,7 @@ $('fbSend').onclick=async()=>{
 };
 
 /* Sign-in on the beta notice: a nickname and a PIN — new (register) or one already made on another device (login).
-   Until then "I agree" is disabled; signed in — the name is shown with "Change", the feedback button appears */
+   Until then there is no enter button; signed in — the name is shown with "Change", "Enter the game" and the feedback button appear */
 const tb=document.getElementById('tBetaOk'), gate=document.createElement('div'); gate.id='fbGate';
 gate.innerHTML=`<div class="me" id="fgMe" hidden><span>👤 <b id="fgNm"></b></span><button type="button" id="fgChg"></button></div><small id="fgSy" hidden></small>
   <div id="fgForm" hidden><div style="display:grid;gap:8px">
@@ -257,6 +263,7 @@ const gm=[...gate.querySelectorAll('.seg button')]; let gMode='new', gBusy=false
 ['keydown','keyup','keypress'].forEach(ev=>gate.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); $('fgGo').click(); } }));
 gate.addEventListener('click',e=>e.stopPropagation());   // the title's own tap handler stays out of it
 function gTexts(){
+  btn.title=btn.ariaLabel=t('Feedback');
   $('fgLead').textContent=t('Introduce yourself to start testing'); gm[0].textContent=t('I\'m new'); gm[1].textContent=t('I have a nickname');
   $('fgNick').placeholder=t('Nickname'); $('fgPin').placeholder=t('PIN (4–6 digits)'); $('fgHint').textContent=gMode==='new' ? t('Remember the PIN: with it you sign in on another device.') : '';
   $('fgGo').textContent=t('Continue'); $('fgChg').textContent=t('Change');
@@ -274,18 +281,22 @@ function syncStatusText(){
 }
 function gMode_(m){ gMode=m; gm.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m))); $('fgPin').autocomplete=m==='new' ? 'new-password' : 'current-password'; $('fgMsg').textContent=''; gTexts(); }
 gm.forEach(b=>b.onclick=()=>gMode_(b.dataset.m));
+function gHead(key){
+  const betaHead=tb && tb.closest('.card')?.querySelector('h2'); if(!betaHead) return;
+  betaHead.dataset.t=key; betaHead.dataset.src=key; betaHead.textContent=t(key);
+}
 function gSync(){
   if(!acct){
     $('fgMe').hidden=true; $('fgForm').hidden=false; $('fgSy').hidden=true; $('fgSy').textContent='';
     document.body.classList.toggle('fbin',false);
-    if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=t('Closed beta'); tb.textContent=t('I agree'); }
-    if(tb) tb.disabled=true;
+    gHead('Closed beta');
+    if(tb){ tb.hidden=true; tb.disabled=true; }
     return;
   }
   const on=true; $('fgMe').hidden=false; $('fgForm').hidden=true; $('fgNm').textContent=acct.nick;
   document.body.classList.toggle('fbin',on);
-  if(tb) tb.disabled=syncing;
-  if(tb){ const betaHead=tb.closest('.card')?.querySelector('h2'); if(betaHead) betaHead.textContent=t('Welcome back! Have a pleasant game!'); tb.textContent=t('Enter the game'); }
+  gHead('Welcome back! Have a pleasant game!');
+  if(tb){ tb.textContent=t('Enter the game'); tb.hidden=false; tb.disabled=syncing; }
   const txt=syncStatusText(); $('fgSy').hidden=!txt; $('fgSy').textContent=txt;
 }
 function signOut(){
@@ -306,10 +317,10 @@ $('fgGo').onclick=async()=>{
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }
 };
-document.addEventListener('cube-lang',()=>{ gTexts(); if(!wrap.hidden) texts(); if(!inb.hidden) inRender(); });
+document.addEventListener('cube-lang',()=>{ gTexts(); gSync(); if(!wrap.hidden) texts(); if(!inb.hidden) inRender(); });
 
 /* Progress sync: the expeditions (save slots) of a signed-in tester live in the worker too (/save). On the beta notice — after the
-   sign-in and at every launch — this device's expeditions go up and the merged list comes back ("I agree" waits, SYNC_WAIT at most):
+   sign-in and at every launch — this device's expeditions go up and the merged list comes back ("Enter the game" waits, SYNC_WAIT at most):
    the same expedition (its creation time c) takes the newer copy, one only the cloud has takes a free slot (or the slot of an older one
    that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
    cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
@@ -357,7 +368,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) syncLater
    start, after the sign-in, every MSG_EVERY and on return to the page; shown in a panel over everything (the game pauses), not over the
    feedback form; "Got it" drops them (/tester/ack). The same call brings a nickname the dashboard changed; a deleted account signs out.
    play=1 — the game is past the beta notice and shown: the worker counts the play session (Telegram: started / stopped and how long);
-   the first call comes right after "I agree", the page closing sends /tester/bye */
+   the first call comes right after "Enter the game", the page closing sends /tester/bye */
 const MSG_EVERY=180e3;
 let inMsgs=[], inBusy=false;
 /* This device for the dashboard's play statistics (sent with play=1): a random id kept in this browser, the browser, screen and GPU */
@@ -404,7 +415,7 @@ inb.addEventListener('click',e=>e.stopPropagation());
 setInterval(inPull,MSG_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) inPull(); });
 let inPlay=false;
-setInterval(()=>{ const p=!!(acct && FB.busy); if(p && !inPlay) inPull(); inPlay=p; },2000);   // "I agree" — the session starts now
+setInterval(()=>{ const p=!!(acct && FB.busy); if(p && !inPlay) inPull(); inPlay=p; },2000);   // "Enter the game" — the session starts now
 addEventListener('pagehide',()=>{ if(acct && FB.busy) post('/tester/bye',{ tok:acct.tok },true).catch(()=>{}); });
 
 gMode_('new'); gSync(); syncStart(); inPull();
