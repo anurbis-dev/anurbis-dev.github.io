@@ -72,7 +72,7 @@ details{margin:12px 0;background:var(--bg2);border:1px solid var(--line);border-
 details summary{cursor:pointer;font-weight:700}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Consolas,monospace;color:#ffc9d1;margin:10px 0 0}
 #lb{position:fixed;inset:0;background:rgba(5,3,12,.92);display:grid;place-items:center;z-index:9;cursor:zoom-out}
-#lb[hidden]{display:none}
+#lb[hidden],#gate[hidden]{display:none}
 #lb img{max-width:96vw;max-height:94vh;border-radius:8px}
 #gate{max-width:420px;margin:12vh auto;padding:24px;background:var(--card);border-radius:16px;border:1px solid var(--line);display:grid;gap:12px}
 #gate input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
@@ -167,7 +167,7 @@ const $=id=>document.getElementById(id), q=new URLSearchParams(location.search);
 const API=(q.get('api')||window.CUBE_FB_API||'').replace(/\/$/,'');
 const LSg=(k,d)=>{ try{ return localStorage.getItem(k)??d; }catch(e){ return d; } }, LSs=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
 let KEY=q.get('k')||LSg('cube-fb-key','');
-if(q.get('k')){ LSs('cube-fb-key',KEY); history.replaceState(null,'',location.pathname); }
+if(q.get('k')){ LSs('cube-fb-key',KEY); history.replaceState(null,'',location.pathname+location.hash); }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rtf=new Intl.RelativeTimeFormat('ru',{ numeric:'auto' });
 const ago=t=>{ const s=(new Date(t)-Date.now())/1000, a=Math.abs(s);
