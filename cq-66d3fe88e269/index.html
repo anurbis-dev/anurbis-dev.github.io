@@ -903,7 +903,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.6';
+const VERSION = '1.99.7';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -3050,19 +3050,6 @@ const areaSubs=(area,subs)=>{ for(const k in subs){ if(k in SUBLEVELS) throw new
 const lvId=i=>LEVELS[i] ? LEVELS[i].id : '';
 const lvIdx=id=>LVIDX.has(id) ? LVIDX.get(id) : -1;
 const areaIdx=id=>ARIDX.has(id) ? ARIDX.get(id) : -1;
-/* Side branches of the snow levels, stamped over their maps: an optional winding trail off the main terrain, clogged with drifts (a slam bites the nearest cell, a dash
-   bites the one it hits; big ones — a row of cells at one level) and frost spikes (a dash breaks them), up to a terrace with buried loot: a star under a drift, a dug star
-   and a rock holding a life. stamp: layers h/o rows laid from (x0,z0); a space leaves the cell as it is */
-function stamp(def,x0,z0,B){
-  for(const f of ['h','o','s']) if(B[f]){ const rows=def[f]||(def[f]=[]);
-    B[f].forEach((r,i)=>{ const z=z0+i; while(rows.length<=z) rows.push(''); let row=rows[z].padEnd(x0+r.length,'.');
-      for(let j=0;j<r.length;j++) if(r[j]!==' ') row=row.slice(0,x0+j)+r[j]+row.slice(x0+j+1); rows[z]=row; }); }
-  def.cover=Object.assign(def.cover||{},B.cover); def.loot=Object.assign(def.loot||{},B.loot);
-  const dig={}; digEach({dig:def.dig},(k,kind)=>{ dig[k]=kind; }); digEach({dig:B.dig},(k,kind)=>{ dig[k]=kind; });
-  const dk=Object.keys(dig);
-  if(!dk.length) delete def.dig;
-  else def.dig=dk.every(k=>dig[k]==='x') ? dk : dig;
-}
 const lvByName=n=>LEVELS.find(l=>l.name===n);
 let subLv=null;                                                       // the sublevel being played (its key) or null
 const curDef=()=>subLv ? SUBLEVELS[subLv] : LEVELS[cur];              // the def on screen
@@ -9234,7 +9221,7 @@ function parseHits(def,bad){
     if(o && (o.pal || o.beast || o.lamp || o.cover && !BREAK.includes(o.type))){ bad('hits',k,'is an object that can\'t be broken'); continue; }
     if(o && o.prop && o.prop.group){ o.prop.hp=o.prop.hp0=n; o.prop.group.forEach(q=>{ if(obst[q] && obst[q].prop===o.prop) obst[q].hp0=obst[q].hp=n; obst[q].hits=true; }); }
     else if(o){ o.hp0=o.hp=n; o.hits=true; } else if(cr) cr.hp0=cr.hp=n; else if(brk[k]) brk[k].hp=n; else bad('hits',k,'has nothing breakable'); }
-  for(const k in obst){ const o=obst[k]; if(BREAK.includes(o.type)) o.hp0=o.hp=o.hp||1; }
+  for(const k in obst) for(const o of [obst[k],obst[k].under]) if(o && BREAK.includes(o.type)) o.hp0=o.hp=o.hp||1;   // a rock buried under a mound too (its granite cracks by hp0)
   for(const k in brk) brk[k].hp0=brk[k].hp;
 }
 /* def.dig: ['x,z'] all stars on the top floor, or {'x,z'|'x,z,y':'x'|'l'|'g'}. 'x,z' is the column top; 'x,z,y' is a tunnel floor at y. */
@@ -16530,6 +16517,8 @@ function plateFire(k){                                              // a pressin
 /* Portals fire once you stand on them: the portal sucks the cube in (spinning, shrinking, sinking), the camera glides to the exit
    with the soft recentre (camRecenter from a pan equal to the jump), then the cube comes out */
 const TELE_IN=.5, TELE_OUT=.36;
+let teleK=1;                                                         // the cube's light and its icons ("!", the voice plate) fade out and in with the cube through a teleport
+function teleFade(k){ teleK=k; playerLight.intensity=(T.night?.9:0)*k; }
 function teleport(k){
   const t=teles[k];
   if(t.port) return portEnter(k);
@@ -16538,8 +16527,8 @@ function teleport(k){
   const q0=P.q.clone(), spin=new Q(), t0=P.tilt.clone(), p0=root.position.clone();
   SND.tele(); sparkle(P.x,P.l+.4,P.z,[0xc9a8ff,0x9fe8ff],26);
   play(TELE_IN, q=>{ const e=q*q; root.scale.set(Math.max(.001,1-e*.9),Math.max(.001,1-e)*(1+q*.6),Math.max(.001,1-e*.9));
-    root.position.y=p0.y-e*.45; spin.setFromAxisAngle(UP,e*Math.PI*3); pMesh.quaternion.copy(spin).multiply(t0).multiply(q0); }, ()=>{
-    root.scale.setScalar(.001);
+    root.position.y=p0.y-e*.45; spin.setFromAxisAngle(UP,e*Math.PI*3); pMesh.quaternion.copy(spin).multiply(t0).multiply(q0); teleFade(1-e); }, ()=>{
+    root.scale.setScalar(.001); teleFade(0);
     const from=root.position.clone();
     P.x=tx; P.z=tz; P.l=t2.y; P.justTele=t.to; P.tilt.identity(); P.hist=[];
     const dest=poseAt(tx,tz,P.l).pos; root.position.copy(dest);
@@ -16548,8 +16537,8 @@ function teleport(k){
     play(camRc?camRc.d:.3, ()=>{}, ()=>{
       SND.teleOut(); sparkle(tx,P.l+.4,tz,[0xc9a8ff,0x9fe8ff],26);
       play(TELE_OUT, q=>{ const e=ease(q); root.scale.set(Math.max(.001,e),Math.max(.001,e)*(1.5-.5*e),Math.max(.001,e)); root.position.y=dest.y+(1-e)*.3;
-        spin.setFromAxisAngle(UP,Math.PI*3*(1+e)); pMesh.quaternion.copy(spin).multiply(q0); },
-        ()=>{ root.scale.set(1,1,1); root.position.copy(dest); setMeshQ(); state='idle'; landAt(P.l,'soft'); });   // a floating pad: falls on from it
+        spin.setFromAxisAngle(UP,Math.PI*3*(1+e)); pMesh.quaternion.copy(spin).multiply(q0); teleFade(e); },
+        ()=>{ root.scale.set(1,1,1); teleFade(1); root.position.copy(dest); setMeshQ(); state='idle'; landAt(P.l,'soft'); });   // a floating pad: falls on from it
     });
   });
 }
@@ -16562,8 +16551,8 @@ function portEnter(k){
   const q0=P.q.clone(), spin=new Q(), t0=P.tilt.clone(), p0=root.position.clone();
   SND.tele(); sparkle(P.x,P.l+.4,P.z,[0xc9a8ff,0x9fe8ff],26);
   play(TELE_IN, q=>{ const e=q*q; root.scale.set(Math.max(.001,1-e*.9),Math.max(.001,1-e)*(1+q*.6),Math.max(.001,1-e*.9));
-    root.position.y=p0.y-e*.45; spin.setFromAxisAngle(UP,e*Math.PI*3); pMesh.quaternion.copy(spin).multiply(t0).multiply(q0); }, ()=>{
-    root.scale.setScalar(.001);
+    root.position.y=p0.y-e*.45; spin.setFromAxisAngle(UP,e*Math.PI*3); pMesh.quaternion.copy(spin).multiply(t0).multiply(q0); teleFade(1-e); }, ()=>{
+    root.scale.setScalar(.001); teleFade(0);
   });
 }
 /* Into and out of the arch: an ordinary roll over the bottom edge of the rock face, like a step (no slide). caveRoll — from the door
@@ -16686,7 +16675,18 @@ function wpJumpInto(t){
     ()=>wpGo(t,'jump'));
 }
 /* Into the warp after its trigger (doors): a roll or a slide into the arch, on through a hatch */
+/* Through a door the cube is cut off at the door's plane (the arch's back, a hatch's floor): a free-standing arch has no rock behind it to hide
+   the cube. The plane is always on the cube's materials (a far one when off) — switching it on recompiles nothing */
+const WP_CLIP=new THREE.Plane(new V3(0,1,0),1e6);
+renderer.localClippingEnabled=true;
+pMesh.traverse(o=>{ const m=o.material; if(m && !m.isShaderMaterial){ m.clippingPlanes=[WP_CLIP]; m.clipShadows=true; } });
+function wpClip(t){
+  if(!t) return WP_CLIP.set(_v.set(0,1,0),1e6);
+  if(t.vert) return t.vert==='U' ? WP_CLIP.set(_v.set(0,-1,0),t.y) : WP_CLIP.set(_v.set(0,1,0),-t.y);   // U — keeps what's under its plane, D — what's over it
+  const [dx,dz]=t.inDir; WP_CLIP.set(_v.set(-dx,0,-dz),dx*(t.x+dx*.45)+dz*(t.z+dz*.45));   // the arch's back: .45 past the door cell's centre
+}
 function wpIn(t,how,done){
+  wpClip(t);
   if(t.vert){ const p0=root.position.clone(), y1=t.y+HALF+(t.vert==='U' ? .9 : -1.1);
     return play(.22, k=>{ const e=t.vert==='U' ? 1-(1-k)*(1-k) : k*k; root.position.y=lerp(p0.y,y1,e); root.scale.setScalar(Math.max(.001,1-.5*e)); },
       ()=>{ root.scale.setScalar(.001); done(); }); }
@@ -16702,8 +16702,9 @@ function wpStart(t){
   if(t.vert) p.y+=t.vert==='U' ? 1 : -1; else if(t.inDir){ p.x+=t.inDir[0]; p.z+=t.inDir[1]; }
   return p;
 }
-function wpOut(t,done){
-  const dest=poseAt(t.x,t.z,wpL(t)).pos;
+function wpOut(t,done0){
+  const dest=poseAt(t.x,t.z,wpL(t)).pos, done=()=>{ wpClip(null); done0(); };
+  wpClip(t);
   if(!t.vert) return caveOut(t.inDir||[0,0],dest,done);
   const p0=root.position.clone(); SND.jump();
   play(.28, k=>{ root.position.lerpVectors(p0,dest,t.vert==='U' ? k*k : 1-(1-k)*(1-k)); root.scale.setScalar(Math.max(.001,.4+.6*k)); },
@@ -18194,7 +18195,7 @@ function updateShip(){
     if(state==='intro' && !SH.fly){                                 // on hover and during lowering: no extra tilt/twist
       root.quaternion.identity();
       root.position.copy(ship.position).add(_v.set(0,SH.hang*sc,0));
-      root.scale.setScalar(sc);
+      root.scale.setScalar(lerp(sc,1,ease(SH.dropK||0)));             // lowering: back to its own size by the release
     }else{                                                           // in flight: keep the carried tilt
       _shq.setFromAxisAngle(UP,SH.yaw); _shq2.setFromAxisAngle(UP,-SH.yaw); root.quaternion.copy(_shq).multiply(_shq3.setFromEuler(_eu.set(SH.roll,0,SH.pitch,'YXZ'))).multiply(_shq2);
       root.position.copy(ship.position).add(_v.set(0,SH.hang*sc,0).applyQuaternion(root.quaternion)); root.scale.setScalar(sc);
@@ -18313,10 +18314,11 @@ function shipDrop(x,z,l){
   shipArrive(hover,()=>{
     shipAlignToGrid(.22,()=>{
       const sc=Math.max(.01,ship.scale.x), y0=SH.hang, y1=(P.l+HALF+0.02-ship.position.y)/sc;
-      SH.dropK=0;
-      play(.96, q=>{ SH.dropK=q; SH.hang=lerp(y0,y1,ease(q)); }, ()=>{
+      SH.dropK=0; P.q.copy(snapQ(P.q));
+      const qa=pMesh.quaternion.clone(), qb=playerPose().tilt.clone().multiply(P.q);   // the cube turns into its landing pose on the way down — no snap on release
+      play(.96, q=>{ SH.dropK=q; SH.hang=lerp(y0,y1,ease(q)); pMesh.quaternion.copy(qa).slerp(qb,ease(q)); }, ()=>{
         SH.dropK=1;
-        SH.hang=y1; SH.carry=false; root.scale.set(1,1,1); root.position.y=P.l+HALF; setMeshQ(); afterLand(null,null,'soft'); SND.drop(); camSoft=1.2;
+        SH.hang=y1; SH.carry=false; root.scale.set(1,1,1); afterLand(null,null,'soft');   // afterLand eases what is left (nudgeFrom) SND.drop(); camSoft=1.2;
         SH.len=Math.max(1.25,ship.position.y-(P.l+HALF)+.2); SH.a=SH.aT=.9;
         const id=SH.drop;                                             // a tween, not play(): the cube is already free — a swipe, a respawn or anything that takes the main anim would leave the ship hanging
         tween(.32, q=>{ if(SH.drop===id) SH.len=Math.max(.01,lerp(SH.len,.01,ease(q))); }, ()=>{
@@ -18341,8 +18343,9 @@ function pillarDrop(x,z,l){
   SND.beam(); pMesh.visible=true; SH.carry=false; root.scale.set(1,1,1); root.quaternion.identity(); root.position.set(x,y0,z);
   Object.assign(PIL,{ x, z, l, bot:y0, a:0, aT:.9 });
   play(.45, q=>{ PIL.bot=lerp(y0,l-.6,ease(q)); }, ()=>{                // the beam reaches the floor (its soft lower edge sinks into the ground)
-    play(1.25, q=>{ root.position.y=lerp(y0,y1,1-Math.pow(1-q,2.4)); }, ()=>{   // the cube comes down in it, braking
-      root.position.y=y1; setMeshQ(); afterLand(null,null,'soft'); SND.drop(); camSoft=1.2; PIL.aT=0;
+    P.q.copy(snapQ(P.q)); const qa=pMesh.quaternion.clone(), qb=playerPose().tilt.clone().multiply(P.q);   // turns into its landing pose on the way down
+    play(1.25, q=>{ root.position.y=lerp(y0,y1,1-Math.pow(1-q,2.4)); pMesh.quaternion.copy(qa).slerp(qb,ease(q)); }, ()=>{   // the cube comes down in it, braking
+      root.position.y=y1; afterLand(null,null,'soft'); SND.drop(); camSoft=1.2; PIL.aT=0;
     });
   });
 }
@@ -18813,11 +18816,12 @@ function toastOff(t){ clearTimeout(t._tm); t.classList.remove('show'); }
 function toastTap(force){ if(!toastHeld || !force && performance.now()-toastHeld<400) return;   // not the very touch that earned it
   toastHeld=0; toastOff($('toast')); }
 /* Stuck tips: a bump into something that needs another move shows a toast; it comes back only while the player keeps bumping
-   (STUCK_N bumps since the last one and at least STUCK_CD s later); once the move is done (stuckDone) — never again this level */
-const STUCK_N=3, STUCK_CD=12;
+   (STUCK_N bumps since it was closed and at least STUCK_CD s after it showed); once the move is done (stuckDone) — never again this level.
+   The tip is held until the next touch — the very swipe of the next bump closes it, so the bumps count only once it's gone */
+const STUCK_N=3, STUCK_CD=4;
 let stuckT={};                                                         // id → { n — bumps since the last show, t — when shown (s), done }
 function stuckTip(id,a,b){ const s=stuckT[id]||(stuckT[id]={ n:0, t:null }); if(s.done) return;
-  const now=performance.now()/1000; s.n++;
+  const now=performance.now()/1000; if(s.t!==null && $('toast').classList.contains('show')) return; s.n++;
   if(s.t!==null && (s.n<STUCK_N || now-s.t<STUCK_CD)) return;
   s.n=0; s.t=now; toast(a,b,true); }
 function stuckDone(id){ (stuckT[id]||(stuckT[id]={ n:0, t:null })).done=true; }
@@ -21658,7 +21662,7 @@ function applyTheme(){
   MAT.grass.color.setHex(T.grass); MAT.dirt.color.setHex(T.dirt); MAT.base.color.setHex(T.base); MAT.tuft.color.setHex(T.tuft);
   MAT.water.color.setHex(T.water); MAT.water.emissive.setHex(T.water).multiplyScalar(.6);
   wfMat.uniforms.c1.value.setHex(T.water).multiplyScalar(.85);
-  playerLight.intensity=T.night?.9:0; playerMat.emissive.setHex(T.night?0x2a2230:0x000000);
+  teleFade(1); wpClip(null); playerMat.emissive.setHex(T.night?0x2a2230:0x000000);
   rain.visible=T.weather==='rain'; snow.visible=T.weather==='snow';
   SND.setMood(T.mood);
 }
@@ -21961,7 +21965,7 @@ function subEnter(k,how){                                             // how —
   state='tele'; anim=null; queue=[]; holdDir=null; depart(); SND.setCave(1,.08); SND.cave();
   wpIn(t,how, ()=>{                                                    // into the arch (or through the hatch), then the curtain
     if(subGo(t.sub==='out' ? null : t.sub, k)) return;
-    P.q.copy(q0); setMeshQ(); root.scale.set(1,1,1); root.position.copy(p0); state='idle'; SND.setCave(T.cave?1:0,.5); landAt(P.l,'soft'); });   // no way now (a transition is on) — back out
+    wpClip(null); P.q.copy(q0); setMeshQ(); root.scale.set(1,1,1); root.position.copy(p0); state='idle'; SND.setCave(T.cave?1:0,.5); landAt(P.l,'soft'); });   // no way now (a transition is on) — back out
 }
 /* Into sublevel key (from the parent's door k) or back to the parent (key null) behind the curtain; false — not now */
 function subGo(key,k,how){
@@ -22003,10 +22007,10 @@ function subCome(){
   const t=teles[wpExitK];
   if(t && t.port){
     const dest=poseAt(P.x,P.z,P.l).pos, spin=new Q(), q0=P.q.clone();
-    root.position.copy(dest); SND.teleOut(); sparkle(P.x,P.l+.4,P.z,[0xc9a8ff,0x9fe8ff],26);
+    root.position.copy(dest); SND.teleOut(); sparkle(P.x,P.l+.4,P.z,[0xc9a8ff,0x9fe8ff],26); teleFade(0);
     play(TELE_OUT, q=>{ const e=ease(q); root.scale.set(Math.max(.001,e),Math.max(.001,e)*(1.5-.5*e),Math.max(.001,e)); root.position.y=dest.y+(1-e)*.3;
-      spin.setFromAxisAngle(UP,Math.PI*3*(1+e)); pMesh.quaternion.copy(spin).multiply(q0); },
-      ()=>{ root.scale.set(1,1,1); root.position.copy(dest); setMeshQ(); state='idle'; landAt(P.l,'soft'); });   // a floating pad: falls on from it
+      spin.setFromAxisAngle(UP,Math.PI*3*(1+e)); pMesh.quaternion.copy(spin).multiply(q0); teleFade(e); },
+      ()=>{ root.scale.set(1,1,1); teleFade(1); root.position.copy(dest); setMeshQ(); state='idle'; landAt(P.l,'soft'); });   // a floating pad: falls on from it
     return;
   }
   SND.cave();
@@ -22148,7 +22152,7 @@ function updateSmartBubble(){
       smartCd-=dt; if(smartCd<=0 && !smartVoiceOn() && smartPop<0){ smartCd=SMART_CD; smartAlert(z==='abil'); } }
     else { smartZone=smartWas=null; smartCd=0; smartTaps=0; }
   }
-  if(sayEl.classList.contains('voice')){ sayEl.style.visibility=paused?'hidden':''; if(!paused) smartPlace(); }
+  if(sayEl.classList.contains('voice')){ sayEl.style.visibility=paused?'hidden':''; if(!paused) smartPlace(); sayEl.style.opacity=teleK<1 && sayEl.classList.contains('show') ? teleK : ''; }   // through a teleport — with the cube
   if(smartT<0) return;
   if(paused){ smartEl.style.visibility='hidden'; return; }
   smartT+=dt; if(smartT>=SMART_SHOW && smartPop<0) return smartHide();
@@ -22158,7 +22162,7 @@ function updateSmartBubble(){
     sc*= q<.3 ? 1+.5*Math.sin(q/.3*Math.PI/2) : 1.5*(1-ease((q-.3)/.7)); op=q<.3 ? 1 : 1-ease((q-.3)/.7); }
   const hop=a<.5 ? Math.abs(Math.sin(a/.5*Math.PI))*26 : Math.max(0,Math.sin((a-.5)*7))*4*Math.exp(-(a-.5)*1.5);   // a hop, then a faint bob
   const [x,y]=smartXY(), u=uiK||1;
-  smartEl.style.visibility='visible'; smartEl.style.opacity=op;
+  smartEl.style.visibility='visible'; smartEl.style.opacity=op*teleK;
   smartEl.style.transform=`translate(${x}px,${y-hop*u}px) translate(-50%,-100%) scale(${sc})`;
 }
 function smartXY(){ cam.updateMatrixWorld();                            // lookAt in updateCam leaves matrixWorldInverse a frame stale until the render — the bubble would lag behind a turning camera
