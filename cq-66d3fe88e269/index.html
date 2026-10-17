@@ -741,7 +741,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
       </div></div></div>
   </div>
   <div class="tbeta" id="tBeta" hidden><div class="card"><h2 data-t>Closed beta</h2>
-    <small data-t="betaTxt">This is a pre-release build for closed beta testing. It is confidential: please do not share, copy, record or publish the game, and do not pass the link on, without the developer's permission.</small>
+    <small data-t="betaTxt">This is a pre-release build for closed beta testing. It is confidential: please do not share, copy, record or publish the game, and do not pass the link on, without the developer's permission. The build sends anonymous gameplay statistics (level progress, deaths, errors and performance) to the developer to improve the game.</small>
     <button class="cta" id="tBetaOk" hidden data-t>Enter the game</button></div></div>
   <div class="tlang" id="tLang"><div class="tlrow" id="tlRow"></div><button type="button" id="tlBtn" data-ta aria-label="Language" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></button></div>
 </div>
@@ -903,12 +903,12 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.7';
+const VERSION = '1.99.8';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
 const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
-if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).slice(0,600)]); if(FB_LOG.length>30) FB_LOG.shift(); }, ce=console.error.bind(console);
+if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).slice(0,600)]); if(FB_LOG.length>30) FB_LOG.shift(); if(FB_LOG.on) FB_LOG.on(String(m)); }, ce=console.error.bind(console);
   console.error=(...a)=>{ lg(a.map(x=>x && x.stack || x).join(' ')); ce(...a); };
   addEventListener('error',e=>lg((e.error && e.error.stack) || e.message)); addEventListener('unhandledrejection',e=>lg('promise: '+((e.reason && e.reason.stack) || e.reason))); }
 /* =====================================================================
@@ -1119,14 +1119,14 @@ const L10N={
   "Replace all progress with this file?":["Заменить весь прогресс данными из файла?","¿Reemplazar todo el progreso con este archivo?","Substituir todo o progresso por este arquivo?","Den gesamten Fortschritt durch diese Datei ersetzen?","Remplacer toute la progression par ce fichier ?","用此文件替换全部进度？","すべての進行状況をこのファイルで置き換えますか？","모든 진행 상황을 이 파일로 바꿀까요?"],
   "This file isn't a save":["Этот файл — не сохранение","Este archivo no es una partida guardada","Este arquivo não é um jogo salvo","Diese Datei ist kein Spielstand","Ce fichier n'est pas une sauvegarde","此文件不是存档","このファイルはセーブデータではありません","이 파일은 저장 데이터가 아닙니다"],
   "Closed beta":["Закрытый бета-тест","Beta cerrada","Beta fechado","Geschlossene Beta","Bêta fermée","封闭测试版","クローズドベータ","비공개 베타"],
-  "betaTxt":["Это предварительная версия для закрытого бета-теста. Она конфиденциальна: не распространяйте, не копируйте, не записывайте и не публикуйте игру и не передавайте ссылку другим без разрешения разработчика.",
-    "Esta es una versión preliminar para la beta cerrada. Es confidencial: no compartas, copies, grabes ni publiques el juego, ni pases el enlace a otros, sin permiso del desarrollador.",
-    "Esta é uma versão preliminar para o beta fechado. Ela é confidencial: não compartilhe, copie, grave nem publique o jogo, nem passe o link adiante, sem a permissão do desenvolvedor.",
-    "Dies ist eine Vorabversion für den geschlossenen Betatest. Sie ist vertraulich: Bitte das Spiel ohne Erlaubnis des Entwicklers nicht weitergeben, kopieren, aufzeichnen oder veröffentlichen und den Link nicht weiterleiten.",
-    "Ceci est une version préliminaire pour la bêta fermée. Elle est confidentielle : ne partagez, ne copiez, n'enregistrez ni ne publiez le jeu, et ne transmettez pas le lien, sans l'autorisation du développeur.",
-    "这是供封闭测试使用的预发布版本，内容保密：未经开发者许可，请勿传播、复制、录制或发布本游戏，也不要将链接转发给他人。",
-    "これはクローズドベータテスト用のリリース前バージョンです。内容は機密です。開発者の許可なく、ゲームを共有・複製・録画・公開したり、リンクを他の人に渡したりしないでください。",
-    "이것은 비공개 베타 테스트용 출시 전 버전입니다. 기밀 사항이므로 개발자의 허락 없이 게임을 공유, 복사, 녹화, 게시하거나 링크를 다른 사람에게 전달하지 마세요."],
+  "betaTxt":["Это предварительная версия для закрытого бета-теста. Она конфиденциальна: не распространяйте, не копируйте, не записывайте и не публикуйте игру и не передавайте ссылку другим без разрешения разработчика. Сборка отправляет разработчику анонимную игровую статистику (прохождение уровней, гибели, ошибки и производительность), чтобы улучшить игру.",
+    "Esta es una versión preliminar para la beta cerrada. Es confidencial: no compartas, copies, grabes ni publiques el juego, ni pases el enlace a otros, sin permiso del desarrollador. Esta versión envía al desarrollador estadísticas de juego anónimas (progreso en los niveles, muertes, errores y rendimiento) para mejorar el juego.",
+    "Esta é uma versão preliminar para o beta fechado. Ela é confidencial: não compartilhe, copie, grave nem publique o jogo, nem passe o link adiante, sem a permissão do desenvolvedor. Esta versão envia ao desenvolvedor estatísticas de jogo anônimas (progresso nos níveis, mortes, erros e desempenho) para melhorar o jogo.",
+    "Dies ist eine Vorabversion für den geschlossenen Betatest. Sie ist vertraulich: Bitte das Spiel ohne Erlaubnis des Entwicklers nicht weitergeben, kopieren, aufzeichnen oder veröffentlichen und den Link nicht weiterleiten. Diese Version sendet anonyme Spielstatistiken (Levelfortschritt, Tode, Fehler und Leistung) an den Entwickler, um das Spiel zu verbessern.",
+    "Ceci est une version préliminaire pour la bêta fermée. Elle est confidentielle : ne partagez, ne copiez, n'enregistrez ni ne publiez le jeu, et ne transmettez pas le lien, sans l'autorisation du développeur. Cette version envoie au développeur des statistiques de jeu anonymes (progression des niveaux, morts, erreurs et performances) pour améliorer le jeu.",
+    "这是供封闭测试使用的预发布版本，内容保密：未经开发者许可，请勿传播、复制、录制或发布本游戏，也不要将链接转发给他人。此版本会向开发者发送匿名游戏统计数据（关卡进度、死亡、错误和性能），用于改进游戏。",
+    "これはクローズドベータテスト用のリリース前バージョンです。内容は機密です。開発者の許可なく、ゲームを共有・複製・録画・公開したり、リンクを他の人に渡したりしないでください。このバージョンは、ゲーム改善のため、匿名のプレイ統計（レベルの進行状況、ミス、エラー、パフォーマンス）を開発者に送信します。",
+    "이것은 비공개 베타 테스트용 출시 전 버전입니다. 기밀 사항이므로 개발자의 허락 없이 게임을 공유, 복사, 녹화, 게시하거나 링크를 다른 사람에게 전달하지 마세요. 이 버전은 게임 개선을 위해 익명 게임 통계(레벨 진행, 사망, 오류, 성능)를 개발자에게 보냅니다."],
   "I agree":["Принимаю","Acepto","Concordo","Einverstanden","J'accepte","我同意","同意する","동의합니다"],
   "A new version of the game is out":["Вышла новая версия игры","Hay una nueva versión del juego","Saiu uma nova versão do jogo","Eine neue Version des Spiels ist da","Une nouvelle version du jeu est sortie","游戏有新版本了","ゲームの新しいバージョンが出ました","게임의 새 버전이 나왔습니다"],
   "Reload the page to get it — your progress is saved.":["Обновите страницу, чтобы получить её, — прогресс сохранён.","Recarga la página para obtenerla: tu progreso está guardado.","Recarregue a página para obtê-la — seu progresso está salvo.","Lade die Seite neu, um sie zu bekommen – dein Fortschritt ist gespeichert.","Rechargez la page pour l’obtenir — votre progression est sauvegardée.","刷新页面即可获取——进度已保存。","ページを再読み込みすると反映されます。進行状況は保存済みです。","페이지를 새로 고치면 받을 수 있습니다. 진행 상황은 저장되어 있습니다."],
@@ -2187,7 +2187,7 @@ const SND = (() => {
   /* Death by cause × material (P.mat: normal — concrete, rubber, paper, wood); lastD — 'cause/mat' for tests */
   let lastD='';
   function death(c,m='normal',s=1){
-    lastD=c+'/'+m; const hi=m==='paper'?1.35:m==='rubber'?1.15:m==='wood'?1.1:1;
+    lastD=c+'/'+m; fbEvDeath(c,m); const hi=m==='paper'?1.35:m==='rubber'?1.15:m==='wood'?1.1:1;
     switch(c){
       case 'void': tone({ f:520*hi, f2:70*hi, d:.8, v:.12, a:.02, wet:.3 }); noise({ d:1.2, v:.05, f:1500*hi, f2:350, q:.9, type:'bandpass', a:.25, wet:.3 }); break;
       case 'crash': hitM(m,clamp(s,.8,1.4)); break;
@@ -16598,6 +16598,7 @@ function goalFlash(){                                                  // the go
 function win(){
   state='win'; goalLock=true; queue=[]; sinkVis=0; dropInput(); SND.win(); goalFlash();   // the idle pose already includes the snow sink; sinkVis would subtract it again every frame
   sparkle(P.x,P.l+.4,P.z,[0xffd66b,0xffffff],30);
+  fbEvEnd('win',{ st:starGot+'/'+starTotal, lv:P.lives });
   lvSave((cur+1)%N); starsProg=bankStars();
   after(.5,()=>{ if(state==='win' && !SH.at) { smartSay(T.cave ? loc("In position. Get me out of here.") : loc("In position. Waiting for the shuttle…"),loc('To the ship'),0); SND.say('ship'); } });   // a radio line to the ship until it takes the cube
   const s=lvSeq; shipPickup(()=>{ if(s===lvSeq){ goalLock=false; smartSayOff(); if(artPend===cur) artShow(showStats); else showStats(); } });   // lvSeq — a level may be loaded meanwhile (tests)
@@ -21615,13 +21616,13 @@ $('xpGo').onclick=()=>{ if(xGo) return; xGo=true; wiping=lvWipe=true; SND.init()
 function fresh(k){ if(xGo) return; slotClear(k); slotTouch(k); if(lvSlot===k) lvSlot=0; xpFresh=k; return enter(k); }   // a new expedition in slot k: zero progress
 function newExp(){ const k=[...Array(SLOTS)].map((_,j)=>j+1).find(j=>!slotUsed(j)); if(k) return fresh(k); xShow('replace'); }
 function toTitle(){                                                    // the menu: back to the title to switch expeditions
-  if(goalLock || wiping || xGo) return; xGo=true; xpSave(); introHide(); showOverlay('title'); logoSpin(); xShow('opt'); SND.init(); SND.titleAmb(true);
+  if(goalLock || wiping || xGo) return; xGo=true; fbEvEnd('quit',{ w:'title' }); xpSave(); introHide(); showOverlay('title'); logoSpin(); xShow('opt'); SND.init(); SND.titleAmb(true);
   setTimeout(()=>{ loadLevel(slotLv(),false,true); lvSlot=slot; xGo=false; },320);   // behind the title once it covers the game: nothing plays on
 }
 /* Closed beta (BETA builds only): the title opens with a confidentiality notice instead of "Tap anywhere to play"; "Enter the game" is that first tap after sign-in.
    Shown at every launch, not after End expedition (the class stays off) */
 function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot') || $('tBetaOk').hidden || $('tBetaOk').disabled) return;
-  t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); }   // hidden/disabled: the tester has not signed in yet (beta/feedback.js)
+  t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); fbEvCfg(); }   // hidden/disabled: the tester has not signed in yet (beta/feedback.js)
 if(BETA && !FBS){ $('title').classList.add('beta'); $('tBeta').hidden=false; $('tBetaOk').hidden=true; $('tBetaOk').disabled=true; }   // beta/feedback.js asks for the tester's nickname, then lets it go
 $('tBetaOk').onclick=e=>{ e.stopPropagation(); betaAgree(e); };
 $('title').onclick=e=>{ if(xMode){ if(!e.target.closest('#xBox')) xBack(); } else titleTap(e); };   // a tap beside the list and its button hides it: back to the start screen
@@ -21680,7 +21681,7 @@ let camFar=0;   // start view: 1 — new level (fully zoomed out from the drop p
 /* The far start view: from the drop point (no pan), zoomed out to the wheel's far limit — enough to see the island from above */
 function camFitLevel(){ pan.set(0,0,0); zoomT=cam.zoom=ZOOM_MIN; cam.updateProjectionMatrix(); }
 function startLevel(){
-  if(!pendingStart) return; pendingStart=false;
+  if(!pendingStart) return; pendingStart=false; fbEvStart();
   if(camFar && camRc){ camRc.t=camFar===1?-1:0; } camFar=0;   // the frozen start view is released: new level — hold 1 s first, then fly in
   shipDrop(P.x,P.z,P.l);
 }
@@ -21817,14 +21818,14 @@ function lvCurtain(mid,open,el='lvw'){                                 // el —
   const w=$(el);
   const slide=(x0,x1,ms,done)=>runAnim(w,[{ transform:'translateX('+x0+')' },{ transform:'translateX('+x1+')' }],ms,'cubic-bezier(.45,0,.55,1)',done);
   w.style.background=bgGrad();
-  slide('-160vw','-30vw',750,()=>{
+  slide('-160vw','-30vw',750,()=>{ fbEvLd=performance.now();
     new Promise(r=>r(mid())).catch(e=>console.error(e)).then(()=>{ open&&open(); slide('-30vw','100vw',750); }); });
 }
 /* Restart curtain: the same idea as lvCurtain, but a clock — the cover sweeps once round the screen centre, then opens the same way */
 function clockCurtain(mid,open){
   const w=$('lvc'), sweep=(cls,done)=>{ w.className=cls; runAnim(w,[{ '--ca':'0deg' },{ '--ca':'405deg' }],800,'cubic-bezier(.45,0,.55,1)',done); };
   w.style.background=bgGrad(); w.style.visibility='visible';
-  sweep('cl',()=>{
+  sweep('cl',()=>{ fbEvLd=performance.now();
     new Promise(r=>r(mid())).catch(e=>console.error(e)).then(()=>{ open&&open(); sweep('op',()=>{ w.getAnimations().forEach(x=>x.cancel()); w.style.visibility='hidden'; }); }); });
 }
 /* Cave and secret-door curtain: a square hole with soft edges shrinks from the screen's edges to the centre (#lvb, --bs), mid() runs behind it,
@@ -21842,7 +21843,7 @@ let lvWipe=false, lvSeq=0, pendingGo=null;   // lvSeq — bumped on every level 
 function goLevel(i,retry,msg){
   if(goalLock || statBusy) return;                                      // restart (R, button) and the menu wait for the stats
   if(wiping){ if(!lvWipe) pendingGo=[i,retry,msg]; return; }            // run once the respawn wipe opens
-  wiping=lvWipe=true; queue=[]; holdDir=null; chargeV=0; lvSeq++;
+  wiping=lvWipe=true; queue=[]; holdDir=null; chargeV=0; lvSeq++; fbEvGo(i);
   if(SH.fly) SH.fly.done=null; if(SH.leave) SH.leave.done=null;          // the win pickup of the level being left must not show its stats
   (retry&&i===cur?clockCurtain:lvCurtain)(async()=>{ loadLevel(i,retry,true); await warm(); await SND.ready(); },
     ()=>{ wiping=lvWipe=false; startLevel(); if(!retry||msg) announce(msg); });
@@ -22334,7 +22335,7 @@ function frame(now){
     if(paused || artLv || artLvTune) artLive(now);
     if(paused){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0);   // the game's loops fade out (stats, award and settings don't hold the master)
       if(artOn) artFrame(now); if(needDraw && !glLost){ needDraw=false; renderer.render(scene,cam); } frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }      // menu open — the world stands still
-    qualityWatch(now-last); tick(now); frameErrN=0; dbgFrame(now,performance.now()-t0,dbgRenT);
+    qualityWatch(now-last); fbEvFrame(now-last); tick(now); frameErrN=0; dbgFrame(now,performance.now()-t0,dbgRenT);
   }
   catch(e){ if(!frameErr || frameErr.message!==e.message){ frameErr=e; console.error(e); }
     if(++frameErrN===FRAME_ERRS) try{ dropInput(); showOverlay('crash'); $('crRestart').focus({ preventScroll:true }); }catch(e2){} }
@@ -22645,10 +22646,69 @@ function fbGo(){
   },300);
   console.info('feedback replay:',FBS.sum);
 }
+/* =====================================================================
+   BETA TELEMETRY (contract: beta/worker/TELEMETRY.md)
+   fbEv(kind, data) queues [at, kind, level id, sublevel, data]; beta/feedback.js takes the queue through window.__cubeFb.evs()
+   and sends it to the worker only for a signed-in tester. Off (a no-op) outside the beta page, in tests and in a feedback replay.
+   A level stay (fbEvSt) opens on start (startLevel) and ends with win / restart / quit, which also send its perf: fps sampled
+   every FB_EV_WIN ms of unpaused play (fbEvFrame from frame()). A sublevel visit stays inside its parent's stay
+   ===================================================================== */
+const FB_EV_MAX=500, FB_EV_WIN=2000, FB_EV_SMAX=1800;
+let fbEvOn=BETA && !FBS && !TEST, fbEvQ=[], fbEvSt=null, fbEvLd=0, fbEvR=0, fbEvIn=false, fbEvCfgd=false, fbEvHook=null;
+const fbEvErrs=new Set();
+function fbEv(k,d,lv){
+  if(!fbEvOn || fbEvIn) return; fbEvIn=true;
+  try{ fbEvQ.push([Date.now(),k,lv!==undefined ? lv : lvId(cur)||null,subLv||null,d||{}]); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); }
+  catch(e){} finally{ fbEvIn=false; }
+}
+const fbEvT=()=>Math.round(STAT.t*10)/10;
+/* The ship drops the cube (startLevel): a level begins for the player. ld — how long the curtain was closed (fbEvLd, set by the curtains) */
+function fbEvStart(){
+  if(!fbEvOn) return; if(fbEvSt) fbEvEnd('quit',{ w:'level' });
+  fbEv('start',{ r:fbEvR, ld:fbEvLd ? Math.round(performance.now()-fbEvLd) : 0 }); fbEvR=0; fbEvLd=0;
+  fbEvSt={ i:cur, s:[], n:0, ms:0 };
+}
+/* The stay ends: the event (t added), then its perf; the beta UI is told to send now */
+function fbEvEnd(k,d){
+  const S=fbEvSt; if(!S) return; fbEvSt=null; if(!fbEvOn) return;
+  fbEv(k,{ t:fbEvT(), ...d });
+  const s=S.s.slice(); if(S.n && S.ms>=500) s.push(S.n*1000/S.ms);
+  if(s.length){ const a=s.slice().sort((x,y)=>x-y), r1=v=>Math.round(v*10)/10;
+    fbEv('perf',{ fps:r1(s.reduce((x,y)=>x+y,0)/s.length), lo:r1(a[Math.floor((a.length-1)*.05)]), q:qStep, mode:qMode, n:s.length }); }
+  if(fbEvHook) setTimeout(()=>{ try{ fbEvHook(); }catch(e){} },0);
+}
+/* goLevel (past its guards): leaving a running level — the same one again is a restart, another one a quit */
+function fbEvGo(i){ fbEvLd=0; if(!fbEvSt) return; const same=((i%N)+N)%N===cur; fbEvEnd(same ? 'restart' : 'quit',same ? {} : { w:'level' }); fbEvR=same ? 1 : 0; }
+function fbEvFrame(ms){
+  const S=fbEvSt; if(!S || ms>250 || wiping || lvWipe || state==='intro' || state==='win' || document.hidden) return;
+  S.n++; S.ms+=ms; if(S.ms<FB_EV_WIN) return;
+  S.s.push(S.n*1000/S.ms); S.n=S.ms=0; if(S.s.length>FB_EV_SMAX) S.s.shift();
+}
+function fbEvDeath(c,m){ if(fbEvOn && P) fbEv('death',{ c, m, x:Math.round(P.x), z:Math.round(P.z), l:Math.round(P.l*100)/100 }); }
+function fbEvErr(msg,lv){
+  if(!fbEvOn) return; const s=String(msg||''), m=s.split('\n')[0].slice(0,300); if(!m || fbEvErrs.has(m) || fbEvErrs.size>=200) return;
+  fbEvErrs.add(m); fbEv('err',{ m, s:s.slice(0,600) },lv);
+}
+/* "Enter the game": the settings once a session; once a VERSION per device every level's data (names, stars, the h rows) */
+function fbEvCfg(){
+  if(!fbEvOn || fbEvCfgd) return; fbEvCfgd=true; const v=SND.vol||{};
+  fbEv('cfg',{ q:qMode, lang, mus:+v.mus, sfx:+v.sfx, amb:+v.amb, cam:camBtnN!=='0', fs:fsAuto, pwa:matchMedia('(display-mode: standalone)').matches || !!navigator.standalone });
+  if(LSR.get('cube-fb-lvinfo','')===VERSION) return;
+  const levels={};
+  LEVELS.forEach((d,i)=>{ let st=0, sc=0; try{ const s=defStars(d); st=s.open.length; sc=s.sec.length; }catch(e){}
+    levels[d.id]={ n:d.name, a:(AREAS[areaOf(i)]||{}).id||'', no:lvNo(i), st, sc, h:d.h }; });
+  fbEv('lvinfo',{ levels },null); LSR.set('cube-fb-lvinfo',VERSION);
+}
+if(fbEvOn){
+  FB_LOG.forEach(e=>fbEvErr(e[1],null)); FB_LOG.on=m=>fbEvErr(m);   // boot.js logs every console error and uncaught error / rejection
+  addEventListener('pagehide',()=>fbEvEnd('quit',{ w:'close' }));
+}
 /*web{*/
 if(BETA && !FBS){
   window.__cubeFb={ snap:fbSnap, shot:fbShot, get lang(){ return lang; }, ver:VERSION,
-    pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
+    pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut,
+    evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
+    get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
   const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the button and the sign-in (failed to load — enter without a nickname)
 }

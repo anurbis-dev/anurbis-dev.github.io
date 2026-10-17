@@ -418,5 +418,37 @@ let inPlay=false;
 setInterval(()=>{ const p=!!(acct && FB.busy); if(p && !inPlay) inPull(); inPlay=p; },2000);   // "Enter the game" — the session starts now
 addEventListener('pagehide',()=>{ if(acct && FB.busy) post('/tester/bye',{ tok:acct.tok },true).catch(()=>{}); });
 
+
+/* Gameplay telemetry (beta/worker/TELEMETRY.md): the game queues events (window.__cubeFb.evs / evBack), this sends them to POST /ev
+   for a signed-in tester only — every EV_EVERY while playing, right after a level ends (win / restart / quit) and as a beacon when the
+   page hides. A failed send puts the events back (the game keeps at most 500); 401/403 — stop for this page load, 429/503 — back off */
+const EV_EVERY=60e3, EV_BATCH=200, EV_SID=[...crypto.getRandomValues(new Uint8Array(6))].map(b=>b.toString(16).padStart(2,'0')).join('');
+const EV_BEACON=60000, EV_URL=()=>API.replace(/\/$/,'')+'/ev';
+let evBusy=false, evStop=false, evWait=0, evDelay=0;
+const evBody=a=>({ tok:acct.tok, sid:EV_SID, ver:FB.ver, dev:devInfo.id, ev:a });
+async function evSend(){
+  if(!FB.evs || !acct || evStop || evBusy || !FB.evN || Date.now()<evWait) return; evBusy=true;
+  const a=FB.evs(EV_BATCH);
+  try{ const r=await fetch(EV_URL(),{ method:'POST', headers:{ 'content-type':'text/plain' }, body:JSON.stringify(evBody(a)) });   // text/plain: no CORS preflight; no keepalive (lvinfo may pass its 64 KB)
+    if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{ status:r.status }); evDelay=0; }
+  catch(e){ FB.evBack(a);
+    if(e.status===401 || e.status===403) evStop=true;
+    else{ evDelay=Math.min(Math.max(evDelay*2,e.status===429 || e.status===503 ? 120e3 : 30e3),1800e3); evWait=Date.now()+evDelay; } }
+  finally{ evBusy=false; }
+}
+function evBeacon(){
+  if(!FB.evs || !acct || evStop || !FB.evN || !navigator.sendBeacon) return;
+  const a=FB.evs(EV_BATCH); let n=a.length;
+  while(n>1 && JSON.stringify(evBody(a.slice(0,n))).length>EV_BEACON) n=Math.ceil(n/2);   // a beacon carries ~64 KB: the rest waits for the next send
+  if(n<a.length) FB.evBack(a.slice(n)); const b=a.slice(0,n);
+  try{ if(!navigator.sendBeacon(EV_URL(),new Blob([JSON.stringify(evBody(b))],{ type:'text/plain' }))) FB.evBack(b); }catch(e){ FB.evBack(b); }
+}
+if(FB.evs){
+  FB.evEnd=()=>evSend().catch(()=>{});
+  setInterval(()=>{ if(FB.busy && !document.hidden) evSend().catch(()=>{}); },EV_EVERY);
+  addEventListener('pagehide',evBeacon);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) evBeacon(); });
+}
+
 gMode_('new'); gSync(); syncStart(); inPull();
 })();

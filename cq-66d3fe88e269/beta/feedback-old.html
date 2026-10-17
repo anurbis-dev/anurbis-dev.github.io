@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Data Cube · Отзывы</title>
+<!-- The beta feedback dashboard: every report from the worker's /list (GitHub issues of the private feedback repo), filters, the screenshot,
+     the voice note, the device and game details, close / reopen (a closed bug tells its tester it was fixed), replies to the tester
+     (shown in their game), "Open in game" (fb.html replays the moment), and the testers' accounts (rename, PIN, ban, delete).
+     Needs the worker's READ_KEY (?k= once — it is remembered in this browser) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
+<script src="config.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#140d26;--bg2:#1d1436;--card:#251a45;--card2:#2e2155;--line:#3b2c6b;--txt:#ece6fb;--dim:#a99cc9;--gold:#ffd66b;--bug:#ff7a8a;--op:#8fb8ff;--ok:#8be3a0}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.45 Nunito,system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--gold)}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;background:linear-gradient(90deg,#261a48,#3b2a6e);border-bottom:1px solid var(--line)}
+header h1{margin:0;font:600 20px Fredoka,sans-serif;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+header h1 svg{width:26px;height:26px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.08);font-weight:700;font-size:13px;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--txt)}
+.btn:hover{background:var(--card2)}
+.btn.pri{background:var(--gold);color:#2a1d50;border-color:var(--gold);font-weight:800}
+.btn.pri:hover{filter:brightness(1.06)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.bar input[type=search]{flex:1 1 220px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.bar select{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 8px;max-width:200px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--card);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--gold);color:#2a1d50;font-weight:800}
+main{display:grid;grid-template-columns:minmax(300px,400px) 1fr;height:calc(100% - var(--top,110px))}
+#list{overflow:auto;border-right:1px solid var(--line)}
+.item{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;position:relative}
+.item:hover{background:rgba(255,255,255,.03)}
+.item.on{background:var(--card)}
+.item.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+.item.closed{opacity:.55}
+.item.new .it-top b::after{content:'новый';margin-left:6px;padding:0 6px;border-radius:8px;background:var(--gold);color:#000;font-size:11px;font-weight:600}
+.item.chg .it-top b::after{content:'изменён';margin-left:6px;padding:0 6px;border-radius:8px;background:rgba(255,255,255,.18);font-size:11px;font-weight:600}
+#live{color:var(--dim);font-size:12px;white-space:nowrap}
+.thumb{width:92px;height:58px;border-radius:7px;background:#0d0819 center/cover no-repeat;border:1px solid var(--line);display:grid;place-items:center;color:var(--dim);font-size:20px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.it-top{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.it-top b{color:var(--txt);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kind{width:9px;height:9px;border-radius:50%;flex:none}
+.kind.bug{background:var(--bug)} .kind.opinion{background:var(--op)}
+.it-text{margin:2px 0 3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13.5px}
+.it-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+.empty{padding:40px 20px;text-align:center;color:var(--dim)}
+#det{overflow:auto;padding:20px 26px 40px}
+.dh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dh h2{margin:0;font:600 22px Fredoka,sans-serif}
+.badge{padding:2px 10px;border-radius:99px;font-weight:800;font-size:12px}
+.badge.bug{background:rgba(255,122,138,.18);color:var(--bug)} .badge.opinion{background:rgba(143,184,255,.18);color:var(--op)}
+.badge.closed{background:rgba(139,227,160,.15);color:var(--ok)}
+.sub{color:var(--dim);margin:4px 0 14px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.shot{display:block;max-width:100%;max-height:62vh;border-radius:12px;border:1px solid var(--line);cursor:zoom-in;background:#0d0819}
+blockquote{margin:16px 0;padding:12px 16px;background:var(--card);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;font-size:15.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+audio{width:100%;max-width:520px;margin:4px 0 12px}
+.grid{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:14px 0;background:var(--bg2);padding:14px 16px;border-radius:12px;border:1px solid var(--line)}
+.grid dt{color:var(--dim)} .grid dd{margin:0;overflow-wrap:anywhere}
+details{margin:12px 0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+details summary{cursor:pointer;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.4 ui-monospace,Consolas,monospace;color:#ffc9d1;margin:10px 0 0}
+#lb{position:fixed;inset:0;background:rgba(5,3,12,.92);display:grid;place-items:center;z-index:9;cursor:zoom-out}
+#lb[hidden],#gate[hidden]{display:none}
+#lb img{max-width:96vw;max-height:94vh;border-radius:8px}
+#gate{max-width:420px;margin:12vh auto;padding:24px;background:var(--card);border-radius:16px;border:1px solid var(--line);display:grid;gap:12px}
+#gate input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.err{color:var(--bug)}
+.back{display:none}
+.rep{margin:16px 0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.rep h3{margin:0;font:600 16px Fredoka,sans-serif}
+.rep .r{background:var(--card);border-radius:10px;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.rep .r small,.rep .note{display:block;color:var(--dim);font-size:12px;white-space:normal}
+.rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-height:70px;resize:vertical;font:inherit;color:inherit;width:100%}
+.rep .row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+#tpOpen .n{min-width:20px;padding:0 6px;border-radius:99px;background:var(--gold);color:#2a1d50;font-weight:800;font-size:12px;text-align:center}
+#tpOpen .n:empty{display:none}
+#tpOpen .on{color:var(--ok);font-size:12px;font-weight:800}
+#tpOpen .on:empty{display:none}
+#tpOpen[aria-pressed=true]{background:var(--card2);border-color:var(--gold)}
+#tp{display:none;overflow:auto;height:calc(100% - var(--hh,60px));padding:16px 18px 40px}
+body.tpv #tp{display:block}
+body.tpv #bar,body.tpv #main{display:none!important}
+.tpw{max-width:1200px;margin:0 auto;display:grid;gap:14px}
+.tph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tph h2{margin:0;font:600 22px Fredoka,sans-serif}
+.tph input[type=search]{flex:0 1 240px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.tph select{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tile b{display:block;font:600 22px Fredoka,sans-serif}
+.tile span{color:var(--dim);font-size:12.5px}
+.tc{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:12px}
+.tc.ban{border-color:rgba(255,122,138,.5)}
+.tc.ban .tn{color:var(--bug)}
+.tc-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tn{font:600 19px Fredoka,sans-serif;cursor:pointer} .tn:hover{color:var(--gold)}
+.tc-h .a{display:flex;gap:6px;margin-left:auto}
+.tc-h .a .btn{padding:3px 9px;font-size:13px}
+.lv{color:var(--ok);font-weight:800;font-size:13px}
+.lv::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+.tc-m{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--dim);font-size:13px}
+.tc-m code{color:var(--txt)} .tc-m a{cursor:pointer}
+.ks{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ks div{background:var(--card);border-radius:10px;padding:7px 12px}
+.ks b{display:block;font-size:16px} .ks span{color:var(--dim);font-size:12px}
+.tbl{overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--dim);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.tbl td small{display:block;color:var(--dim);font-size:11.5px}
+.tbl tr.now td:first-child b::after{content:' ●';color:var(--ok)}
+.tc details{margin:0;background:none;border:0;padding:0}
+.tc .none{color:var(--dim);font-size:13px}
+.cc{font-size:13px;color:var(--dim);font-weight:700}
+.xp{display:grid;gap:6px}
+.xp h4{margin:4px 0 0;font-size:14px} .xp h4 small{color:var(--dim);font-weight:600;font-size:12.5px;margin-left:8px}
+.tbl tr.ar td{color:var(--dim);font-weight:800;font-size:12px;padding-top:10px}
+.tbl tr.cur td:nth-child(2) b::after{content:' ◀ сейчас';color:var(--ok);font-size:11.5px}
+@media (max-width:640px){ #tp{padding:12px 10px 40px} .tc{padding:12px} .tc-h .a{margin-left:0} }
+@media (max-width:860px){
+  main{grid-template-columns:1fr}
+  #det{display:none;position:fixed;inset:0;background:var(--bg);z-index:5;padding:14px 16px 40px}
+  body.det #det{display:block}
+  .back{display:inline-flex}
+  .bar select{max-width:140px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><svg viewBox="0 0 32 32"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="#7a5bd0"/><path d="M16 3 28 9.5 16 16 4 9.5z" fill="#ffd66b"/><path d="M16 16v13L4 22.5v-13z" fill="#5a3fb0"/></svg>Data Cube · Отзывы</h1>
+  <div class="stats" id="stats"></div>
+  <span class="sp"></span>
+  <button class="btn" id="tpOpen" title="Игроки: устройства, сессии, время игры" aria-pressed="false">👥 Игроки <span class="n" id="tpN"></span><span class="on" id="tpOn"></span></button>
+  <span id="live" title="Список обновляется сам"></span><button class="btn" id="reload" title="Обновить (R)">⟳ Обновить</button>
+</header>
+<div class="bar" id="bar">
+  <input type="search" id="q" placeholder="Поиск: текст, игрок, уровень, устройство…">
+  <div class="seg" id="kindSeg"><button data-v="">Все</button><button data-v="bug">🐞 Ошибки</button><button data-v="opinion">💬 Впечатления</button></div>
+  <div class="seg" id="stateSeg"><button data-v="open">Открытые</button><button data-v="closed">Закрытые</button><button data-v="">Все</button></div>
+  <select id="tester"></select>
+  <select id="ver"></select>
+  <select id="lv"></select>
+</div>
+<main id="main" hidden><div id="list"></div><div id="det"></div></main>
+<div id="gate" hidden>
+  <b style="font:600 18px Fredoka">Ключ доступа</b>
+  <span style="color:var(--dim)">Ключ <code>READ_KEY</code> есть в каждой ссылке «Открыть в игре» в issue (параметр <code>k=</code>). Он сохранится в этом браузере.</span>
+  <input id="keyIn" placeholder="READ_KEY" autocomplete="off">
+  <button class="btn pri" id="keyGo">Войти</button>
+  <span class="err" id="gateErr"></span>
+</div>
+<div id="lb" hidden><img alt=""></div>
+<div id="tp"><div class="tpw"><div class="tph"><button class="btn" id="tpClose" title="К отзывам (Esc)">← Отзывы</button><h2>👥 Игроки</h2><span class="sp"></span><input type="search" id="tpQ" placeholder="Ник, устройство, браузер…"><select id="tpSort"><option value="last">Недавно играли</option><option value="time">Больше всего играли</option><option value="at">Новые</option><option value="nick">По нику</option></select></div><div class="tiles" id="tpSum"></div><div id="tpBody" class="tpw"></div></div></div>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id), q=new URLSearchParams(location.search);
+const API=(q.get('api')||window.CUBE_FB_API||'').replace(/\/$/,'');
+const LSg=(k,d)=>{ try{ return localStorage.getItem(k)??d; }catch(e){ return d; } }, LSs=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
+let KEY=q.get('k')||LSg('cube-fb-key','');
+if(q.get('k')){ LSs('cube-fb-key',KEY); history.replaceState(null,'',location.pathname+location.hash); }
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rtf=new Intl.RelativeTimeFormat('ru',{ numeric:'auto' });
+const ago=t=>{ const s=(new Date(t)-Date.now())/1000, a=Math.abs(s);
+  return a<60 ? 'только что' : a<3600 ? rtf.format(Math.round(s/60),'minute') : a<86400 ? rtf.format(Math.round(s/3600),'hour') : a<86400*30 ? rtf.format(Math.round(s/86400),'day') : new Date(t).toLocaleDateString('ru'); };
+const full=t=>new Date(t).toLocaleString('ru',{ day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+const mm=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+const media=(id,f)=>`${API}/media/${id}/${f}?k=${encodeURIComponent(KEY)}`;
+const F={ q:'', kind:'', state:LSg('cube-fb-state','open'), tester:'', ver:'', lv:'' };
+let all=[], shown=[], cur=null;
+
+/* Data */
+/* Live: the list polls the worker (POLL while the tab is shown, POLL_BG behind it, at once on return); objects keep their identity
+   across loads (the open report, its buttons and the reply box stay), new reports get a «новый» mark, the tab title counts them */
+const POLL=20e3, POLL_BG=60e3, sig=r=>[r.state,r.comments,r.up,r.title,r.nick].join('|');
+let loadAt=0, loading=false, unseen=0, firstLoad=true, defer=false;
+async function load(quiet){
+  if(loading) return; loading=true; if(!quiet) $('reload').disabled=true;
+  try{ const r=await fetch(API+'/list?k='+encodeURIComponent(KEY),{ cache:'no-store' });
+    if(r.status===403) return gate('Неверный ключ');
+    if(!r.ok) throw new Error('HTTP '+r.status+' '+await r.text());
+    const old=new Map(all.map(x=>[x.n,x])), was=cur && sig(cur), n0=all.length; let fresh=0, diff=false;
+    all=(await r.json()).map(norm).map(x=>{ const o=old.get(x.n);
+      if(!o){ if(!firstLoad){ x.fresh=true; fresh++; } return x; }
+      const ch=sig(o)!==sig(x); if(ch) diff=true; const keep={ fresh:o.fresh, chg:o.chg||(ch && !firstLoad && o!==cur), reps:o.reps };
+      for(const k of Object.keys(o)) delete o[k]; return Object.assign(o,x,keep); });
+    const hash=firstLoad && location.hash.match(/^#(\d+)$/), hr=hash && all.find(x=>x.n===+hash[1]);   // a link from a notification
+    if(hr) [['stateSeg','state'],['kindSeg','kind']].forEach(([id,k])=>{ if(F[k] && hr[k]!==F[k]){ F[k]=''; [...$(id).children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===''))); } });
+    const c0=cur; firstLoad=false; LSs('cube-fb-key',KEY); $('gate').hidden=true; $('main').hidden=false;
+    if(fresh){ unseen+=fresh; ping(fresh); }
+    if(!tpAt) tpLoad(true);
+    if(diff || fresh || all.length!==n0 || !quiet){ fill(); render(); }   // nothing new: the list is left alone (hover, scroll, images)
+    if(hr) show(hr); else if(c0) detRefresh(was); loadAt=Date.now(); liveTxt(); title(); }
+  catch(e){ if(quiet && all.length) $('live').textContent='⚠ нет связи'; else { $('list').innerHTML='<div class="empty err">Не удалось загрузить: '+esc(e.message)+'</div>'; $('main').hidden=false; } }
+  finally{ loading=false; $('reload').disabled=false; }
+}
+/* The open report: drawn again only when it changed (the reply draft and its caret survive; a playing voice note waits for its end),
+   its replies are re-read on every load (a reply just read in the game turns ✓) */
+function detRefresh(was){
+  if(!cur || !all.includes(cur)) return;
+  if(was===sig(cur) && !defer){ if(cur.tester && $('repList')) repLoad(cur); return; }
+  const a=$('det').querySelector('audio'); if(a && !a.paused){ defer=true; a.onpause=a.onended=()=>{ if(defer) detRefresh(null); }; return; }
+  defer=false; const t=$('repText'), v=t && t.value, f=t && document.activeElement===t, s0=t && t.selectionStart, s1=t && t.selectionEnd, y=$('det').scrollTop;
+  show(cur,true); $('det').scrollTop=y;
+  if(v && $('repText')){ $('repText').value=v; if(f){ $('repText').focus(); $('repText').setSelectionRange(s0,s1); } }
+}
+const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · '+(tpv() ? 'Игроки' : 'Отзывы'); };
+const liveTxt=()=>{ if(!loadAt) return; const s=Math.round((Date.now()-loadAt)/1000); $('live').textContent='● обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад'); };
+function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a system notification
+  try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
+    g.gain.setValueAtTime(.0001,c.currentTime); g.gain.exponentialRampToValueAtTime(.15,c.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.45);
+    o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.5); o.onended=()=>c.close(); }catch(e){}
+  if(document.hidden && window.Notification && Notification.permission==='granted') try{ new Notification('Data Cube · новых отзывов: '+n,{ body:all.filter(r=>r.fresh).slice(0,n).map(r=>r.who+': '+(r.text||'').slice(0,80)).join('\n'), tag:'cube-fb' }); }catch(e){}
+}
+function norm(i){ const b=i.body||'', m=i.meta||{}, s=m.sum||{};
+  if(!i.meta){ const id=(b.match(/[?&/]id=(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||b.match(/fb\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||[])[1];   // a report filed before the fbmeta comment
+    if(id){ m.id=id; m.snap=/fb\.html\?id=/.test(b); m.shot=/shot\.jpg/.test(b); m.voice=(b.match(/voice\.(webm|ogg|m4a)/)||[])[1]||null; }
+    m.text=((b.match(/^> (.*)$/gm)||[]).map(l=>l.slice(2)).join('\n'))||null; }
+  const tester=m.tester||(i.labels.find(l=>l.startsWith('tester:'))||'').slice(7);
+  const kind=m.kind||(i.labels.includes('opinion') ? 'opinion' : 'bug'), text=m.text??(i.body||'').replace(/<[^>]+>/g,'').slice(0,600);
+  const nick=i.nick||m.nick||'';
+  return { ...i, m, s, tester, nick, who:nick||tester||'—', kind, text, ver:s.ver||(i.labels.find(l=>/^v\d/.test(l))||'').slice(1),
+    lv:s.level||'', hay:[text,nick,tester,s.level,s.sub,s.area,s.ua,s.ui,s.lang,'#'+i.n].join(' ').toLowerCase() }; }
+function opts(sel,key,label,list){ const v=$(sel).value; const c={}; for(const r of all) if(r[key]) c[r[key]]=(c[r[key]]||0)+1;
+  const keys=Object.keys(c).sort(list||((a,b)=>c[b]-c[a]));
+  $(sel).innerHTML='<option value="">'+label+'</option>'+keys.map(k=>`<option value="${esc(k)}">${esc(sel==='tester' ? (all.find(r=>r.tester===k).nick||k) : k)} (${c[k]})</option>`).join('');
+  $(sel).value=keys.includes(v) ? v : ''; }
+function fill(){
+  opts('tester','tester','Все игроки'); opts('ver','ver','Все версии',(a,b)=>b.localeCompare(a,undefined,{ numeric:true })); opts('lv','lv','Все уровни');
+  const open=all.filter(r=>r.state==='open'), n=k=>open.filter(r=>r.kind===k).length;
+  $('stats').innerHTML=`<span class="pill"><i style="background:var(--bug)"></i>${n('bug')} ошибок</span><span class="pill"><i style="background:var(--op)"></i>${n('opinion')} впечатлений</span><span class="pill" style="color:var(--dim)">${all.length} всего · ${new Set(all.map(r=>r.tester)).size} игроков</span>`;
+}
+
+/* List */
+function render(){
+  const t=F.q.trim().toLowerCase();
+  shown=all.filter(r=>(!F.kind || r.kind===F.kind) && (!F.state || r.state===F.state) && (!F.tester || r.tester===F.tester) && (!F.ver || r.ver===F.ver) && (!F.lv || r.lv===F.lv) && (!t || r.hay.includes(t)));
+  $('list').innerHTML=shown.length ? shown.map(r=>`<div class="item${r.state==='closed' ? ' closed' : ''}${cur && cur.n===r.n ? ' on' : ''}${r.fresh ? ' new' : r.chg ? ' chg' : ''}" data-n="${r.n}">
+    <div class="thumb">${r.m.shot ? `<img loading="lazy" src="${media(r.m.id,'shot.jpg')}" alt="">` : (r.kind==='bug' ? '🐞' : '💬')}</div>
+    <div style="min-width:0"><div class="it-top"><span class="kind ${r.kind}"></span><b>${esc(r.who)}</b><span>· ${ago(r.at)}</span><span class="sp"></span><span>#${r.n}</span></div>
+    <div class="it-text">${esc(r.text||'(без текста)')}</div>
+    <div class="it-meta">${r.lv ? '<span>📍 '+esc(r.lv)+(r.s.sub ? ' → '+esc(r.s.sub) : '')+'</span>' : ''}${r.m.voice ? '<span>🎤 '+mm(r.m.dur||0)+'</span>' : ''}${(r.s.errs||[]).length ? '<span style="color:var(--bug)">⚠ '+r.s.errs.length+'</span>' : ''}${r.ver ? '<span>v'+esc(r.ver)+'</span>' : ''}${r.s.w ? '<span>'+(r.s.w>r.s.h ? '▭' : '▯')+' '+r.s.w+'×'+r.s.h+'</span>' : ''}</div></div></div>`).join('')
+    : '<div class="empty">Ничего не найдено</div>';
+  if(cur && !shown.some(r=>r.n===cur.n)) cur=null;
+  if(!cur && shown.length && innerWidth>860) show(shown[0],true); else if(!cur) $('det').innerHTML='<div class="empty">Выберите отзыв слева</div>';
+}
+$('list').onclick=e=>{ const it=e.target.closest('.item'); if(it) show(all.find(r=>r.n===+it.dataset.n)); };
+
+/* Details */
+function show(r,quiet){
+  cur=r; if(!quiet || document.hasFocus()){ if(r.fresh){ r.fresh=false; unseen=Math.max(0,unseen-1); title(); } r.chg=false; }
+  document.querySelectorAll('.item').forEach(e=>{ e.classList.toggle('on',+e.dataset.n===r.n); if(+e.dataset.n===r.n && !r.fresh && !r.chg) e.classList.remove('new','chg'); });
+  if(history.replaceState && !tpv()) history.replaceState(null,'','#'+r.n);
+  if(!quiet){ document.body.classList.add('det'); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
+  const s=r.s, m=r.m, q=s.q||{};
+  const row=(a,b)=>b ? `<dt>${a}</dt><dd>${b}</dd>` : '';
+  const replay=m.snap && m.id ? `fb.html?id=${m.id}&k=${encodeURIComponent(KEY)}` : null;
+  $('det').innerHTML=`
+    <div class="dh"><button class="btn back" id="back">← Назад</button><span class="badge ${r.kind}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'}</span>${r.state==='closed' ? '<span class="badge closed">✓ закрыт</span>' : ''}<h2>${esc(r.who)}</h2><span style="color:var(--dim)">#${r.n}</span></div>
+    <div class="sub">${full(r.at)} · ${ago(r.at)}${r.tester ? ' · игрок <code>'+esc(r.tester)+'</code>' : ''}</div>
+    <div class="acts">
+      ${replay ? `<a class="btn pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : ''}
+      <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>
+      <button class="btn" id="st"${r.state==='open' && r.kind==='bug' && r.tester ? ' title="Игрок получит сообщение «Баг исправлен»"' : ''}>${r.state==='open' ? '✓ Закрыть' : '↺ Открыть снова'}</button>
+      <span class="sp"></span><button class="btn" id="prev" title="Предыдущий (↑ / K)">↑</button><button class="btn" id="next" title="Следующий (↓ / J)">↓</button>
+    </div>
+    ${m.shot ? `<img class="shot" id="shot" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">` : ''}
+    <blockquote>${esc(r.text||'(без текста)')}</blockquote>
+    ${m.voice ? `<audio controls preload="none" src="${media(m.id,'voice.'+m.voice)}"></audio>` : ''}
+    <dl class="grid">
+      ${row('Где', s.level ? esc(s.level)+(s.sub ? ' → '+esc(s.sub) : '')+` <span style="color:var(--dim)">(${esc(s.area)} #${esc(s.n)}, <code>${esc(s.lvId)}</code>)</span>` : '')}
+      ${row('Экран', s.ui!=null ? esc(s.ui||'игра')+' · состояние <code>'+esc(s.state)+'</code>' : '')}
+      ${row('Забег', s.lives!=null ? `жизни ${esc(s.lives)} · звёзды ${esc(s.stars)} · ${esc(s.t)} с на уровне` : '')}
+      ${row('Окно', s.w ? `${s.w}×${s.h} @${esc(s.dpr)} · ${esc(s.orient)}` : '')}
+      ${row('Графика', q.mode ? `${esc(q.mode)} · шаг ${esc(q.step)} · ~${esc(q.fps)} fps · DPR ${esc(q.dpr)}` : '')}
+      ${row('Язык · слот', s.lang ? esc(s.lang)+' · слот '+esc(s.slot) : '')}
+      ${row('Версия', r.ver ? 'v'+esc(r.ver) : '')}
+      ${row('Устройство', esc(s.ua))}
+    </dl>
+    ${r.tester ? `<div class="rep" id="rep"><h3>↩ Ответы игроку</h3><div id="repList"><span class="note">Загрузка…</span></div>
+      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter — отправить)"></textarea>
+      <div class="row"><span class="note" id="repMsg"></span><span class="sp"></span><button class="btn pri" id="repGo">Отправить ответ</button></div></div>` : ''}
+    ${(s.errs||[]).length ? `<details open><summary>⚠ Ошибки консоли (${s.errs.length})</summary><pre>${esc(s.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}`;
+  if(r.tester){ $('repGo').onclick=()=>replySend(r); $('repText').onkeydown=e=>{ if(e.key==='Enter' && (e.ctrlKey || e.metaKey)) replySend(r); }; repLoad(r); }
+  $('st').onclick=()=>setState(r); $('prev').onclick=()=>step(-1); $('next').onclick=()=>step(1);
+  $('back').onclick=()=>document.body.classList.remove('det');
+  if($('shot')) $('shot').onclick=()=>{ $('lb').querySelector('img').src=$('shot').src; $('lb').hidden=false; };
+}
+/* Replies: GitHub comments marked by the worker, plus a message in the tester's inbox until their game shows it */
+const api=(path,body)=>fetch(`${API}${path}${path.includes('?') ? '&' : '?'}k=${encodeURIComponent(KEY)}`,body ? { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) } : { cache:'no-store' })
+  .then(async x=>{ let d={}; try{ d=await x.json(); }catch(e){} if(!x.ok) throw new Error(d.error||'HTTP '+x.status); return d; });
+const repRow=p=>`<div class="r">${esc(p.text)}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`;
+async function repLoad(r){
+  try{ const d=await api(`/issue/${r.n}/reply`); if(cur!==r) return; r.reps=d.replies;
+    $('repList').innerHTML=(d.replies.map(repRow).join('')||'<span class="note">Ответов пока нет</span>')
+      +(d.fixed ? `<span class="note">🔔 Сообщение «Баг исправлен» — ${d.fixedWait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : ''); }
+  catch(e){ if(cur===r) $('repList').innerHTML='<span class="note err">Не удалось загрузить ответы: '+esc(e.message)+'</span>'; }
+}
+async function replySend(r){
+  const text=$('repText').value.trim(); if(!text || $('repGo').disabled) return;
+  $('repGo').disabled=true; $('repMsg').textContent='Отправка…';
+  try{ await api(`/issue/${r.n}/reply`,{ text }); r.comments=(r.comments||0)+1; if(cur!==r) return;
+    $('repText').value=''; $('repMsg').textContent='Отправлено — игрок увидит в игре'; repLoad(r); }
+  catch(e){ if(cur===r) $('repMsg').textContent='Не удалось: '+e.message; }
+  finally{ if(cur===r) $('repGo').disabled=false; }
+}
+
+/* Testers: a page of its own (#testers, the header button with their number) — every account with its play statistics from the
+   worker (stats: sessions, time, devices; live: the session going on now) and the account actions (rename, PIN, ban, delete) */
+let tps=[], tpAt=0, tpBusy=false;
+const TP_POLL=120e3, TP_POLL_BG=600e3;
+const tpv=()=>document.body.classList.contains('tpv');
+const hm=ms=>{ const m=Math.round((ms||0)/60e3); return m<1 ? (ms>0 ? '<1 мин' : '0') : m<60 ? m+' мин' : Math.floor(m/60)+' ч '+String(m%60).padStart(2,'0')+' мин'; };
+const nf=(n,a,b,c)=>{ n=Math.abs(n)%100; const d=n%10; return n>10 && n<20 ? c : d===1 ? a : d>1 && d<5 ? b : c; };
+/* A device from what the beta page sent: name (model or kind), OS, browser */
+function uaOf(d){
+  const ua=d.ua||'', g=(re,i=1)=>(ua.match(re)||[])[i]||'';
+  let os='', name='', kind='💻';
+  if(/Android/.test(ua)){ os='Android '+(d.osv && /Android/i.test(d.os||'Android') ? d.osv.split('.')[0] : g(/Android ([\d.]+)/)); const m=d.model||g(/Android [\d.]+; ([^;)]+?)(?: Build|\))/); name=m && m!=='K' ? m : 'Android'; kind=/Mobile/.test(ua) ? '📱' : '📟'; }
+  else if(/iPhone|iPad|iPod/.test(ua)){ const v=g(/OS (\d+)_(\d+)/)&&g(/OS (\d+_\d+)/).replace('_','.'); name=g(/(iPhone|iPad|iPod)/); os='iOS '+v; kind=name==='iPad' ? '📟' : '📱'; }
+  else if(/Macintosh/.test(ua)){ if(d.touch>1){ name='iPad'; os='iPadOS'; kind='📟'; } else { name='Mac'; os='macOS'; } }
+  else if(/Windows/.test(ua)){ name='ПК'; os=/Windows NT 10/.test(ua) ? (d.osv ? (+d.osv.split('.')[0]>=13 ? 'Windows 11' : 'Windows 10') : 'Windows 10/11') : 'Windows'; }
+  else if(/CrOS/.test(ua)){ name='Chromebook'; os='ChromeOS'; }
+  else if(/Linux/.test(ua)){ name='ПК'; os='Linux'; }
+  const br=[['YaBrowser','Яндекс'],['SamsungBrowser','Samsung Internet'],['EdgA?','Edge'],['OPR','Opera'],['FxiOS','Firefox'],['Firefox','Firefox'],['CriOS','Chrome'],['Chrome','Chrome']]
+    .map(([k,n])=>{ const v=g(new RegExp(k+'/(\\d+)')); return v ? n+' '+v : ''; }).find(Boolean) || (/Safari/.test(ua) ? 'Safari '+g(/Version\/(\d+(?:\.\d+)?)/) : '') || (/wv\)/.test(ua) ? 'WebView' : '?');
+  return { name:name||'?', os, br:(/; wv\)/.test(ua) ? 'WebView · ' : '')+br, kind };
+}
+const devLine=d=>{ const u=uaOf(d); return u.kind+' '+u.name+(u.os ? ' · '+u.os : ''); };
+/* Country — Cloudflare's guess from the IP (ISO code): flag and Russian name */
+const ccN=(()=>{ try{ return new Intl.DisplayNames(['ru'],{ type:'region' }); }catch(e){ return null; } })();
+const ccName=c=>{ try{ return (ccN && ccN.of(c))||c; }catch(e){ return c; } }, ccFlag=c=>String.fromCodePoint(...[...c].map(x=>0x1F1A5+x.charCodeAt(0)));
+const ccTxt=c=>c ? ccFlag(c)+' '+esc(ccName(c)) : '—';
+const ccOfT=t=>(t.live && t.live.cc) || (t.stats && t.stats.cc) || t.cc || '';
+/* Level names and order (levels.json — written by tools/beta-levels.mjs when the beta is published); without it — the ids */
+let LVS=null; fetch('levels.json',{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(d=>{ if(!d) return; LVS=d; if(tpv()) tpRender(); }).catch(()=>{});
+const sec=v=>{ v=+v||0; const m=Math.floor(v/60), x=v-m*60; return m ? m+':'+x.toFixed(0).padStart(2,'0') : x.toFixed(1)+' с'; };
+function progHtml(t){
+  if(!t.prog || !t.prog.length) return '';
+  const xn=e=>(LVS && LVS.xnames[e.nm]) || 'Экспедиция', order=LVS ? LVS.areas.flatMap(a=>a.levels.map((l,i)=>({ ...l, a, i }))) : null;
+  return `<details class="xp"${tpOp.has(t.id+':p') ? ' open' : ''} data-o="${esc(t.id)}:p"><summary>Прогресс — ${t.prog.length} ${nf(t.prog.length,'экспедиция','экспедиции','экспедиций')}</summary>`
+  + t.prog.map(e=>{ const ids=Object.keys(e.lv), done=ids.filter(id=>e.lv[id].n>0);
+    let rows=[], area='';
+    const known=order ? order.filter(l=>e.lv[l.id] || l.id===e.cur) : [], rest=ids.filter(id=>!order || !order.some(l=>l.id===id)).map(id=>({ id, name:id }));
+    for(const l of [...known,...rest]){ const r=e.lv[l.id]||{};
+      if(l.a && l.a.id!==area){ area=l.a.id; rows.push(`<tr class="ar"><td colspan="6">${esc(l.a.icon||'')} ${esc(l.a.name)}</td></tr>`); }
+      rows.push(`<tr class="${l.id===e.cur ? 'cur' : ''}"><td>${l.a ? l.i+1 : ''}</td><td><b>${esc(l.name)}</b>${l.name!==l.id ? '<small>'+esc(l.id)+'</small>' : ''}</td>
+        <td>${r.n ? r.n : '—'}</td><td>${r.best ? sec(r.best) : '—'}</td><td>${r.got!=null ? '★ '+r.got : '—'}</td>
+        <td>${r.at ? `<span title="${full(r.at)}">${ago(r.at)}</span>` : '—'}</td></tr>`); }
+    return `<h4>${esc(xn(e))}<small>начата ${e.c ? new Date(e.c).toLocaleDateString('ru') : '—'} · последняя игра ${e.at ? ago(e.at) : '—'} · на уровнях ${hm(e.time*1e3)} · пройдено уровней ${done.length} · ★ ${e.stars}</small></h4>
+      ${rows.length ? `<div class="tbl"><table><tr><th>№</th><th>Уровень</th><th>Пройден</th><th>Лучшее время</th><th>Звёзды</th><th>Последний раз</th></tr>${rows.join('')}</table></div>` : '<span class="note">Уровни ещё не пройдены</span>'}`; }).join('')
+  + '</details>';
+}
+let tpOp=new Set();
+async function tpLoad(quiet){
+  if(tpBusy) return; tpBusy=true;
+  if(!quiet && !tps.length) $('tpBody').innerHTML='<div class="empty">Загрузка…</div>';
+  try{ tps=await api('/testers'); tpAt=Date.now(); tpCount(); tpRender(); }
+  catch(e){ if(!quiet || !tps.length) $('tpBody').innerHTML='<div class="empty err">Не удалось: '+esc(e.message)+'</div>'; }
+  finally{ tpBusy=false; }
+}
+function tpCount(){
+  const on=tps.filter(t=>t.live).length;
+  $('tpN').textContent=tps.length; $('tpOn').textContent=on ? '● '+on : '';
+  $('tpOpen').title=tps.length+' '+nf(tps.length,'игрок','игрока','игроков')+(on ? ', сейчас '+nf(on,'играет','играют','играют')+' '+on : '')+' — устройства, сессии, время игры';
+}
+/* liveMs — only the active session right now; savedMs — all finished sessions recorded by the worker. The dashboard must not mix
+   them as one number: a running session can show 10 minutes while the last saved expedition is still only 1 minute. */
+function tpNums(t){
+  const st=t.stats||{ n:0, ms:0, devs:{}, ss:[] }, now=Date.now(), liveMs=t.live ? Math.max(0,now-t.live.s) : 0;
+  const done=Math.max(0,(st.n||0)-(t.live ? 1 : 0)), devs=Object.entries(st.devs||{}).map(([id,d])=>({ ...d, id })).sort((a,b)=>(b.last||0)-(a.last||0));
+  const savedMs = Number.isFinite(st.ms) ? st.ms : 0;
+  return { st, n:st.n||0, savedMs, liveMs, ms:savedMs + liveMs, avg:done ? savedMs/done : 0, cur:liveMs, devs, last:t.live ? now : st.last||0, ss:st.ss||[] };
+}
+function tpRender(){
+  const now=Date.now(), N=tps.map(t=>({ t, x:tpNums(t) })), q=($('tpQ').value||'').trim().toLowerCase(), so=$('tpSort').value;
+  const tot=N.reduce((a,{ x })=>{ a.saved+=x.savedMs; a.live+=x.liveMs; a.n+=x.n; a.d+=x.devs.length; a.done+=x.n-(x.live ? 1 : 0); a.dms+=x.savedMs; return a; },{ saved:0, live:0, n:0, d:0, done:0, dms:0 });
+  const on=tps.filter(t=>t.live).length, played=N.filter(({ x })=>x.n).length;
+  $('tpSum').innerHTML=[[tps.length,'игроков'+(played<tps.length ? ' · играли '+played : '')],[on,'играют сейчас'],[hm(tot.saved + tot.live),'всего наиграно'],
+    [hm(tot.live),'сейчас активно'],[hm(tot.saved),'по завершённым сессиям'],[tot.n,'сессий'],
+    [hm(tot.done ? tot.dms/tot.done : 0),'средняя сессия'],[hm(played ? (tot.saved + tot.live)/played : 0),'в среднем на игрока'],[tot.d,'устройств'],[new Set(tps.map(ccOfT).filter(Boolean)).size,'стран']]
+    .map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+  const hay=({ t, x })=>[t.nick,t.id,ccOfT(t),ccOfT(t) && ccName(ccOfT(t)),...x.devs.map(d=>{ const u=uaOf(d); return [u.name,u.os,u.br,d.gpu].join(' '); })].join(' ').toLowerCase();
+  const L=N.filter(r=>!q || hay(r).includes(q)).sort(so==='time' ? (a,b)=>b.x.ms-a.x.ms : so==='at' ? (a,b)=>(b.t.at||0)-(a.t.at||0) : so==='nick' ? (a,b)=>a.t.nick.localeCompare(b.t.nick,'ru')
+    : (a,b)=>(b.x.last||0)-(a.x.last||0) || (b.t.at||0)-(a.t.at||0));
+  const op=new Set([...document.querySelectorAll('#tpBody details[open]:not(.xp)')].map(d=>d.closest('[data-id]').dataset.id));
+  tpOp=new Set([...document.querySelectorAll('#tpBody details.xp[open]')].map(d=>d.dataset.o));
+  const rep=id=>all.filter(r=>r.tester===id), devName=(x,id)=>{ const d=x.devs.find(d=>d.id===id); return d ? devLine(d) : '—'; };
+  $('tpBody').innerHTML=L.length ? L.map(({ t, x })=>{ const i=tps.indexOf(t), r=rep(t.id), bugs=r.filter(r=>r.kind==='bug').length;
+    return `<section class="tc${t.ban ? ' ban' : ''}" data-i="${i}" data-id="${esc(t.id)}">
+    <div class="tc-h"><span class="tn" data-a="show" title="Показать отзывы">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</span>${ccOfT(t) ? `<span class="cc" title="${esc(ccName(ccOfT(t)))} — по IP">${ccTxt(ccOfT(t))}</span>` : ''}
+      ${t.live ? `<span class="lv">играет ${hm(x.cur)}${t.live.dev ? ' · '+esc(devName(x,t.live.dev)) : ''}</span>` : ''}
+      <span class="a"><button class="btn" data-a="rename" title="Переименовать">✎</button><button class="btn" data-a="pin" title="Новый PIN">🔑</button>
+      <button class="btn" data-a="ban" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button><button class="btn" data-a="delete" title="Удалить аккаунт">🗑</button></span></div>
+    <div class="tc-m"><span>id <code>${esc(t.id)}</code></span><span>регистрация ${t.at ? `<span title="${full(t.at)}">${ago(t.at)}</span>` : '—'}</span>
+      <span>${t.live ? 'в игре сейчас' : x.last ? `последняя игра <span title="${full(x.last)}">${ago(x.last)}</span>` : 'ещё не играл'}</span>
+      <span>${r.length ? `<a data-a="show">отзывов ${r.length}</a>${r.length ? ' (🐞 '+bugs+' · 💬 '+(r.length-bugs)+')' : ''}` : 'отзывов нет'}</span><span>${t.save ? '☁ прогресс в облаке' : 'прогресса в облаке нет'}</span>${t.stats && t.stats.ccs && Object.keys(t.stats.ccs).length>1 ? '<span>страны: '+Object.keys(t.stats.ccs).map(ccTxt).join(', ')+'</span>' : ''}</div>
+    ${t.stats ? `<div class="ks"><div><b>${hm(x.savedMs)}</b><span>наиграно всего</span>${x.liveMs ? `<small>+ ${hm(x.liveMs)} сейчас</small>` : ''}</div><div><b>${x.n}</b><span>${nf(x.n,'сессия','сессии','сессий')}</span></div>
+      <div><b>${hm(x.avg)}</b><span>средняя сессия</span></div><div><b>${x.devs.length}</b><span>${nf(x.devs.length,'устройство','устройства','устройств')}</span></div>
+      <div><b>${x.st.first ? new Date(x.st.first).toLocaleDateString('ru') : '—'}</b><span>первая игра</span></div></div>
+    ${x.devs.length ? `<div class="tbl"><table><tr><th>Устройство</th><th>Браузер</th><th>Экран</th><th>Видеокарта</th><th>Сессий</th><th>Время</th><th>Последний раз</th></tr>${x.devs.map(d=>{ const u=uaOf(d);
+      return `<tr class="${t.live && t.live.dev===d.id ? 'now' : ''}"><td><b>${u.kind} ${esc(u.name)}</b><small>${esc(u.os)}${d.ver ? ' · игра v'+esc(d.ver) : ''}</small></td>
+      <td>${esc(u.br)}${d.pwa ? '<small>установлено (PWA)</small>' : ''}</td>
+      <td>${d.sw ? d.sw+'×'+d.sh : '—'}${d.dpr ? '<small>DPR '+(+d.dpr).toFixed(2).replace(/\.?0+$/,'')+(d.touch ? ' · сенсор' : '')+'</small>' : ''}</td>
+      <td>${esc(d.gpu||'—')}${d.cores || d.mem ? `<small>${d.cores ? d.cores+' ядер' : ''}${d.cores && d.mem ? ' · ' : ''}${d.mem ? '≥'+d.mem+' ГБ' : ''}</small>` : ''}</td>
+      <td>${d.n||0}</td><td>${hm(d.ms)}${d.n>1 ? '<small>≈ '+hm(d.ms/d.n)+' за раз</small>' : ''}</td>
+      <td><span title="${d.last ? full(d.last) : ''}">${d.last ? ago(d.last) : '—'}</span><small>${d.cc ? ccFlag(d.cc)+' ' : ''}${d.lang ? esc(d.lang) : ''}${d.tz ? ' · '+esc(d.tz) : ''}</small></td></tr>`; }).join('')}</table></div>` : ''}
+    ${x.ss.length ? `<details${op.has(t.id) ? ' open' : ''}><summary>Последние сессии (${x.ss.length})</summary><div class="tbl"><table><tr><th>Начало</th><th>Длительность</th><th>Устройство</th><th>Страна</th></tr>
+      ${x.ss.map(s=>`<tr><td>${full(s.s)}</td><td>${hm(s.e-s.s)}</td><td>${esc(devName(x,s.d))}</td><td>${s.cc ? ccTxt(s.cc) : '—'}</td></tr>`).join('')}</table></div></details>` : ''}`
+    : '<div class="none">Статистики игры пока нет: она копится с первой сессии после обновления воркера.</div>'}
+    ${progHtml(t)}
+    </section>`; }).join('')
+    + '<span class="note" style="color:var(--dim);font-size:12px">Сессия — от «I agree» до закрытия страницы или 8 минут без связи; время считается с точностью до 3 минут. Устройство — браузер на устройстве (другой браузер на том же телефоне — другое устройство). Переименование и новый PIN не разлогинивают устройства игрока; удаление стирает аккаунт, прогресс, статистику и сообщения (отзывы остаются) и разлогинивает его везде.</span>'
+    : `<div class="empty">${tps.length ? 'Никого не найдено' : 'Игроков пока нет'}</div>`;
+}
+$('tpBody').onclick=async e=>{
+  const b=e.target.closest('[data-a]'), tr=e.target.closest('[data-i]'); if(!b || !tr) return;
+  const t=tps[+tr.dataset.i], a=b.dataset.a; let body={ id:t.id, nick:t.nick };
+  if(a==='show'){ if(![...$('tester').options].some(o=>o.value===t.id)) return alert('У '+t.nick+' нет отзывов'); F.tester=$('tester').value=t.id; cur=null; tpShow(false); render(); return; }
+  if(a==='rename'){ const to=prompt('Новый ник для '+t.nick+' (2–20 букв или цифр):',t.nick); if(!to || to.trim()===t.nick) return; body.to=to.trim(); }
+  if(a==='pin'){ const pin=prompt('Новый PIN для '+t.nick+' (4–6 цифр). Сообщите его игроку:',''); if(!pin) return; if(!/^\d{4,6}$/.test(pin.trim())) return alert('PIN — 4–6 цифр'); body.pin=pin.trim(); }
+  if(a==='ban'){ body.on=!t.ban; if(body.on && !confirm('Забанить '+t.nick+'? Не сможет войти, слать отзывы и синхронизировать прогресс.')) return; }
+  if(a==='delete' && !confirm('Удалить аккаунт '+t.nick+'? Прогресс в облаке, статистика и сообщения сотрутся, ник освободится. Отзывы останутся.')) return;
+  b.disabled=true;
+  try{ const d=await api('/testers/'+a,body);
+    if(a==='rename'){ t.nick=d.nick; all.filter(r=>r.tester===t.id).forEach(r=>{ r.who=r.nick=d.nick; }); fill(); render(); }
+    if(a==='ban') t.ban=body.on;
+    if(a==='delete') tps.splice(tps.indexOf(t),1);
+    if(a==='pin') alert('PIN для '+t.nick+' изменён');
+    tpCount(); tpRender(); }
+  catch(e){ b.disabled=false; alert('Не удалось: '+({ taken:'ник занят', nick:'неверный ник', pin:'неверный PIN', 'no tester':'игрок не найден' }[e.message]||e.message)); }
+};
+/* The page: #testers in the address (a reload stays on it, the browser's Back returns to the reports) */
+function tpShow(on,nav=true){
+  if(on===tpv()) return;
+  document.body.classList.toggle('tpv',on); $('tpOpen').setAttribute('aria-pressed',String(on));
+  if(nav){ if(on) history.pushState(null,'','#testers'); else if(location.hash==='#testers') history.replaceState(null,'',location.pathname+(cur ? '#'+cur.n : '')); }
+  title();
+  if(on){ $('tp').scrollTop=0; tpRender(); tpLoad(); } else top();
+}
+$('tpOpen').onclick=()=>tpShow(!tpv());
+$('tpClose').onclick=()=>tpShow(false);
+addEventListener('popstate',()=>tpShow(location.hash==='#testers',false));
+$('tpQ').oninput=tpRender; $('tpSort').value=LSg('cube-fb-tpsort','last');
+$('tpSort').onchange=()=>{ LSs('cube-fb-tpsort',$('tpSort').value); tpRender(); };
+
+function step(d){ if(!shown.length) return; const i=cur ? shown.findIndex(r=>r.n===cur.n) : -1; const r=shown[Math.max(0,Math.min(shown.length-1,i+d))]; if(r) show(r,!document.body.classList.contains('det')); document.querySelector(`.item[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
+async function setState(r){
+  const to=r.state==='open' ? 'closed' : 'open'; $('st').disabled=true;
+  try{ const x=await fetch(`${API}/issue/${r.n}?k=${encodeURIComponent(KEY)}`,{ method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ state:to }) });
+    if(!x.ok) throw new Error('HTTP '+x.status);
+    r.state=to; fill(); const keep=r; render(); if(shown.includes(keep)) show(keep,true); }
+  catch(e){ alert('Не удалось: '+e.message); $('st').disabled=false; }
+}
+$('lb').onclick=()=>{ $('lb').hidden=true; };
+
+/* Filters */
+const segs=(id,key)=>{ const b=[...$(id).children]; const sync=()=>b.forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===F[key])));
+  b.forEach(x=>x.onclick=()=>{ F[key]=x.dataset.v; if(key==='state') LSs('cube-fb-state',F.state); sync(); cur=null; render(); }); sync(); };
+segs('kindSeg','kind'); segs('stateSeg','state');
+['tester','ver','lv'].forEach(k=>$(k).onchange=()=>{ F[k]=$(k).value; cur=null; render(); });
+$('q').oninput=()=>{ F.q=$('q').value; render(); };
+$('reload').onclick=()=>{ load(); if(tpv()) tpLoad(); };
+addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')){ if(e.key==='Escape') e.target.blur(); return; }
+  if(e.key==='Escape'){ if(!$('lb').hidden) $('lb').hidden=true; else if(tpv()) tpShow(false); else document.body.classList.remove('det'); }
+  else if(tpv()){ if(e.key==='r'){ load(true); tpLoad(); } else if(e.key==='/'){ e.preventDefault(); $('tpQ').focus(); } }
+  else if(e.key==='ArrowDown' || e.key==='j'){ e.preventDefault(); step(1); } else if(e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); step(-1); }
+  else if(e.key==='/'){ e.preventDefault(); $('q').focus(); } else if(e.key==='r') load(); });
+addEventListener('pointerdown',()=>{ if(window.Notification && Notification.permission==='default') Notification.requestPermission(); },{ once:true });
+const top=()=>{ const h=document.querySelector('header').offsetHeight, S=document.documentElement.style; S.setProperty('--hh',h+'px'); if(!tpv()) S.setProperty('--top',(h+$('bar').offsetHeight)+'px'); };
+addEventListener('resize',top); top();
+
+/* Key */
+function gate(msg){ $('main').hidden=true; $('gate').hidden=false; $('gateErr').textContent=msg||''; $('keyIn').value=''; $('keyIn').focus(); }
+$('keyGo').onclick=()=>{ KEY=$('keyIn').value.trim(); if(KEY) load(); };
+$('keyIn').onkeydown=e=>{ if(e.key==='Enter') $('keyGo').click(); };
+if(KEY){ if(location.hash==='#testers') tpShow(true,false); load(); } else gate();
+const live=()=>KEY && $('gate').hidden && !loading;
+setInterval(()=>{ if(live() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true);
+  if(live() && tpAt && Date.now()-tpAt>=(tpv() && !document.hidden ? TP_POLL : TP_POLL_BG)) tpLoad(true); liveTxt(); },5000);
+const back=()=>{ if(!document.hidden && live() && Date.now()-loadAt>5000) load(true); if(!document.hidden && live() && tpv() && Date.now()-tpAt>30e3) tpLoad(true); };
+document.addEventListener('visibilitychange',back); addEventListener('focus',back);
+})();
+</script>
+</body>
+</html>
