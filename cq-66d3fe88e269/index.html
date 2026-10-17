@@ -7278,13 +7278,18 @@ pMesh.castShadow = true; pMesh.receiveShadow = true;
 const pEdge=new THREE.LineSegments(new THREE.EdgesGeometry(pMesh.geometry), Object.assign(edgeMat(0xffffff,.35),{ fog:false }));
 pMesh.add(pEdge);
 root.add(pMesh);
-const cubeOrig=Float32Array.from(pMesh.geometry.attributes.position.array);
-const edgeOrig=Float32Array.from(pEdge.geometry.attributes.position.array);
+/* Cube body parts that follow the idle deform (cubeDeform in loop.js) — every new part hung on pMesh goes into one of the lists,
+   or the idle poses leave it behind. A skin (bodySkin): each vertex moves with the deform field (the body, its edges, stains, glow shells).
+   A pin (bodyPin): a rigid part rides the field at its anchor `at` (pMesh space) — moved and turned with the surface there, never bent (stone corners) */
+const BODY_SKIN=[], BODY_PIN=[];
+function bodySkin(m){ const a=m.geometry.attributes.position; BODY_SKIN.push({ m, a, o:Float32Array.from(a.array), n:!!m.isMesh }); }
+function bodyPin(o,at){ BODY_PIN.push({ o, at:at.clone(), p:o.position.clone(), q:o.quaternion.clone() }); }
+bodySkin(pMesh); bodySkin(pEdge);
 const stainMesh = new THREE.Mesh(keep((()=>{ const g=new THREE.BoxGeometry(SIZE*1.012,SIZE*1.012,SIZE*1.012), uv=g.attributes.uv;
   const O=[[0,0],[.5,.13],[.25,.5],[.75,.62],[.1,.8],[.6,.3]];      // each face: its own window (a quarter of the texture), turned by f×90°
   for(let f=0;f<6;f++) for(let i=f*4;i<f*4+4;i++){ let u=uv.getX(i), v=uv.getY(i); for(let k=0;k<f;k++) [u,v]=[1-v,u]; uv.setXY(i,O[f][0]+u*.5,O[f][1]+v*.5); }
   return g; })()), stainMat);
-stainMesh.receiveShadow=true; stainMesh.visible=false; stainMesh.renderOrder=2; pMesh.add(stainMesh);
+stainMesh.receiveShadow=true; stainMesh.visible=false; stainMesh.renderOrder=2; pMesh.add(stainMesh); bodySkin(stainMesh);
 /* Stone corners (P.studs, a broken granite rock): every corner wears a three-sided granite pyramid, its tip out along the corner
    diagonal — the cube grips ice with them. One geometry per corner (mirroring by scale would turn the faces inside out), shown with studMesh.visible */
 const studMesh=new THREE.Group();
@@ -7297,7 +7302,7 @@ const studMesh=new THREE.Group();
       const n=new V3().subVectors(p,A).cross(new V3().subVectors(q,A)); if(n.dot(s)<0) [p,q]=[q,p];   // outward winding
       for(const v of [A,p,q]) pos.push(v.x,v.y,v.z); uv.push(.5,1, i*.33,0, i*.33+.33,0); }
     const g=keep(new THREE.BufferGeometry()); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.computeVertexNormals();
-    const c=new THREE.Mesh(g,sm); c.castShadow=true; studMesh.add(c); } }
+    const c=new THREE.Mesh(g,sm); c.castShadow=true; studMesh.add(c); bodyPin(c,C); } }
 studMesh.visible=false; pMesh.add(studMesh);
 /* A new life: the cube grows a little from the face that was down, and blue traces — straight runs and 45° bends, like a
    circuit board — carry a bright head across the faces. One drawing; each life turns it by a random cube rotation.
@@ -7317,7 +7322,7 @@ function spinPcb(){ const R=PCB_ROT[(Math.random()*PCB_ROT.length)|0];
   _r0.set(R[0][0],R[1][0],R[2][0]); _r1.set(R[0][1],R[1][1],R[2][1]); _r2.set(R[0][2],R[1][2],R[2][2]); }
 const reactMat=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, fog:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2,
   uniforms:{ lk:{value:0}, lt:{value:0}, sk:{value:0}, st:{value:0}, mv:{value:1}, r0:{value:_r0}, r1:{value:_r1}, r2:{value:_r2} },
-  vertexShader:'varying vec3 vP; void main(){ vP=position; float m=max(abs(vP.x),max(abs(vP.y),abs(vP.z))); vP/=max(m,1e-5); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  vertexShader:'attribute vec3 p0; varying vec3 vP; void main(){ vP=p0; float m=max(abs(vP.x),max(abs(vP.y),abs(vP.z))); vP/=max(m,1e-5); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
   fragmentShader:(()=>{
     const gn=n=>n.toFixed(2), gp=n=>n.toFixed(4);
     let body='';
@@ -7355,6 +7360,7 @@ const reactMat=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, fo
   })() });
 const reactMesh=new THREE.Mesh(new THREE.BoxGeometry(SIZE*1.02,SIZE*1.02,SIZE*1.02), reactMat);
 reactMesh.frustumCulled=false; reactMesh.renderOrder=3; reactMesh.visible=true; pMesh.add(reactMesh);   // visible through the first compile (warm); updateCubeReact hides it
+reactMesh.geometry.setAttribute('p0',reactMesh.geometry.attributes.position.clone()); bodySkin(reactMesh);   // the pattern is drawn on the rest shape (p0) — a deformed shell carries it along
 let lifeT=-1, starT=-1, starOff=0, lifeAx=1, lifeSg=-1;
 const LIFE_SC=.1, LIFE_GROW=.48, LIFE_DUR=1.35, STAR_DUR=1.2;
 const _reD=new V3(), _reQ=new Q(), _reN=new V3();
@@ -15563,6 +15569,7 @@ function dash(dx,dz,pw=1){
   leanPre=0; depart(); state='dash'; SND.dash(); P.sink=0; sinkVis=0;                // the dash glides on from the pose the cube is shown in (sink included) to the ground: no stale sink snaps back at the end
   if(snowClear(P.x,P.z,P.l)){ jumpFx(P.x,P.l,P.z,'snow',1.3); SND.crunch(.8); } scrStart(n); dashStep(dx,dz,n);   // the push-off packs the start cell again
 }
+const DASH_UP=.05;                                                     // a rise bigger than this (up to STEPUP) stops the dash with a roll onto the step
 function dashStep(dx,dz,left,soft){                                 // soft — a slide in a tunnel (tunnelSlide): breaks nothing, knocks no crate
   { const w=wpDoor(dx,dz); if(w) return enterCave(w.key,'slide'); }   // a dash or a tunnel slide into an arch
   const nx=P.x+dx, nz=P.z+dz, k=K(nx,nz), eA=edgeH(P.x,P.z,[dx,dz]);
@@ -15585,7 +15592,8 @@ function dashStep(dx,dz,left,soft){                                 // soft — 
         arcRun(up?1:-1, left-(sg.icy && !P.studs?ARC_FR_ICE:ARC_FR)-Math.max(0,to.y-eA), dx,dz); }); }
     if(up||dn) return stop(); }
   const top=surface(nx,nz); let entering=false;
-  if(top!==null){ const eB=edgeH(nx,nz,[-dx,-dz]); if(eB>eA+STEPUP) return stop(); entering=Math.abs(eB-eA)<=STEPUP; }
+  if(top!==null){ const eB=edgeH(nx,nz,[-dx,-dz]); if(eB>eA+STEPUP) return stop(); entering=Math.abs(eB-eA)<=STEPUP;
+    if(eB>eA+DASH_UP && !soft && !lowRoof(P.x,P.z,P.l) && !lowRoof(nx,nz,top)){ leanPre=0; dashLean=null; state='idle'; return tryRoll(dx,dz); } }   // a ¼ step up: the dash ends in a plain roll onto it (higher — the wall above)
   const to=entering?poseAt(nx,nz,top):{ pos:new V3(nx,eA+HALF,nz), tilt:new Q() };
   const p0=root.position.clone(), t0=P.tilt.clone(), qt=new Q(), qq=new Q(), q0=P.q.clone();
   let q1=q0;                                                            // off a ramp onto flat ground the cube doesn't flip: it lies on the face it was on (as stationStep)
@@ -22185,6 +22193,7 @@ function samplePose(frames,u){
   let i=1; while(i<frames.length && frames[i].at<u) i++;
   const A=frames[i-1], B=frames[i]; let t=(u-A.at)/Math.max(1e-6,B.at-A.at); return lerpPose(poseOf(A),poseOf(B),ease(t)); }
 const _gdX=new V3(), _gdY=new V3(), _gdZ=new V3(), _gdQ=new Q();   // world X/Y/Z in cube-local so deform is always from the ground
+const _bdX=new V3(), _bdY=new V3(), _bdZ=new V3(), _bdQ=new Q(), _bdM=new THREE.Matrix4();   // a pinned part's frame (BODY_PIN)
 function cubeDeform(pose){
   _gdQ.copy(P.tilt).multiply(P.q).invert();
   _gdX.set(1,0,0).applyQuaternion(_gdQ);
@@ -22200,17 +22209,21 @@ function cubeDeform(pose){
     x+=pose.shearX*t*HALF; z+=pose.shearZ*t*HALF; const sp=1+pose.spread*t; x*=pose.sxz*sp; z*=pose.sxz*sp;
     y+=pose.arch*t*t*HALF; y+=pose.topTiltX*gx*t; y+=pose.topTiltZ*gz*t;
     return [x*_gdX.x+y*_gdY.x+z*_gdZ.x, x*_gdX.y+y*_gdY.y+z*_gdZ.y, x*_gdX.z+y*_gdY.z+z*_gdZ.z]; };
-  const p=pMesh.geometry.attributes.position.array;
-  for(let i=0;i<p.length;i+=3){ const d=fn(cubeOrig[i],cubeOrig[i+1],cubeOrig[i+2]); p[i]=d[0]; p[i+1]=d[1]; p[i+2]=d[2]; }
-  pMesh.geometry.attributes.position.needsUpdate=true; pMesh.geometry.computeVertexNormals();
-  const e=pEdge.geometry.attributes.position.array;
-  for(let i=0;i<e.length;i+=3){ const d=fn(edgeOrig[i],edgeOrig[i+1],edgeOrig[i+2]); e[i]=d[0]; e[i+1]=d[1]; e[i+2]=d[2]; }
-  pEdge.geometry.attributes.position.needsUpdate=true; }
+  for(const S of BODY_SKIN){ const p=S.a.array, o=S.o;
+    for(let i=0;i<p.length;i+=3){ const d=fn(o[i],o[i+1],o[i+2]); p[i]=d[0]; p[i+1]=d[1]; p[i+2]=d[2]; }
+    S.a.needsUpdate=true; if(S.n) S.m.geometry.computeVertexNormals(); }
+  for(const B of BODY_PIN){ const a=B.at, f=fn(a.x,a.y,a.z), e=.01;   // the field's local frame at the anchor: moved point + turned axes (Gram–Schmidt)
+    const dx=fn(a.x+e,a.y,a.z), dy=fn(a.x,a.y+e,a.z);
+    _bdX.set(dx[0]-f[0],dx[1]-f[1],dx[2]-f[2]).normalize(); _bdY.set(dy[0]-f[0],dy[1]-f[1],dy[2]-f[2]);
+    _bdY.addScaledVector(_bdX,-_bdX.dot(_bdY)).normalize(); _bdZ.crossVectors(_bdX,_bdY);
+    _bdQ.setFromRotationMatrix(_bdM.makeBasis(_bdX,_bdY,_bdZ));
+    B.o.quaternion.copy(_bdQ).multiply(B.q); B.o.position.copy(B.p).sub(a).applyQuaternion(_bdQ).add(_bdX.set(f[0],f[1],f[2])); } }
 let bodyDeformed=false;
 function cubeDeformRest(){
   if(!bodyDeformed) return;
-  pMesh.geometry.attributes.position.array.set(cubeOrig); pMesh.geometry.attributes.position.needsUpdate=true; pMesh.geometry.computeVertexNormals();
-  pEdge.geometry.attributes.position.array.set(edgeOrig); pEdge.geometry.attributes.position.needsUpdate=true; bodyDeformed=false; }
+  for(const S of BODY_SKIN){ S.a.array.set(S.o); S.a.needsUpdate=true; if(S.n) S.m.geometry.computeVertexNormals(); }
+  for(const B of BODY_PIN){ B.o.position.copy(B.p); B.o.quaternion.copy(B.q); }
+  bodyDeformed=false; }
 function withBreath(pose){ const w=Math.sin(time*1.55), o=Object.assign({},pose);
   o.sy=pose.sy*(1+w*.016); o.sxz=pose.sxz*(1-w*.016); o.arch=pose.arch+w*.03; return o; }
 const WARM_POSE={
