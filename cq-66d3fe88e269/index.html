@@ -48,6 +48,7 @@ body.night::before{ opacity:0; }
 #sky{ position:fixed; inset:0; pointer-events:none; opacity:0; transition:opacity 1.2s; }
 #sky.on{ opacity:1; }
 #sky i{ position:absolute; border-radius:50%; background:#fff; animation:tw 3.2s ease-in-out infinite; }
+#sky:not(.on) i, body.mopen #sky i{ animation-play-state:paused; }   /* unseen (day) or under the menu: a running twinkle restyles 80 stars every frame (and re-blurs the panels over them) */
 #moon{ position:absolute; right:14%; top:14%; width:54px; height:54px; border-radius:50%; background:#fff6d8;
   box-shadow:0 0 40px 12px rgba(255,240,200,.28), inset -10px -6px 0 rgba(210,200,170,.35); }
 @keyframes tw{ 0%,100%{opacity:.2} 50%{opacity:1} }
@@ -194,7 +195,7 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
    it stops while the menu or the Locations section is hidden; none in the list */
 #levels:not(.list) .lv.on{ outline:2px solid var(--cream); outline-offset:2px; animation:lvPulse 1.6s ease-in-out infinite alternate; }
 @keyframes lvPulse{ from{ outline-color:rgba(255,240,214,.95); outline-offset:2px; } to{ outline-color:rgba(255,240,214,.2); outline-offset:4px; } }
-.overlay.hidden #levels .lv.on, #levels.msec:not(.on) .lv.on{ animation-play-state:paused; }
+.overlay.hidden #levels .lv.on, #levels.msec:not(.on) .lv.on, #levels .card:has(> .lvd.on) .lv.on{ animation-play-state:paused; }
 #levels:not(.list) .lv.on:focus-visible{ outline-color:var(--gold); animation:none; }   /* keyboard focus wins */
 @media (prefers-reduced-motion: reduce){ #levels:not(.list) .lv.on{ animation:none; } }
 /* Wide window (≈16:9 and wider): the grid plate widens and the thumbnails grow; the list keeps its narrow plate */
@@ -245,6 +246,9 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
   transition:opacity .22s ease, transform .28s cubic-bezier(.2,.9,.3,1.15), visibility 0s .22s; }
 .lvd.on{ opacity:var(--co); visibility:visible; transform:translateY(var(--cy)); pointer-events:auto; transition:opacity .22s ease, transform .28s cubic-bezier(.2,.9,.3,1.15), visibility 0s; }
 .lvd.vdrag{ transition:none; } .lvd.fly{ pointer-events:none; }
+/* An open card is opaque over the whole plate: the blur behind the plate is unseen, yet every frame the strip moves (and every repaint inside
+   the plate) makes the browser blur it again — off while the card covers it; back on once a vertical drag shows the list */
+#levels .card:has(> .lvd.on:not(.vdrag):not(.fly):not(.bare)){ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .lvdtop{ position:relative; padding:12px 58px 18px; text-align:center; line-height:1.15; text-shadow:0 2px 10px rgba(40,10,60,.55);
   background:linear-gradient(rgba(24,12,48,.5),transparent); }
 .lvdtop small{ display:block; font-size:12px; font-weight:800; opacity:.85; }
@@ -257,7 +261,7 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
    a blend of the two skies; the title, stats and button crossfade by --to) or a vertical one: the whole card moves (--cy), fading a little
    (--co), and shows the list under it; let go far enough or flung, it flies off (lvdFlyOff) */
 .lvd{ --cx:0px; --cy:0px; --co:1; --to:1; touch-action:none; }
-.lvds{ position:absolute; inset:0; transform:translateX(var(--cx)); }
+.lvds{ position:absolute; inset:0; transform:translateX(var(--cx)); will-change:transform; }   /* own layers: a swipe frame moves and fades them, no repaint */
 .lvdc{ position:absolute; top:0; left:0; width:100%; height:100%; display:block; transform:translateX(calc(var(--k)*125%)); }
 /* Every star and secret of the slot's level collected (lvAllGot, as .lv.full in the grid): a gold frame — on the slot, so it rides the swipe */
 .lvds, .lvdc{ border-radius:inherit; }
@@ -266,7 +270,7 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 .lvdg:first-child{ left:calc(-25% - 1px); }
 .lvdg::after{ content:""; position:absolute; inset:0; background:linear-gradient(var(--b0),var(--b1));
   -webkit-mask-image:linear-gradient(90deg,transparent,#000); mask-image:linear-gradient(90deg,transparent,#000); }
-.lvdtop > *, .lvdbot > *{ opacity:var(--to); }
+.lvdtop > *, .lvdbot > *{ opacity:var(--to); will-change:opacity; }
 /* The artifact view of a card (a tap on a found artifact; a tap on it — back): the artifact grows from its place on the picture; closing
    plays the opening backwards (.aout, WAAPI in lvdArtSet) — following the strip if a swipe closed it (--ox: the strip shifted under it) */
 .lvda{ position:absolute; inset:0; z-index:3; cursor:pointer; color:var(--cream); pointer-events:none;
@@ -487,6 +491,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .lcube i:nth-child(1){ transform:translateZ(var(--h)); } .lcube i:nth-child(2){ transform:rotateY(90deg) translateZ(var(--h)); background:#c79f78; }
 .lcube i:nth-child(3){ transform:rotateY(180deg) translateZ(var(--h)); } .lcube i:nth-child(4){ transform:rotateY(-90deg) translateZ(var(--h)); background:#c79f78; }
 .lcube i:nth-child(5){ transform:rotateX(90deg) translateZ(var(--h)); background:#fff6e6; } .lcube i:nth-child(6){ transform:rotateX(-90deg) translateZ(var(--h)); background:#b08a66; }
+.stlife:not(.on) .lcube{ animation-play-state:paused; }   /* hidden, a running animation still restyles it every frame */
 @keyframes lspin{ from{ transform:rotateX(-24deg) rotateY(45deg); } to{ transform:rotateX(-24deg) rotateY(405deg); } }
 /* Artifact award: the relic spins in a slow ring of light over the paused game; the name in gold, its language and meaning under it.
    A tap ("Learn more…") leaves the relic in place, dims it and fades its legend in over it;
@@ -505,6 +510,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .aglow::before{ background:repeating-conic-gradient(rgba(255,226,150,.2) 0 5deg,transparent 5deg 15deg);
   -webkit-mask:radial-gradient(closest-side,#000 25%,transparent 100%); mask:radial-gradient(closest-side,#000 25%,transparent 100%); animation:aRays 30s linear infinite; }
 .aglow::after{ inset:4%; background:radial-gradient(closest-side,rgba(255,214,120,.38),rgba(255,190,90,.1) 60%,transparent); }
+#art.hidden .aglow::before{ animation-play-state:paused; }
 @keyframes aRays{ to{ transform:rotate(360deg); } }
 #artCv{ position:relative; z-index:1; display:block; width:100%; height:100%; }
 #artName, #artLName{ display:block; font-family:'Fredoka','Nunito',ui-rounded,sans-serif; font-weight:600; font-size:calc(40px*var(--ui)); line-height:1.1; letter-spacing:.03em;
@@ -559,6 +565,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .tbox{ text-align:center; }
 .logo{ width:clamp(96px,min(44vw,26vh),230px); margin:0 auto clamp(10px,3vh,34px); animation:bob 3.4s ease-in-out infinite alternate; }
 .logo svg{ display:block; width:100%; overflow:visible; }
+#title.hidden .logo{ animation-play-state:paused; }   /* the same once the title is gone */
 @keyframes bob{ from{ transform:translateY(-5%); } to{ transform:translateY(5%); } }
 .tbox h1{ margin:0; font-family:'Fredoka','Nunito',ui-rounded,sans-serif; font-size:clamp(40px,min(14vw,13vh),104px); font-weight:600;
   text-transform:uppercase; letter-spacing:.01em; line-height:1; text-shadow:0 10px 40px rgba(40,10,60,.45); }
@@ -19100,8 +19107,8 @@ function lvdHead(i){ const h=$('levelsH'), t=i>=0 ? loc(AREAS[areaOf(i)].name) :
 const LVD_HFADE=140;
 /* The area page under the card follows the level shown, at once (no page slide): a card closed in another area opens on it */
 function lvdArea(i){ if(i<0 || areaOf(i)===aCur) return; aview.classList.add('drag'); areaGo(areaOf(i)); aview.offsetWidth; aview.classList.remove('drag'); }
-function lvdFill(i){                                                  // the title, the stats and the button: of level i
-  lvdTx=i; const st=lvStat(i), A=AREAS[areaOf(i)], rows=$('lvdStats'); lvdHead(i);
+function lvdFill(i,meas){                                             // the title, the stats and the button: of level i; meas — only to be measured (lvdYs): the section title stays
+  lvdTx=i; const st=lvStat(i), A=AREAS[areaOf(i)], rows=$('lvdStats'); if(!meas) lvdHead(i);
   $('lvdNum').textContent=loc('Level {0} of {1}',lvNo(i),A.n); $('lvdName').textContent=lvName(LEVELS[i]);
   rows.textContent='';
   const row=(k,v)=>{ const r=document.createElement('div'); r.className='strow'; r.innerHTML='<span></span><b></b>'; r.firstChild.textContent=loc(k); r.lastChild.textContent=v; rows.append(r); };
@@ -19120,7 +19127,7 @@ function lvdOpen(i,kb,fromEl,kind){                                   // kb — 
   lvdStop(); lvdI=i; lvdSnd=-1; cDrag=null; lvdArtSrc=null;
   const L=$('lvd'); L.classList.remove('fly','vdrag','on'); L.classList.toggle('bare',!!fromEl); lvdV(0);
   if(fromEl){ lvdTx=i; lvdX(0); requestAnimationFrame(()=>lvdArtSet(true,false,false,kind==='area'?'area':undefined,fromEl)); return; }
-  L.classList.add('on'); lvdArtSet(false,true); lvdFill(i); lvdX(0); lvdPaint(); if(kb) try{ $('lvdGo').focus({ preventScroll:true }); }catch(e){}
+  L.classList.add('on'); lvdArtSet(false,true); lvdFill(i); lvdX(0); lvdPaint(true); if(kb) try{ $('lvdGo').focus({ preventScroll:true }); }catch(e){}
 }
 function lvdClose(){ if(!lvdOn()) return; lvdStop(); cDrag=null; const L=$('lvd'), bare=L.classList.contains('bare'), i=lvdI, kb=L.contains(document.activeElement);
   const tx=lvdTx>=0 ? lvdTx : i; lvdArtSet(false,true); lvdI=-1; lvdHead(-1); if(!bare) lvdArea(tx);   // the level shown when it was let go: mid-swipe that may be the neighbour
@@ -19146,8 +19153,8 @@ $('lvdGo').onclick=()=>{ if(!lvdOn()) return; const i=lvdTx>=0 ? lvdTx : lvdI; S
 /* Where level i's picture goes: between its title and its stats (they differ per level — filled for a moment and measured, no paint;
    then the texts shown before are put back, else a slot painted later — lvdDue — leaves the far neighbour's name on the card) */
 function lvdYs(i){
-  const tx=lvdTx; if(tx!==i) lvdFill(i); const t=$('lvd').querySelector('.lvdtop'), b=$('lvd').querySelector('.lvdbot'), y=[t.offsetTop+t.offsetHeight, b.offsetTop+24];
-  if(tx!==i && tx>=0) lvdFill(tx); return y;
+  const tx=lvdTx; if(tx!==i) lvdFill(i,true); const t=$('lvd').querySelector('.lvdtop'), b=$('lvd').querySelector('.lvdbot'), y=[t.offsetTop+t.offsetHeight, b.offsetTop+24];
+  if(tx!==i && tx>=0) lvdFill(tx,true); return y;
 }
 function lvdDraw(cv,i){                                               // one slot: level i's picture, or "Unknown location" over its sky while it isn't done
   cv.ar=cv.pr=null; cv.due=null; cv.classList.toggle('full',i>=0 && lvAllGot(i)); if(i<0){ cv.width=0; return; }
@@ -19173,18 +19180,21 @@ function lvdUnknown(c,x,y,w,h){
 function lvdGaps(){ const bg=j=>j<0 ? LVD_EDGE : THEMES[LEVELS[j].theme].bg;
   document.querySelectorAll('#lvdS .lvdg').forEach((g,n)=>{ const A=bg(n?lvdI:lvdNb(-1)), B=bg(n?lvdNb(1):lvdI);
     [['--a0',A[0]],['--a1',A[1]],['--b0',B[0]],['--b1',B[1]]].forEach(([k,v])=>g.style.setProperty(k,v)); }); }
-function lvdPaint(){
+function lvdPaint(soon){                                              // soon — the card opening: only its own picture now, the neighbours once the page is idle (lvdIdle)
   if(!lvdOn()) return;
   if($('lvd').classList.contains('bare')){ if(lvdArtOn) lvdArtPaint(); return; }
-  lvdCvs.forEach(cv=>lvdDraw(cv,lvdK(cv)?lvdNb(lvdK(cv)):lvdI));
+  lvdCvs.forEach(cv=>{ const k=lvdK(cv), i=k ? lvdNb(k) : lvdI;
+    if(soon && k){ cv.ar=cv.pr=null; cv.width=0; cv.due=i<0 ? null : i; cv.classList.toggle('full',i>=0 && lvAllGot(i)); } else lvdDraw(cv,i); });
+  if(soon) lvdIdle();
   lvdGaps(); if(lvdArtOn) lvdArtPaint();
 }
 /* The strip at offset cx (px): past half the way to a neighbour the texts are that level's; they fade out toward the middle and back in */
 function lvdX(cx){
   const L=$('lvd'), W=L.clientWidth||1, p=Math.min(1,Math.abs(cx)/(W*(1+LVD_GAP))), j=cx ? lvdNb(cx<0?1:-1) : -1, t=p<.5 || j<0 ? lvdI : j;
-  lvdCx=cx; L.style.setProperty('--cx',cx+'px'); if(t!==lvdTx) lvdFill(t);
-  L.style.setProperty('--to',j<0 ? 1 : Math.max(0,Math.abs(1-2*p)*1.25-.25).toFixed(3));
+  lvdCx=cx; lvdXEl[0].forEach(e=>e.style.setProperty('--cx',cx+'px')); if(t!==lvdTx) lvdFill(t);   // set where read, not on .lvd: else every frame restyles the whole card
+  const to=j<0 ? '1' : Math.max(0,Math.abs(1-2*p)*1.25-.25).toFixed(3); if(to!==lvdXTo){ lvdXTo=to; lvdXEl[1].forEach(e=>e.style.setProperty('--to',to)); }
 }
+const lvdXEl=[['#lvdS','#lvdA'],['.lvdtop','.lvdbot']].map(l=>l.map(q=>$('lvd').querySelector(q))); let lvdXTo='';
 function lvdStop(){ cancelAnimationFrame(lvdRaf); lvdRaf=0; }
 function lvdTw(a,b,ms,step,done,ez=e=>1-Math.pow(1-e,3)){            // a card tween on frames (ease-out cubic); ends at b exactly
   lvdStop(); const t0=performance.now();
