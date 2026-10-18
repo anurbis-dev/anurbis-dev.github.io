@@ -190,10 +190,26 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
 #levels:not(.list) .lv.done .lvno{ color:var(--cream); text-shadow:0 1px 3px rgba(24,10,48,.75); }
 #levels:not(.list) .lv.full::after{ content:""; position:absolute; inset:0; z-index:2; border-radius:inherit; pointer-events:none;
   box-shadow:inset 0 0 0 2px var(--gold); }
-/* The current level (.lv.on, lvMarks): a map pin top-centre, above the picture — the cream tile is hidden under an explored level's picture */
-#levels:not(.list) .lv.on::before{ content:""; position:absolute; top:2px; left:50%; z-index:3; width:16px; height:20px; margin-left:-8px; pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 1.5C6.5 1.5 2 5.8 2 11.3c0 7.2 10 17.2 10 17.2s10-10 10-17.2C22 5.8 17.5 1.5 12 1.5z' fill='%23ff7a59' stroke='%232a1748' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='11.2' r='3.8' fill='%23fff0d6'/%3E%3C/svg%3E") center/contain no-repeat;
-  filter:drop-shadow(0 1px 2px rgba(24,10,48,.6)); }
+/* The current level (.lv.on, lvMarks): a small cube hovers top-centre above the picture, slowly spinning and bobbing
+   (the life cube's look, .lcube); paused while the menu or the Locations section is hidden; none in the list */
+.lvcube{ display:none; }
+#levels:not(.list) .lv.on .lvcube{ --c:12px; display:block; position:absolute; top:5px; left:50%; z-index:3; width:var(--c); height:calc(var(--c)*1.9);
+  margin-left:calc(var(--c)/-2); pointer-events:none; }
+.lvcb{ --h:calc(var(--c)/2); position:absolute; left:0; top:0; width:var(--c); height:var(--c); transform-style:preserve-3d;
+  transform:rotateX(-24deg) rotateY(45deg); animation:lvSpin 7s linear infinite, lvBob 2.4s ease-in-out infinite alternate;
+  filter:drop-shadow(0 1px 1.5px rgba(24,10,48,.55)); }
+.lvcb b{ position:absolute; inset:0; border:1.5px solid rgba(255,255,255,.9); border-radius:2px; box-sizing:border-box; background:#e8c9a0; }
+.lvcb b:nth-child(1){ transform:translateZ(var(--h)); } .lvcb b:nth-child(2){ transform:rotateY(90deg) translateZ(var(--h)); background:#c79f78; }
+.lvcb b:nth-child(3){ transform:rotateY(180deg) translateZ(var(--h)); } .lvcb b:nth-child(4){ transform:rotateY(-90deg) translateZ(var(--h)); background:#c79f78; }
+.lvcb b:nth-child(5){ transform:rotateX(90deg) translateZ(var(--h)); background:#fff6e6; } .lvcb b:nth-child(6){ transform:rotateX(-90deg) translateZ(var(--h)); background:#b08a66; }
+/* the shadow under the cube: shrinks as it rises */
+.lvcs{ position:absolute; left:-15%; bottom:0; width:130%; height:calc(var(--c)*.32); border-radius:50%; background:rgba(24,10,48,.45);
+  filter:blur(1px); animation:lvShade 2.4s ease-in-out infinite alternate; }
+@keyframes lvSpin{ from{ transform:rotateX(-24deg) rotateY(45deg); } to{ transform:rotateX(-24deg) rotateY(405deg); } }
+@keyframes lvBob{ from{ translate:0 calc(var(--c)*.12); } to{ translate:0 calc(var(--c)*-.18); } }
+@keyframes lvShade{ from{ transform:scale(1); opacity:.9; } to{ transform:scale(.7); opacity:.5; } }
+.overlay.hidden .lvcube *, .msec:not(.on) .lvcube *{ animation-play-state:paused; }
+@media (prefers-reduced-motion: reduce){ .lvcube *{ animation:none !important; } }
 /* Wide window (≈16:9 and wider): the grid plate widens and the thumbnails grow; the list keeps its narrow plate */
 @media (min-aspect-ratio:3/2) and (min-width:720px){
   #levels:not(.list){ width:min(100%,900px); }
@@ -201,7 +217,7 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
   #levels:not(.list) .lv{ height:auto; aspect-ratio:4/3; border-radius:12px; font-size:22px; }
   #levels:not(.list) .lvno{ top:6px; left:9px; }
   #levels:not(.list) .lvi{ top:5px; right:7px; font-size:17px; }
-  #levels:not(.list) .lv.on::before{ top:4px; width:22px; height:27px; margin-left:-11px; }
+  #levels:not(.list) .lv.on .lvcube{ --c:17px; top:7px; }
 }
 #levels.list .lvgrid{ grid-template-columns:minmax(0,1fr); }
 #levels.list .lv{ height:auto; min-height:100px; min-width:0; max-width:100%; box-sizing:border-box; overflow:hidden;
@@ -486,17 +502,15 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .lcube i:nth-child(5){ transform:rotateX(90deg) translateZ(var(--h)); background:#fff6e6; } .lcube i:nth-child(6){ transform:rotateX(-90deg) translateZ(var(--h)); background:#b08a66; }
 @keyframes lspin{ from{ transform:rotateX(-24deg) rotateY(45deg); } to{ transform:rotateX(-24deg) rotateY(405deg); } }
 /* Artifact award: the relic spins in a slow ring of light over the paused game; the name in gold, its language and meaning under it.
-   A tap ("Learn more…") flies the relic with its rays to the top-right corner at half size (.afly, --fx/--fy from artCorner) and fades in its legend;
-   a tap on the legend plays that backwards (.back: the legend fades out, the relic flies back, the name returns with "Tap to continue").
+   A tap ("Learn more…") leaves the relic in place, dims it and fades its legend in over it;
+   a tap on the legend plays that backwards (.back: the legend fades out, the relic brightens, the name returns with "Tap to continue").
    Only the text toggles the legend; a tap anywhere else sends the relic home — it flies into its HUD icon (.home, artFlyHome) */
 #art{ --as:min(70vw,44vh); background:none; cursor:pointer; }
 .aback{ position:absolute; inset:0; background:radial-gradient(circle at 50% 45%,rgba(40,20,74,.3),rgba(12,6,28,.8) 72%); pointer-events:none; transition:opacity .6s ease; }
 .aback::after{ content:""; position:absolute; inset:0; background:rgba(12,6,28,.5); opacity:0; transition:opacity .6s ease; }
 #art.lore .aback::after{ opacity:1; }   /* the legend reads over a darker veil */
-.abox{ transition:opacity .6s ease; } #art.lore .abox{ opacity:.7; }   /* the relic in its corner dims a little: the legend may lie over it */
+.abox{ transition:opacity .6s ease; } #art.lore .abox{ opacity:.35; }   /* the relic stays in place and dims: the legend lies over it */
 #art .abox{ position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; color:var(--cream); max-width:min(92vw,560px); }
-.afly{ transition:transform .9s cubic-bezier(.45,0,.2,1); will-change:transform; }
-#art.lore .afly{ transform:translate(var(--fx,0px),var(--fy,0px)) scale(.5); }
 .ainfo{ display:flex; flex-direction:column; align-items:center; transition:opacity .35s ease; }
 #art.lore .ainfo{ opacity:0; pointer-events:none; }
 .aglow{ position:relative; width:var(--as); height:var(--as); margin:calc(2px*var(--ui)) 0; }
@@ -511,10 +525,9 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #artSub, #artLSub{ display:block; margin-top:calc(4px*var(--ui)); font-size:calc(15px*var(--ui)); font-weight:800; opacity:.8; }
 #art .atap{ margin:calc(14px*var(--ui)) 0 0; font-size:calc(13px*var(--ui)); font-weight:800; opacity:.55; }
 #art:not(.haslore) .ainfo .learn, #art.back .ainfo .learn, #art.haslore:not(.back) .ainfo .cont{ display:none; }
-#art.back .afly{ transition:transform .9s cubic-bezier(.8,0,.55,1) .15s; } #art.back .ainfo{ transition-delay:.7s; } #art.back .aback::after{ transition-delay:.45s; }   /* the way in, time-reversed */
+#art.back .abox{ transition-delay:.3s; } #art.back .ainfo{ transition-delay:.7s; } #art.back .aback::after{ transition-delay:.45s; }   /* the way in, time-reversed */
 #art.back .alore{ transition:opacity .6s ease, visibility 0s .6s; }
-/* The legend uses the whole overlay once the relic has flown off: centred, over the corner relic if need be (the veil and the shadow keep
-   it readable); the prompt at the bottom */
+/* The legend uses the whole overlay: centred over the dimmed relic (the veil and the shadow keep it readable); the prompt at the bottom */
 .alore{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; padding:calc(24px*var(--ui)) 20px calc(18px*var(--ui) + env(safe-area-inset-bottom,0px)); box-sizing:border-box; pointer-events:none;
   opacity:0; visibility:hidden; transition:opacity .45s ease, visibility 0s .45s; }
 #art.lore .alore{ opacity:1; visibility:visible; transition:opacity .6s ease .45s; } #art.lore .alore > div{ pointer-events:auto; }
@@ -903,7 +916,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '1.99.8';
+const VERSION = '1.99.9';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -2975,6 +2988,10 @@ const THEME_ICON = { day:'☀️', dusk:'🌅', rain:'🌧', night:'🌙', snow:
    def.mat: the cube's material at the start
    def.cam: {az, el} — the level's own camera in degrees: az — yaw (0 looks along x from the +z side, a side-scroller), el — pitch (default ≈35.5); snaps and quarter turns keep to it;
      lead — look-ahead: once the cube moves sideways on screen the view slides that way by this share of the half screen width (the cube stays toward the trailing edge)
+     lock: true — the player can't turn the camera (two fingers, the camera button, Q/E) and autoCam doesn't either; zoom and pan stay (side-scrollers)
+   def.cams: [{on:'zone id'|'x,z', az, el, lead, lock}] — camera switches: the cube entering zone on (def.zones) or plate on going down flies the view
+     (eased, CAM_SW s) to this az/el/lead/lock (degrees, as def.cam; a missing az/el — the default). The active one lasts through deaths and sublevel
+     visits until a full restart (back to def.cam); entering the same trigger again does nothing, another one switches again
    def.ramps: [{at,dir,len,rise,icy,sticky}] — slopes of any steepness; steepness ≥ 2 is slippery, sticky doesn't slip
      {at,dir,len,arc:'in'|'out',rise} — a curved ramp (a quarter circle, rise defaults to len): 'in' concave
      (a quarter-pipe: gentle at the bottom, vertical at the top), 'out' convex (a rounded edge: vertical at the bottom, gentle at the top).
@@ -3061,8 +3078,8 @@ areaAdd({ id:'thule', name:'Ultima Thule', sub:'Islands at the edge of the map',
 areaLevels('thule',[
  { id:'islet', name:'Islet', theme:'day',
    hint:'Swipe to roll the cube to the glowing pad. Two fingers: rotate, pinch, drag — camera. Push a tree or bush — something might be inside.',
-   h:['.11200..........','11111~~.........','11.11~~.........','..1111......111.','...11111...11111','....11111111~~11','...........1~~11','..........111111','..........111110','...........111..'],
-   o:['.S.w............','T.T.T...........','H...............','..T.........T...','...KH..H.......T','................','................','..........H...K.','..........H...HH','...........TG...'],
+   h:['.11100..........','11111~~.........','11.11~~.........','..1111......111.','...11111...11111','....11111111~~11','...........1~~11','..........111111','..........111110','...........111..'],
+   o:['.S..............','T.T.T...........','H...............','..T.........T...','...KH..H.......T','................','................','..........H...K.','..........H...HH','...........TG...'],
    q:['....1','..............11','..............11','','','....1..........1','','','..........1.....'],
    loot:{ '4,1':'x', '7,4':'l', '12,3':'x' },
    dig:['1,2','13,4','5,0'],
@@ -3077,12 +3094,8 @@ areaLevels('thule',[
      '14,8':'208,770',
      '10,8':'1174,2080',
      '11,9':'1078,1950',
-     '15,4':'209,766',
-     '2,1':'196,763'
-   },
-   warps:[{ id:'1', at:'3,0', y:1 },{ id:'1', at:'4,3', y:1 }],
-   brk:{ '3,0':1 },
-   nest:{ '3,0':'K' } },
+     '15,4':'209,766'
+   } },
  { id:'steps', name:'Steps', theme:'day',
    hint:'Tap to jump. Tap and swipe right away — a leap: onto a higher step or over a gap.',
    h:["11..............","112.............",".12233..........","11..3...........","111.............","....32111.......","........1.......","........12.3344.","...........33.5.","................","..............55"],
@@ -15828,7 +15841,7 @@ function camHide(a){
 const CAM_AUTO=.3, CAM_HAND=4, CAM_TURN=1.1; let camAutoT=0, camHand=-99, camTw=null;
 function autoCam(){
   if(document.body.classList.contains('ed-edit')) return;             // editor camera is user-owned — no 90° hide-turns
-  if(dragging || time-camHand<CAM_HAND) return;
+  if(dragging || camLock || time-camHand<CAM_HAND) return;           // a locked camera (def.cam.lock) stays where the level put it
   camSee=!!T.cave;                                                    // in a cave the cube shows through the walls: they don't turn the camera
   const lim=P.float?1:CAM_HIDE, h0=camHide(azT); if(h0<lim){ camSee=false; return; }
   let bm=0, bh=h0; for(const m of [1,-1,2]){ const h=camHide(azT+m*Math.PI/2); if(h<bh-.1){ bm=m; bh=h; if(h<.05) break; } }
@@ -17507,6 +17520,7 @@ function bldApply(L){
 function updateZones(){
   for(const id in zones){ const z=zones[id], inZ=state!=='dead' && state!=='win' && !SH.carry && P.x>=z.x0 && P.x<=z.x1 && P.z>=z.z0 && P.z<=z.z1;
     if(inZ===z.on) continue; z.on=inZ;
+    if(inZ) camTrig(id);                                               // a camera switch (def.cams) — on every entry
     if(inZ && !(z.once && z.done)){ z.done=true; zoneFire(id); } }
 }
 function zoneFire(id){                                                 // like a 'press' plate going down — only for the pieces and boulders linked to the zone
@@ -18421,6 +18435,25 @@ function camAhead(des){
   camLead+=(goal-camLead)*(1-Math.exp(-dt*CAM_LEAD_T));
   des.addScaledVector(_camR,camLead);
 }
+/* Camera switches: def.cam — the level's start view; def.cams [{on, az, el, lead, lock}] — a zone id or a plate cell 'x,z' turns the view to its own
+   (camTrig from updateZones / updatePlates): an eased flight (CAM_SW s) of az and el; lock — no manual turns (side-scrollers), autoCam stays still too.
+   The active switch (camOn) lasts through deaths and sublevel visits (subSave → cam), a full restart (loadLevel without sv) goes back to def.cam */
+let camLock=false, camOn=-1, camElTw=null;
+const CAM_SW=1.1;
+function camView(cv,fly){
+  cv=cv||{}; const b=cv.az!=null?cv.az*Math.PI/180:STEP, e=cv.el!=null?cv.el*Math.PI/180:EL0;
+  camBase=b; camLeadK=cv.lead||0; camLock=!!cv.lock;
+  if(!fly){ az=azT=b; el=e; camTw=camElTw=null; return; }
+  const a1=b+Math.round((az-b)/(2*Math.PI))*2*Math.PI;                 // the nearest turn to the new yaw: no spin round
+  azT=a1; camTw={ a0:az, a1, t0:time, d:CAM_SW }; camElTw={ e0:el, e1:e, t0:time, d:CAM_SW }; camHand=time;
+}
+function camReset(def){ camOn=-1; camView(def && def.cam,false); camLeadD=camLead=camLeadA=0; camLeadX=null; }
+function camTrig(k){
+  const L=curDef().cams; if(!Array.isArray(L)) return;
+  const i=L.findIndex(c=>c && String(c.on)===k); if(i<0 || i===camOn) return;   // the active one again — nothing
+  camOn=i; camView(L[i],true);
+}
+const camSnapEnd=()=>{ if(!camLock) azT=snapAz(az); };                   // the end of a manual turn
 let camSoft=0;   // how many more seconds the camera follows the cube softly (after the drop)
 const _des=new V3(), CAM_AUTO_ST=new Set(['idle','roll','ride','float','slide','fly','climb']);
 const _camShipMid=new V3(), _camShipDir=new V3(), _camShipRight=new V3(), _camShipUp=new V3(), _camShipRel=new V3();
@@ -18451,10 +18484,12 @@ function updateCam(snap){
   const fixed=state==='dead'||state==='intro'||(state==='win'&&PIL.up)||(state==='fall'&&camSoft>0);   // death, ship arrival and the ship's cube drop — the camera looks at the cell, not the cube (no jumping up and down)
   const des=_des.set(fixed?P.x:root.position.x, P.void ? root.position.y-HALF+.3 : (state==='jump'||state==='pound'||fixed)?P.l+.3:root.position.y-HALF+.3, fixed?P.z:root.position.z);   // into a drop — the camera follows the cube
   const shipZ=camShipZoom(des);                                                 // during drop/pickup keep both the ship and the cube in frame
-  if(camLeadK) camAhead(des);
+  if(camLeadK || Math.abs(camLead)>1e-3) camAhead(des);               // a switch to lead 0 eases the view back
   des.add(pan);
   if(cine) cineCam(des); else if(snap) camTgt.copy(des); else camTgt.lerp(des,1-Math.exp(-dt*(camSoft>0?2.2:4)));   // after the drop — softer
   if(camTw && (dragging || camTw.a1!==azT)) camTw=null;       // the player took over the camera
+  if(camElTw && document.body.classList.contains('ed-edit')) camElTw=null;   // the editor's own orbit
+  if(camElTw){ const u=Math.min(1,(time-camElTw.t0)/camElTw.d); el=camElTw.e0+(camElTw.e1-camElTw.e0)*(1-Math.cos(Math.PI*u))/2; if(u>=1) camElTw=null; }
   if(camTw){ const u=Math.min(1,(time-camTw.t0)/camTw.d); az=camTw.a0+(camTw.a1-camTw.a0)*(1-Math.cos(Math.PI*u))/2; if(u>=1) camTw=null; }
   if(!dragging){ if(!camTw) az+=(azT-az)*(1-Math.exp(-dt*10)); const zTo=shipZ?lerp(zoomT,Math.min(zoomT,shipZ),camShipMix):zoomT; cam.zoom+=(zTo-cam.zoom)*(1-Math.exp(-dt*10)); cam.updateProjectionMatrix(); }
   if(panDecay && !dragging) pan.multiplyScalar(Math.exp(-dt*1.6));
@@ -18679,9 +18714,9 @@ canvas.addEventListener('pointermove', e=>{
   } else if(gest.mode==='single' && e.pointerId===gest.id && gest.ld) swipeTurn(e);
   else if(gest.mode==='multi' && pts.size>=2){
     const t=two(); let da=t.a-gest.a; if(da>Math.PI) da-=Math.PI*2; if(da<-Math.PI) da+=Math.PI*2;
-    az+=da; azT=az; zoomBy(t.d/gest.d); panBy(t.cx-gest.cx,t.cy-gest.cy);
+    if(!camLock){ az+=da; azT=az; } zoomBy(t.d/gest.d); panBy(t.cx-gest.cx,t.cy-gest.cy);
     Object.assign(gest,t);
-  } else if(gest.mode==='mrot'){ az-=dxp*.01; azT=az; }
+  } else if(gest.mode==='mrot'){ if(!camLock){ az-=dxp*.01; azT=az; } }
   else if(gest.mode==='mpan'){ panBy(dxp,dyp); }
 });
 /* Swipe and hold, then the finger turns without lifting — the roll turns too. The new direction is read from the recent
@@ -18707,9 +18742,9 @@ function endPtr(e){
     if(!gest.done && e.type==='pointerup'){ if(gest.hold) releaseCharge(); else onTap(); }
     chargeV=0; gest=null;
   }
-  else if(gest.mode==='multi'){ if(pts.size===0){ gest=null; dragging=false; azT=snapAz(az); camHand=time; } else gest={ mode:'dead' }; }
-  else if(gest.mode==='mrot'||gest.mode==='mpan'){ gest=null; dragging=false; azT=snapAz(az); camHand=time; }
-  else if(gest.mode==='dead' && pts.size===0){ gest=null; dragging=false; azT=snapAz(az); camHand=time; }
+  else if(gest.mode==='multi'){ if(pts.size===0){ gest=null; dragging=false; camSnapEnd(); camHand=time; } else gest={ mode:'dead' }; }
+  else if(gest.mode==='mrot'||gest.mode==='mpan'){ gest=null; dragging=false; camSnapEnd(); camHand=time; }
+  else if(gest.mode==='dead' && pts.size===0){ gest=null; dragging=false; camSnapEnd(); camHand=time; }
 }
 canvas.addEventListener('pointerup', endPtr);
 canvas.addEventListener('pointercancel', endPtr);
@@ -18736,12 +18771,12 @@ function camBind(b,m){
       g.on=true; if(!m) g.h=Math.abs(tx)>=Math.abs(ty); dragging=true; camTw=null; }
     if(cine) return;
     if(g.pan) panBy(dx*CAMB_P*camK.pan,dy*CAMB_P*camK.pan);
-    else if(g.h){ az-=dx*CAMB_A*camK.rot; azT=az; } else zoomBy(Math.exp(-dy*CAMB_Z*camK.zoom));      // up — closer
+    else if(g.h){ if(!camLock){ az-=dx*CAMB_A*camK.rot; azT=az; } }   // a locked camera (def.cam.lock) doesn't turn else zoomBy(Math.exp(-dy*CAMB_Z*camK.zoom));      // up — closer
   });
   function end(e){
     const g=camG; if(!g || g.id!==e.pointerId) return; camG=null;
     b.classList.remove('pan');
-    if(g.on){ dragging=false; if(!g.pan){ azT=snapAz(az); camHand=time; } camBEat=performance.now(); }   // the click after a drag or a hold isn't a tap
+    if(g.on){ dragging=false; if(!g.pan){ camSnapEnd(); camHand=time; } camBEat=performance.now(); }   // the click after a drag or a hold isn't a tap
   }
   b.addEventListener('pointerup',end); b.addEventListener('pointercancel',end);
   b.addEventListener('contextmenu',e=>e.preventDefault());
@@ -18778,8 +18813,8 @@ addEventListener('keydown', e=>{
   if(KEYS[e.code]){ e.preventDefault(); if(!e.repeat){ if(e.shiftKey) onDash(...KEYS[e.code]); else { const [a,b]=KEYS[e.code]; const d=pickDir(a,b); if(d){ dirInput(d); holdDir={ d, t0:time, code:e.code }; } } } }
   else if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) kbHold={ t0:time, hold:false }; }
   else if(e.code==='KeyX'||e.code==='KeyC'){ if(state==='jump' && !inputOff()) pound(); }
-  else if(e.code==='KeyQ'){ azT-=2*STEP; camHand=time; }
-  else if(e.code==='KeyE'){ azT+=2*STEP; camHand=time; }
+  else if(e.code==='KeyQ'){ if(!camLock) azT-=2*STEP; camHand=time; }
+  else if(e.code==='KeyE'){ if(!camLock) azT+=2*STEP; camHand=time; }
   else if(e.code==='Equal'||e.code==='NumpadAdd') zoomBy(1.15);
   else if(e.code==='Minus'||e.code==='NumpadSubtract') zoomBy(1/1.15);
   else if(e.code==='KeyR'){ if(!e.repeat) goLevel(cur,true); }
@@ -20122,14 +20157,13 @@ function artShow(then,k){                                             // k — a
   showOverlay('art'); artOn=true; artT0=artT1=performance.now(); artN=0; artSz=0; artA=0; artLt=0; artSpin0(); SND.relic(); SND.relicTune(relTune(i),true,2.4);
   artFree(artG); artG=null; if(artGL()){ artG=artBuild(i); artS.add(artG); }
 }
-/* A tap on the text (the name, "Learn more…"; the legend while it shows) toggles the legend: step 1 — the relic with its rays flies to the
-   top-right corner at half size and its legend fades in; step 2 — the same backwards: the legend goes, the relic flies back at full size,
-   its name returns with "Tap to continue". A tap anywhere else closes: the relic flies into its HUD icon (artFlyHome).
+/* A tap on the text (the name, "Learn more…"; the legend while it shows) toggles the legend: step 1 — the relic stays where it is, dims under
+   a veil and its legend fades in over it; step 2 — the same backwards: the legend goes, the relic brightens, its name returns with "Tap to continue". A tap anywhere else closes: the relic flies into its HUD icon (artFlyHome).
    Enter/Space step on 1 → 2 → close; no legend — the first closes */
 const artBusy=()=>!artOn || artHome || performance.now()-artT0<ART_LOCK || performance.now()-artT1<ART_LOCK2;
 function artLoreGo(on){
   const o=$('art'); artStep=on ? 1 : 2; artT1=performance.now(); if(SND.uiRelic) SND.uiRelic();
-  if(on){ artCorner(); o.classList.remove('back'); o.classList.add('lore'); } else { o.classList.add('back'); o.classList.remove('lore'); }
+  if(on){ o.classList.remove('back'); o.classList.add('lore'); } else { o.classList.add('back'); o.classList.remove('lore'); }
 }
 function artNext(){
   if(artBusy()) return;
@@ -20141,12 +20175,6 @@ function artTap(e){
   const txt=e.target.closest && e.target.closest('#artName, #artSub, .ainfo .learn, .alore > div');
   if(txt && relLore(artI)) return artLoreGo(artStep!==1);
   artClose(true);
-}
-/* Where .afly goes: the centre of its half-size copy in the top-right corner, clear of the rays (they reach 14% past the box) */
-function artCorner(){
-  const f=document.querySelector('#art .afly'), g=f.firstElementChild, s=g.offsetWidth, m=s*.07+12*uiK;
-  let x=0, y=0; for(let e=g; e && e!==$('art'); e=e.offsetParent){ x+=e.offsetLeft; y+=e.offsetTop; }
-  f.style.setProperty('--fx',Math.round(innerWidth-m-s/4-(x+s/2))+'px'); f.style.setProperty('--fy',Math.round(m+s/4-(y+s/2))+'px');
 }
 function artClose(fly){                                               // fly — home into the HUD icon, if it can be seen
   if(!artOn || artHome || performance.now()-artT0<ART_LOCK) return;
@@ -20270,7 +20298,6 @@ function artLive(now){
   const c=cv.getContext('2d'); c.setTransform(d,0,0,d,0,0); c.clearRect(0,0,cv.r[2],cv.r[2]);
   artDraw(c,R.domElement,x,y,s,false);
 }
-addEventListener('resize',()=>{ if(artOn && artStep===1) artCorner(); });
 /* =====================================================================
    PALS (companions)
    A pal is found once, somewhere deep in the world (the level phase calls palAward(id), or a def.yeti entry with do:'meet' does it
@@ -20452,7 +20479,7 @@ function plateLatch(p){                                                // a cine
 function updatePlates(){
   for(const k in plates){ const p=plates[k], on=plateHeld(p); p.cr=plateCrate(p);
     const grp=pieces.some(q=>Array.isArray(q.plate) && q.plate.includes(k));
-    if(on!==p.on){ p.on=on; SND.platePress(on); if(on && p.mode==='press') plateFire(k); if(on) bldTrigger(k);   // boulders with this trigger roll
+    if(on!==p.on){ p.on=on; SND.platePress(on); if(on && p.mode==='press') plateFire(k); if(on){ bldTrigger(k); camTrig(k); }   // boulders with this trigger roll; a camera switch (def.cams)
       if(on && p.mode!=='press' && !grp && !plateHint && !TEST){ plateHint=true; toast(loc('Hold plate'),loc('Its platform stays out only while something stands on the plate'),true); } }
     p.k+=((on?1:0)-p.k)*(1-Math.exp(-dt*12)); p.top.position.y=p.baseY-.035*p.k; p.lit.emissiveIntensity=.15+.75*p.k; }
   for(const p of pieces){ if(p.trigger!=='hold' || p.moving || p.cw) continue;
@@ -21328,7 +21355,12 @@ SHIPS.forEach((s,i)=>{ const id=shipId(s[0]), M=SHIP_MODEL[id];
 if(Object.keys(SHIP_MODEL).length) buildShip();                       // the ship built at the start of ship.js is the code's: build it again from the models
 /* The completion marks and the current level in the grids; the menu opens on the current level's area.
    .full — a gold frame on the thumbnail when every star and secret is collected (lvAllGot; cube-art alone does not keep it) */
-function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur)); }
+/* The current level's tile carries a small hovering, spinning cube (.lvcube, CSS only) — one element, moved to the current tile */
+let lvCube=null;
+function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur));
+  if(!lvCube){ lvCube=document.createElement('i'); lvCube.className='lvcube'; lvCube.setAttribute('aria-hidden','true');
+    lvCube.innerHTML='<i class="lvcs"></i><i class="lvcb"><b></b><b></b><b></b><b></b><b></b><b></b></i>'; }
+  const b=lvBtns[cur]; if(b){ if(lvCube.parentNode!==b) b.append(lvCube); } else lvCube.remove(); }
 function setTg(id,on){ $(id).setAttribute('aria-pressed',on?'true':'false'); }
 /* The menu pauses the game. Sound fades, except in the settings section — the volume must be audible there */
 let paused=false, mSec='', modalOv, modalRet=null, fbPaused=false;   // fbPaused: the beta feedback form is open (fbsnap.js)
@@ -21357,7 +21389,7 @@ function modalSync(ov){
   document.querySelectorAll('.overlay').forEach(o=>o.inert=o!==ov);
   if(!ov){ const r=modalRet; modalRet=null; if(r && was && was.id!=='title' && r.isConnected && !r.closest('[inert],.hidden,[hidden]')) try{ r.focus({ preventScroll:true }); }catch(e){} }
 }
-function dropInput(){ holdDir=null; gest=null; kbHold=null; chargeV=0; pts.clear(); dragging=false; if(camG){ azT=snapAz(az); camG.b.classList.remove('pan'); camG=null; } }   // pause, lost focus, hidden tab: no held input survives
+function dropInput(){ holdDir=null; gest=null; kbHold=null; chargeV=0; pts.clear(); dragging=false; if(camG){ camSnapEnd(); camG.b.classList.remove('pan'); camG=null; } }   // pause, lost focus, hidden tab: no held input survives
 function openMenu(){ if(goalLock || statBusy || lvWipe || cine) return; SND.init(); lvMarks(); areaGo(areaOf(cur)); placeMenu(); lvdClose(); setSecNow(''); showOverlay('menu'); }   // not under the level curtain or a cinematic
 function closeMenu(){ autoFS(); closeOverlays(); }
 /* Menu sections: an icon opens its panel (the icon lit), the same icon again closes it — back to the PAUSED label */
@@ -21703,8 +21735,9 @@ function loadLevel(i,retry,defer,sv){
   if(!defer) startLevel();
   if(sv===true) subPlace();                                            // at the door it came through, with the run's lives and time ('fb' — a feedback replay places the cube itself)
   hudTitle(); updateStars(); introHide(); hintClear(); toastTap(true); smartSayOff(); hudLeft(!!retry); hudArt();   // a new level: the HUD corner waits for the intro
-  camRc=null; pan.set(0,0,0); zoomT=1; cam.zoom=1; cam.updateProjectionMatrix(); const cv=def.cam||{}; camBase=cv.az!=null?cv.az*Math.PI/180:STEP; el=cv.el!=null?cv.el*Math.PI/180:EL0; camLeadK=cv.lead||0; camLeadD=camLead=camLeadA=0; camLeadX=null;   // def.cam {az, el} in degrees: a level's own view (a side-scroller — az 0, low el)
-  az=azT=camBase; camTw=null; updateCam(true);   // the default camera on every load (a retry too)
+  camRc=null; pan.set(0,0,0); zoomT=1; cam.zoom=1; cam.updateProjectionMatrix(); camReset(def);   // def.cam {az, el, lead, lock} in degrees: a level's own view (a side-scroller — az 0, low el)
+  if(sv){ const L=subRun && subRun.lv[subLv||''], c=L && def.cams && def.cams[L.cam]; if(c){ camOn=L.cam; camView(c,false); } }   // back in a place: its camera switch stays
+  updateCam(true);   // the default camera on every load (a retry too)
   if(!retry && !defer) announce();
   camFar=reduced()||TEST||sv?0:retry?2:1;
   if(camFar){   // the start view is set at once, under the curtain; the fly-in waits frozen (camRc.t very negative) until startLevel()
@@ -21966,7 +21999,7 @@ function subSave(){
     broke:Object.keys(brk).filter(k=>brk[k].broken), loot:Object.keys(loot).filter(k=>loot[k].done),
     crates:crates.map(c=>[c.x,c.z,c.y,!!c.gone,c.on?pieces.indexOf(c.on):-1,c.on?c.local:null]), up:pieces.map((p,i)=>p.latched?i:-1).filter(i=>i>=0), lamps:!!(lamps && lamps.open),
     bridge:bridgesList.flatMap(b=>(b.seg && b.seg.broken||[]).map(s=>K(s.x,s.z))), brHp:bridgesList.flatMap(b=>propBrWhole(b.seg).filter(s=>s.hp<b.seg.hp0).map(s=>[K(s.x,s.z),s.hp])),
-    brSnap:bridgesList.filter(b=>b.seg.split!==null).map(b=>K(b.seg.cells[b.seg.split].x,b.seg.cells[b.seg.split].z)), bld:bldSave(), fell:Object.keys(traps).filter(k=>traps[k].kind==='collapse' && traps[k].on), ovFell:ovFalls.map(o=>[K(o.x,o.z),o.t]), zones:Object.keys(zones).filter(id=>zones[id].done) };
+    brSnap:bridgesList.filter(b=>b.seg.split!==null).map(b=>K(b.seg.cells[b.seg.split].x,b.seg.cells[b.seg.split].z)), bld:bldSave(), fell:Object.keys(traps).filter(k=>traps[k].kind==='collapse' && traps[k].on), ovFell:ovFalls.map(o=>[K(o.x,o.z),o.t]), zones:Object.keys(zones).filter(id=>zones[id].done), cam:camOn };
 }
 /* The cube rolled into a door: into the rock, then the curtain */
 function subEnter(k,how){                                             // how — as enterCave: a roll, 'slide', 'drop', 'jump'
@@ -22543,7 +22576,7 @@ window.__cube = { surf:(x,z,r)=>surface(x,z,r), obstOf:k=>{ const o=obst[k]; ret
   get paused(){return paused;}, get ready(){return booted;}, get busy(){return wiping;}, get time(){return time;}, get winds(){return winds;}, get holding(){return !!holdDir;}, get charge(){return chargeV;}, get stain(){ return stainMesh.visible ? stainShow : 0; }, get zoom(){return cam.zoom;}, get quality(){ return { step:qStep, dpr:renderer.getPixelRatio(), shadow:renderer.shadowMap.type===THREE.PCFShadowMap?'pcf':'soft', fps:+(1/qAvg).toFixed(1), auto:qAuto, low:document.body.classList.contains('lowq'), soft:softOn, shadows:renderer.shadowMap.enabled }; }, set qualityAuto(v){ qAuto=!!v; }, qualityDown, get shipLeave(){ return SH.leave ? SH.leave.u : null; }, defs:LEVELS,
   get pushers(){return pushers;}, get traps(){return traps;}, setMat:m=>{ P.mat=m; applyMaterialLook(); }, get ship(){return shipKind;}, setShip, previewShip:i=>{ setShip(i); ship.visible=true; ship.rotation.set(0,-.6,0); ship.position.set(P.x,P.l+2.7,P.z); shipBeam(2.2,.9); },
   get vfx(){ return { trail:trail.visible, trailA:+TR.a.toFixed(2), rings:rings.filter(r=>r.m.visible).length, cols:cols.filter(c=>c.m.visible).length }; },
-  get kick(){ return { ok:!!kickWall(), y:root.position.y }; }, get gust(){ return { k:GUST.k, leaves:GUST.n }; }, get crickets(){return crickets;}, get herds(){ return critters.filter(c=>c.type==="herd"||c.type==="chick"||c.young).map(c=>({ kind:c.kind||(c.mom&&c.mom.kind+"-chick"), young:!!c.young||c.type==="chick", x:c.m.position.x, y:c.m.position.y, z:c.m.position.z, mx:(c.lead||c.mom||c).m.position.x, mz:(c.lead||c.mom||c).m.position.z })); }, get fauna(){ return critters.filter(c=>c.type==="shore"||c.type==="sea").map(c=>({ kind:c.kind, swim:!!c.swim, young:!!c.mom, x:c.m.position.x, y:c.m.position.y, z:c.m.position.z })); }, get treeBirds(){ const r={}; for(const b of treeBirds){ const q=r[b.k]||(r[b.k]={ tree:b.k, n:0, fly:0 }); q.n++; if(b.fl) q.fly++; } return Object.values(r); }, treeBirdsPut:(k,n)=>{ for(const b of treeBirds) drop(b.m); treeBirds=[]; for(let i=0;i<n;i++) treeBirdAdd(k); }, trees:()=>treeKeys(), shakeTree:k=>shakeObst(k,1,0), startle:(x,z)=>startle(x??P.x,z??P.z,P.l), snow:(x,z)=>+snowK(x??P.x,z??P.z).toFixed(3), get canCharge(){ return canCharge(); }, get sink(){ return P.sink; }, get sinkVis(){ return sinkVis; }, simSnow:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++) updateSnowC(); dt=d0; }, simCritters:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++){ time+=dt; updateCritters(); } dt=d0; }, floor:(x,z)=>obst[K(x,z)] ? null : th(x,z), obTop:(x,z)=>{ const o=obst[K(x,z)]; return o && o.mesh ? +new THREE.Box3().setFromObject(o.mesh).max.y.toFixed(3) : null; }, zap:()=>zapped(), camHide:a=>+camHide(a===undefined?azT:a).toFixed(2), get az(){return azT;}, get lead(){ return +camLead.toFixed(2); }, get pan(){ return +pan.length().toFixed(3); }, get locked(){return goalLock;}, get cine(){ return cine ? cine.ph : null; }, get see(){ return SEE.seeK.value.x; }, get msec(){return mSec;}, set msec(v){ setSec(v); },
+  get kick(){ return { ok:!!kickWall(), y:root.position.y }; }, get gust(){ return { k:GUST.k, leaves:GUST.n }; }, get crickets(){return crickets;}, get herds(){ return critters.filter(c=>c.type==="herd"||c.type==="chick"||c.young).map(c=>({ kind:c.kind||(c.mom&&c.mom.kind+"-chick"), young:!!c.young||c.type==="chick", x:c.m.position.x, y:c.m.position.y, z:c.m.position.z, mx:(c.lead||c.mom||c).m.position.x, mz:(c.lead||c.mom||c).m.position.z })); }, get fauna(){ return critters.filter(c=>c.type==="shore"||c.type==="sea").map(c=>({ kind:c.kind, swim:!!c.swim, young:!!c.mom, x:c.m.position.x, y:c.m.position.y, z:c.m.position.z })); }, get treeBirds(){ const r={}; for(const b of treeBirds){ const q=r[b.k]||(r[b.k]={ tree:b.k, n:0, fly:0 }); q.n++; if(b.fl) q.fly++; } return Object.values(r); }, treeBirdsPut:(k,n)=>{ for(const b of treeBirds) drop(b.m); treeBirds=[]; for(let i=0;i<n;i++) treeBirdAdd(k); }, trees:()=>treeKeys(), shakeTree:k=>shakeObst(k,1,0), startle:(x,z)=>startle(x??P.x,z??P.z,P.l), snow:(x,z)=>+snowK(x??P.x,z??P.z).toFixed(3), get canCharge(){ return canCharge(); }, get sink(){ return P.sink; }, get sinkVis(){ return sinkVis; }, simSnow:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++) updateSnowC(); dt=d0; }, simCritters:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++){ time+=dt; updateCritters(); } dt=d0; }, floor:(x,z)=>obst[K(x,z)] ? null : th(x,z), obTop:(x,z)=>{ const o=obst[K(x,z)]; return o && o.mesh ? +new THREE.Box3().setFromObject(o.mesh).max.y.toFixed(3) : null; }, zap:()=>zapped(), camHide:a=>+camHide(a===undefined?azT:a).toFixed(2), get az(){return azT;}, get cam(){ return { az:azT, el, lock:camLock, on:camOn, base:camBase, lead:camLeadK, tw:!!(camTw||camElTw) }; }, get lead(){ return +camLead.toFixed(2); }, get pan(){ return +pan.length().toFixed(3); }, get locked(){return goalLock;}, get cine(){ return cine ? cine.ph : null; }, get see(){ return SEE.seeK.value.x; }, get msec(){return mSec;}, set msec(v){ setSec(v); },
   get pose(){ return { t:time, p:root.position.toArray(), q:pMesh.quaternion.toArray(), void:P.void }; },
   get goalFx(){ const G=fx.goal; return G && { sides:G.post.geometry.parameters.radialSegments, sy:G.post.scale.y, k:G.k,
     ring:world.children.some(m=>m.geometry && m.geometry.type==='TorusGeometry' && m.position.x===goal.x && m.position.z===goal.z) }; }, get stars(){return starGot;}, get buried(){return Object.keys(buried);}, get starCells(){ return Object.values(stars).filter(s=>!s.got && s.mesh && !s.pop).map(s=>[s.x,s.z]); }, get covers(){ const o={}; for(const k in covers) o[k]=covers[k].kind; return o; }, get starMeshes(){ return Object.values(stars).filter(s=>s.mesh&&s.mesh.parent).length; }, get starTotal(){return starTotal;}, get trails(){return trails.map(t=>[+t.m.position.x.toFixed(2),+t.m.position.y.toFixed(2),+t.m.position.z.toFixed(2)]);}, get shipGone(){ return !ship.visible && !SH.leave; }, get shipPos(){ return ship.visible ? ship.position.toArray() : null; }, get pieces(){return pieces;}, get critters(){return critters;}, get flybys(){return flybys;}, flyby:()=>spawnFlyby(), warmLevel:()=>warmDraw(), get scene(){ return scene; }, get renderer(){ return renderer; }, matKeys:()=>Object.keys(MC), get mem(){ const L=batLive(), M=renderer.info.memory; return { mats:Object.keys(MC).length, pmats:Object.keys(pMats).length, programs:(renderer.info.programs||[]).length, geometries:M.geometries-L.g, textures:M.textures-L.t, live:L }; }, levels:N, version:VERSION, get lang(){return lang;}, setLang, autoLang, L10N, LANGS, snd:SND,
