@@ -190,26 +190,13 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
 #levels:not(.list) .lv.done .lvno{ color:var(--cream); text-shadow:0 1px 3px rgba(24,10,48,.75); }
 #levels:not(.list) .lv.full::after{ content:""; position:absolute; inset:0; z-index:2; border-radius:inherit; pointer-events:none;
   box-shadow:inset 0 0 0 2px var(--gold); }
-/* The current level (.lv.on, lvMarks): a small cube hovers top-centre above the picture, slowly spinning and bobbing
-   (the life cube's look, .lcube); paused while the menu or the Locations section is hidden; none in the list */
-.lvcube{ display:none; }
-#levels:not(.list) .lv.on .lvcube{ --c:12px; display:block; position:absolute; top:5px; left:50%; z-index:3; width:var(--c); height:calc(var(--c)*1.9);
-  margin-left:calc(var(--c)/-2); pointer-events:none; }
-.lvcb{ --h:calc(var(--c)/2); position:absolute; left:0; top:0; width:var(--c); height:var(--c); transform-style:preserve-3d;
-  transform:rotateX(-24deg) rotateY(45deg); animation:lvSpin 7s linear infinite, lvBob 2.4s ease-in-out infinite alternate;
-  filter:drop-shadow(0 1px 1.5px rgba(24,10,48,.55)); }
-.lvcb b{ position:absolute; inset:0; border:1.5px solid rgba(255,255,255,.9); border-radius:2px; box-sizing:border-box; background:#e8c9a0; }
-.lvcb b:nth-child(1){ transform:translateZ(var(--h)); } .lvcb b:nth-child(2){ transform:rotateY(90deg) translateZ(var(--h)); background:#c79f78; }
-.lvcb b:nth-child(3){ transform:rotateY(180deg) translateZ(var(--h)); } .lvcb b:nth-child(4){ transform:rotateY(-90deg) translateZ(var(--h)); background:#c79f78; }
-.lvcb b:nth-child(5){ transform:rotateX(90deg) translateZ(var(--h)); background:#fff6e6; } .lvcb b:nth-child(6){ transform:rotateX(-90deg) translateZ(var(--h)); background:#b08a66; }
-/* the shadow under the cube: shrinks as it rises */
-.lvcs{ position:absolute; left:-15%; bottom:0; width:130%; height:calc(var(--c)*.32); border-radius:50%; background:rgba(24,10,48,.45);
-  filter:blur(1px); animation:lvShade 2.4s ease-in-out infinite alternate; }
-@keyframes lvSpin{ from{ transform:rotateX(-24deg) rotateY(45deg); } to{ transform:rotateX(-24deg) rotateY(405deg); } }
-@keyframes lvBob{ from{ translate:0 calc(var(--c)*.12); } to{ translate:0 calc(var(--c)*-.18); } }
-@keyframes lvShade{ from{ transform:scale(1); opacity:.9; } to{ transform:scale(.7); opacity:.5; } }
-.overlay.hidden .lvcube *, .msec:not(.on) .lvcube *{ animation-play-state:paused; }
-@media (prefers-reduced-motion: reduce){ .lvcube *{ animation:none !important; } }
+/* The current level (.lv.on, lvMarks): a pulsing outer frame round the tile (outline — outside the tile, not clipped by its paint containment);
+   it stops while the menu or the Locations section is hidden; none in the list */
+#levels:not(.list) .lv.on{ outline:2px solid var(--cream); outline-offset:2px; animation:lvPulse 1.6s ease-in-out infinite alternate; }
+@keyframes lvPulse{ from{ outline-color:rgba(255,240,214,.95); outline-offset:2px; } to{ outline-color:rgba(255,240,214,.2); outline-offset:4px; } }
+.overlay.hidden #levels .lv.on, #levels.msec:not(.on) .lv.on{ animation-play-state:paused; }
+#levels:not(.list) .lv.on:focus-visible{ outline-color:var(--gold); animation:none; }   /* keyboard focus wins */
+@media (prefers-reduced-motion: reduce){ #levels:not(.list) .lv.on{ animation:none; } }
 /* Wide window (≈16:9 and wider): the grid plate widens and the thumbnails grow; the list keeps its narrow plate */
 @media (min-aspect-ratio:3/2) and (min-width:720px){
   #levels:not(.list){ width:min(100%,900px); }
@@ -217,7 +204,7 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
   #levels:not(.list) .lv{ height:auto; aspect-ratio:4/3; border-radius:12px; font-size:22px; }
   #levels:not(.list) .lvno{ top:6px; left:9px; }
   #levels:not(.list) .lvi{ top:5px; right:7px; font-size:17px; }
-  #levels:not(.list) .lv.on .lvcube{ --c:17px; top:7px; }
+  #levels:not(.list) .lv.on{ outline-width:3px; }
 }
 #levels.list .lvgrid{ grid-template-columns:minmax(0,1fr); }
 #levels.list .lv{ height:auto; min-height:100px; min-width:0; max-width:100%; box-sizing:border-box; overflow:hidden;
@@ -21355,12 +21342,8 @@ SHIPS.forEach((s,i)=>{ const id=shipId(s[0]), M=SHIP_MODEL[id];
 if(Object.keys(SHIP_MODEL).length) buildShip();                       // the ship built at the start of ship.js is the code's: build it again from the models
 /* The completion marks and the current level in the grids; the menu opens on the current level's area.
    .full — a gold frame on the thumbnail when every star and secret is collected (lvAllGot; cube-art alone does not keep it) */
-/* The current level's tile carries a small hovering, spinning cube (.lvcube, CSS only) — one element, moved to the current tile */
-let lvCube=null;
-function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur));
-  if(!lvCube){ lvCube=document.createElement('i'); lvCube.className='lvcube'; lvCube.setAttribute('aria-hidden','true');
-    lvCube.innerHTML='<i class="lvcs"></i><i class="lvcb"><b></b><b></b><b></b><b></b><b></b><b></b></i>'; }
-  const b=lvBtns[cur]; if(b){ if(lvCube.parentNode!==b) b.append(lvCube); } else lvCube.remove(); }
+/* The current level's tile (.lv.on) has a pulsing outer frame (CSS) */
+function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur)); }
 function setTg(id,on){ $(id).setAttribute('aria-pressed',on?'true':'false'); }
 /* The menu pauses the game. Sound fades, except in the settings section — the volume must be audible there */
 let paused=false, mSec='', modalOv, modalRet=null, fbPaused=false;   // fbPaused: the beta feedback form is open (fbsnap.js)
