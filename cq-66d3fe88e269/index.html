@@ -1000,7 +1000,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.6.0';
+const VERSION = '2.6.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -7333,18 +7333,27 @@ function cshadow(m){                   // the material must not have its own onB
   m.customProgramCacheKey=()=>'csh';
   return m;
 }
-/* See-through walls: terrain between the camera and the cube, above the cube's floor, dissolves in a soft disc around the view line
+/* See-through walls: terrain between the camera and the cube (on the camera's side of it — not the walls behind or beside it), above the cube's floor, dissolves in a soft disc around the view line
    to the cube (screen-door dither — the terrain stays opaque, no sorting). SEE.seeK.x — strength (eased by updateSee), y — radius */
 const SEE={ seeP:{ value:new THREE.Vector3(0,-99,0) }, seeV:{ value:new THREE.Vector3(0,-1,0) }, seeK:{ value:new THREE.Vector2(0,3) } }, SEE_MAX=.8;
 const SEE_FS='uniform vec3 seeP; uniform vec3 seeV; uniform vec2 seeK; varying vec3 vSW;\n'+
   'float seeB2(vec2 a){ a=floor(a); return fract(dot(a,vec2(.5,a.y*.75))); }\n'+
   'void seeCut(){ if(seeK.x<.003) return; vec3 w=vSW-seeP; float al=dot(w,seeV), r=length(w-seeV*al);'+
-  ' float a=smoothstep(-.4,-1.2,al)*(1.0-smoothstep(seeK.y*.5,seeK.y,r))*smoothstep(seeP.y-.4,seeP.y-.05,vSW.y)*seeK.x*'+SEE_MAX.toFixed(2)+';'+
+  ' float a=smoothstep(-.4,-1.2,al)*smoothstep(-.3,-.6,dot(w.xz,normalize(seeV.xz+vec2(1e-5))))*(1.0-smoothstep(seeK.y*.5,seeK.y,r))*smoothstep(seeP.y-.4,seeP.y-.05,vSW.y)*seeK.x*'+SEE_MAX.toFixed(2)+';'+
   ' if(a>seeB2(gl_FragCoord.xy*.5)*.25+seeB2(gl_FragCoord.xy)+.001) discard; }\n';
 function seeHook(sh){                                                 // into a terrain shader's onBeforeCompile
   Object.assign(sh.uniforms,SEE);
   sh.vertexShader='varying vec3 vSW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n vSW=(modelMatrix*vec4(transformed,1.0)).xyz;');
   sh.fragmentShader=SEE_FS+sh.fragmentShader.replace('void main() {','void main() {\n seeCut();');
+}
+function seeAdd(m){                                                   // a material dissolves too (own copies: overhangs fading under a roof)
+  const f=m.onBeforeCompile, ck=m.customProgramCacheKey(); m.onBeforeCompile=sh=>{ f.call(m,sh); seeHook(sh); }; m.customProgramCacheKey=()=>ck+'-see'; return m;
+}
+const SEE_MC=new WeakMap();
+function seeMat(m){                                                   // the shared dissolving copy of a shared material (overhangs, sticky films; batches like it)
+  let n=SEE_MC.get(m); if(n) return n;
+  n=m.clone(); n.onBeforeCompile=m.onBeforeCompile; n.customProgramCacheKey=m.customProgramCacheKey; n.userData={ keep:true };   // r128 clone drops the hooks
+  seeAdd(n); SEE_MC.set(m,n); return n;
 }
 /* Large 3D tileable terrain tint (world position): value noise (big soft drifts) + two Voronoi layers (cell patches of different sizes, soft-edged), domain-warped.
    tintNoise(m) chains onto any terrain material's onBeforeCompile; TN.*.value — parameters (tnK 0 = off) */
@@ -7387,7 +7396,8 @@ const sstep=(a,b,v)=>{ const t=clamp((v-a)/(b-a),0,1); return t*t*(3-2*t); };
 function seeA(p){                                                    // the same cut for a point on the CPU (crystals on a dissolved wall)
   const k=SEE.seeK.value; if(k.x<.003) return 0; const c=SEE.seeP.value, v=SEE.seeV.value;
   const wx=p.x-c.x, wy=p.y-c.y, wz=p.z-c.z, al=wx*v.x+wy*v.y+wz*v.z, r=Math.hypot(wx-v.x*al,wy-v.y*al,wz-v.z*al);
-  return sstep(-.4,-1.2,al)*(1-sstep(k.y*.5,k.y,r))*sstep(c.y-.4,c.y-.05,p.y)*k.x;
+  const hl=Math.hypot(v.x,v.z)||1;
+  return sstep(-.4,-1.2,al)*sstep(-.3,-.6,(wx*v.x+wz*v.z)/hl)*(1-sstep(k.y*.5,k.y,r))*sstep(c.y-.4,c.y-.05,p.y)*k.x;
 }
 const lam = (c,x)=>cshadow(new THREE.MeshLambertMaterial(Object.assign({color:c},x||{})));
 const MC = {};
@@ -8056,13 +8066,13 @@ function buildPress(p){
 }
 const STICKY_M = () => mat(0xc46bff,{ emissive:0x8a2fd0, emissiveIntensity:.3 });
 const STICK_CAP=.22;                    // a sticky film ends at the top layer's edge (BANDS: the cap is the top .22), not over it
-let stkAcc=null;                         // flat sticky films of the level: quads gathered into one mesh (stickyFlush), like a bevel's film
+let stkAcc=null;                         // flat sticky films of the level: quads gathered into one mesh (stickyFlush), like a bevel's film; they dissolve with the wall (seeMat)
 function stickyFlush(){
   if(!stkAcc) return; const A=stkAcc; stkAcc=null; if(!A.pos.length) return;
-  const sk=new THREE.Mesh(geoFrom(A),STICKY_M()); sk.receiveShadow=true; sk.userData={ kind:'stickyWall' }; world.add(sk);
+  const sk=new THREE.Mesh(geoFrom(A),seeMat(STICKY_M())); sk.receiveShadow=true; sk.userData={ kind:'stickyWall' }; world.add(sk);
 }
 function buildSticky(x,z,h,only){                                        // a column, or only its level ranges / one face (a winding path)
-  const m=STICKY_M(), k=K(x,z), o=ovh[k], rs=sticky[k]===true ? [[-.72,(h==null?0:h)-1]] : sticky[k];
+  const m=seeMat(STICKY_M()), k=K(x,z), o=ovh[k], rs=sticky[k]===true ? [[-.72,(h==null?0:h)-1]] : sticky[k];
   if(!rs) return;
   const A=stkAcc||(stkAcc={pos:[],nor:[],col:[]}), c=new THREE.Color(), cs=[c,c,c,c];
   const quad=(p,n)=>pushQuadN(A,p,[n,n,n,n],cs);
@@ -10212,7 +10222,7 @@ function buildBevel(b){
   if(Bk.pos.length){ const bm=new THREE.Mesh(geoFrom(Bk),terrMat); bm.castShadow=bm.receiveShadow=true; bm.userData={ kind:'bevelBack' }; world.add(bm); }
   if(icy && I.pos.length){ const im=new THREE.Mesh(geoFrom(I),iceSheetMat); im.renderOrder=5; im.receiveShadow=true; im.userData={ kind:'bevelMesh', ice:true }; world.add(im); }
   if(!S.pos.length) return;
-  const sm=STICKY_M(), sk=new THREE.Mesh(geoFrom(S),sm); sk.receiveShadow=true; sk.userData={ kind:'stickyFilm', face:'B' }; world.add(sk);
+  const sm=seeMat(STICKY_M()), sk=new THREE.Mesh(geoFrom(S),sm); sk.receiveShadow=true; sk.userData={ kind:'stickyFilm', face:'B' }; world.add(sk);
   drip.forEach(([x,y,z,len,ry])=>{ batStill(bx(world,.09,len,.07,sm,x,y,z,false)).rotation.y=ry; });
 }
 /* Shared build geometries and materials (live for the whole game) — not new ones for every cell and object */
@@ -10838,8 +10848,8 @@ function addWaterfall(x,z,dx,dz,drop){                             // drop — d
 function buildOverhang(o){
   const x=o.x, z=o.z, H=o.t-o.b, g=new THREE.Group(), fl=th(x,z);
   const fade=!!o.kind || fl!==null && o.b-fl<NICHE, mats=[];
-  const M=m=>{ if(!fade) return m; const n=m.clone(); n.onBeforeCompile=m.onBeforeCompile; n.customProgramCacheKey=m.customProgramCacheKey; n.userData={}; mats.push(n); return n; };   // r128 clone drops the cloud-shadow hook
-  const F=c=>{ const n=lam(c); mats.push(n); return n; };            // own material of a kind (always fading)
+  const M=m=>{ if(!fade) return seeMat(m); const n=m.clone(); n.onBeforeCompile=m.onBeforeCompile; n.customProgramCacheKey=m.customProgramCacheKey; n.userData={}; mats.push(n); return seeAdd(n); };   // r128 clone drops the cloud-shadow hook
+  const F=c=>{ const n=seeAdd(lam(c)); mats.push(n); return n; };   // own material of a kind (always fading); all dissolve like the terrain (SEE)
   if(o.kind==='rock'){ const s=Math.min(.22,H); bx(g,1,s,1,F(T.grass),0,o.t-s/2,0); if(H>.22) bx(g,1,H-.22,1,F(T.dirt),0,o.b+(H-.22)/2,0); }
   else if(o.kind==='plank'){ const a=F(0xc48d55), b=F(0xa8743f); for(let i=0;i<3;i++) bx(g,1,H,.31,i%2?b:a,0,o.b+H/2,(i-1)*.33); }
   else { const side=o.sticky ? STICKY_M() : MAT.dirt;
@@ -16065,7 +16075,7 @@ const CAM_AUTO=.3, CAM_HAND=4, CAM_TURN=1.1; let camAutoT=0, camHand=-99, camTw=
 function autoCam(){
   if(document.body.classList.contains('ed-edit')) return;             // editor camera is user-owned — no 90° hide-turns
   if(dragging || camLock || time-camHand<CAM_HAND) return;           // a locked camera (def.cam.lock) stays where the level put it
-  camSee=!!T.cave;                                                    // in a cave the cube shows through the walls: they don't turn the camera
+  camSee=seeIn();                                                     // in a cave or walled in the cube shows through the walls (updateSee): they don't turn the camera
   const lim=P.float?1:CAM_HIDE, h0=camHide(azT); if(h0<lim){ camSee=false; return; }
   let bm=0, bh=h0; for(const m of [1,-1,2]){ const h=camHide(azT+m*Math.PI/2); if(h<bh-.1){ bm=m; bh=h; if(h<.05) break; } }
   camSee=false;
@@ -18744,21 +18754,27 @@ function updateCam(snap){
   shake*=Math.exp(-dt*12);
 }
 /* See-through walls (SEE in materials): every SEE_DT s — is the cube hidden from the camera (camHide); the cut eases in and out.
-   Underground always; on open levels only when the cube is walled in: at least seeN of the 24 cells within 2 of it (seeWalls) rise
-   a whole block or more above its floor (terrain, or an overhang over that height). seeN, seeR (radius) — dev panel, cube-see-n / cube-see-r */
-const SEE_DT=.1, SEE_IN=3.5, SEE_OUT=2, SEE_N0=14, SEE_R0=7;
+   Underground always; on open levels only when the cube is walled in (seeIn): of 24 directions around it (the cells within 2) at least seeN
+   are shut by a wall at the camera's pitch — a ray from the cube at el hits terrain or an overhang at any distance (a high wall far off
+   counts too). Walled in — autoCam doesn't turn the camera, the walls dissolve instead. seeN, seeR (radius) — dev panel, cube-see-n / cube-see-r */
+const SEE_DT=.1, SEE_IN=3.5, SEE_OUT=2, SEE_N0=14, SEE_R0=7, SEE_D=new THREE.Vector3();
 let seeT=-1, seeOn=false, seeN=clamp(+LS.get('cube-see-n',SEE_N0)||SEE_N0,1,25), seeR=clamp(+LS.get('cube-see-r',SEE_R0)||SEE_R0,1,20);
 function seeWalls(){
-  const x0=Math.round(P.x), z0=Math.round(P.z), y=P.l+1-.02; let n=0;
-  for(let dz=-2;dz<=2;dz++) for(let dx=-2;dx<=2;dx++){ if(!dx && !dz) continue; const x=x0+dx, z=z0+dz, h=th(x,z);
-    if(h!==null && h>=y || ovhsOf(K(x,z)).some(o=>o.t>=y && o.b<=y)) n++; }
+  const c=root.position, ce=Math.cos(el), se=Math.sin(el); let n=0;
+  for(let dz=-2;dz<=2;dz++) for(let dx=-2;dx<=2;dx++){ if(!dx && !dz) continue; const L=Math.hypot(dx,dz);
+    if(camRay(c.x,c.y,c.z,dx/L*ce,se,dz/L*ce)) n++; }
   return n;
 }
+const seeIn=()=>!!T.cave || seeWalls()>=seeN;
 function updateSee(){
   const k=SEE.seeK.value, c=root.position;
-  if(time-seeT>SEE_DT || time<seeT){ seeT=time; seeOn=state!=='dead' && state!=='win' && !SH.carry && (!!T.cave || seeWalls()>=seeN) && camHide(az)>.15; }
+  if(time-seeT>SEE_DT || time<seeT){ seeT=time; seeOn=state!=='dead' && state!=='win' && !SH.carry && seeIn() && camHide(az)>.15; }
   k.x=clamp(k.x+(seeOn?SEE_IN:-SEE_OUT)*dt,0,1); k.y=seeR;
-  SEE.seeP.value.copy(c); SEE.seeV.value.subVectors(camTgt,cam.position).normalize();
+  SEE.seeP.value.copy(c); SEE.seeV.value.copy(cam.getWorldDirection(SEE_D));   // the view direction (camTgt−position skews with a pan)
+}
+function seeStar(k,s){                                                // loot hidden in a niche or a tunnel stays hidden while the wall over it dissolves
+  const m=s.mesh, h=ovhsOf(k).some(o=>o.b>s.baseY-.1) && Math.hypot(P.x-s.x,P.z-s.z)>1.5 && seeA(m.position)>.15;
+  if(h && m.visible){ m.visible=false; s.seeH=true; } else if(!h && s.seeH){ m.visible=true; s.seeH=false; }   // only what it hid: a cover hides its star itself
 }
 /* Back onto the cube: by itself after camIdle s without touching the screen (a setting, cube-cam-idle; 0 — never) — the pan only
    (the zoom stays as the player set it); the ship's drop and pickup and the goal always come back (camMust);
@@ -23903,7 +23919,7 @@ function tick(now){
     if(k>=1){ drop(t.m); trails.splice(i,1); } else t.m.material.opacity=t.a*(1-Math.pow(k,4)); }   // they hold for long and fade only at the end
   updateWinds(); updateFlow();
   starGlintTick();
-  for(const k in stars){ const s=stars[k]; if((!s.got || s.kept && !s.gone) && s.mesh && !s.pop){ s.mesh.rotation.y+=dt*2.2; s.mesh.position.y=s.baseY+Math.sin(time*2.5)*.08; } }
+  for(const k in stars){ const s=stars[k]; if((!s.got || s.kept && !s.gone) && s.mesh && !s.pop){ s.mesh.rotation.y+=dt*2.2; s.mesh.position.y=s.baseY+Math.sin(time*2.5)*.08; seeStar(k,s); } }
   touchStars(); shintCheck(); updatePlates(); updateZones(); updateBoulders(); movSupport(); updateCine(); updatePals(); updateBeasts();
   for(const t of fx.teles){ t.ring.rotation.z+=dt*1.5; t.orb.forEach((m,i)=>{ const a=time*2.2+i*Math.PI/2+t.ph;
     m.position.set(t.x+Math.cos(a)*.3, t.h+.15+((time*.6+i*.25)%1)*.9, t.z+Math.sin(a)*.3); m.rotation.y=a; }); }

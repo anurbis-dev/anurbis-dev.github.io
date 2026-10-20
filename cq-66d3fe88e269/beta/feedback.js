@@ -115,6 +115,9 @@ body:not(.fbin) #fbBtn{display:none}
 #fbGate input{font:inherit;font-size:16px;color:#fff;background:rgba(0,0,0,.28);border:1.5px solid rgba(255,255,255,.3);border-radius:12px;padding:10px 12px;width:100%;box-sizing:border-box}
 #fbGate input:focus{outline:none;border-color:#ffd66b}
 #fbGate small{font-size:13px;opacity:.75;text-align:center}
+#fbGate #fgSy{font-size:17px;opacity:1;background:linear-gradient(100deg,#fff 0 38%,#ffd66b 46%,#fff7d6 50%,#ffd66b 54%,#fff 62% 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fgWave 1.8s linear infinite}
+@keyframes fgWave{from{background-position:100% 0}to{background-position:-30% 0}}
+@media (prefers-reduced-motion:reduce){#fbGate #fgSy{animation:none;color:#ffd66b}}
 #fbGate .go{font:inherit;font-size:16px;border:0;border-radius:12px;padding:11px;background:#ffd66b;color:#2d1f55;cursor:pointer}
 #fbGate .go:disabled{opacity:.6;cursor:default}
 #fbGate .msg{min-height:1.2em;font-size:13px;color:#ffb3c0;text-align:center}
