@@ -25,7 +25,7 @@
   --ink:#fffaf2; --panel:rgba(48,28,86,.38); --panel-strong:rgba(40,22,72,.82);
   --cream:#fff0d6; --gold:#ffd66b; --ok:#7ee07a;
   /* Game text over the scene: a soft off-white, a thin dark outline; --ui — the HUD / hint / stats scale for big screens (resize) */
-  --txt:#f2eee6; --otl:rgba(38,16,62,.62); --ui:1;
+  --txt:#f2eee6; --otl:rgba(38,16,62,.62); --ui:1; --hl:1;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --panel:rgba(22,12,44,.5); --panel-strong:rgba(18,10,36,.86); }
@@ -63,23 +63,24 @@ body.night::before{ opacity:0; }
 /* Outline: a stroke painted under the fill (only its outer half shows); --sw in em — resolved per element, so it follows its font size */
 .otl, .otl *{ -webkit-text-stroke:var(--sw,.13em) var(--otl); paint-order:stroke fill; }
 #hud > *{ pointer-events:auto; }
+/* The top-left block (title, lives, stars) scales by --hl (hlScale): like --ui, but it keeps growing on big desktop windows */
 .title{ display:flex; align-items:center; line-height:1.05; text-shadow:0 2px 10px rgba(40,10,60,.35); }
-.title small{ display:block; font-size:calc(13px*var(--ui)); font-weight:800; opacity:.86; }
-.title b{ font-size:calc(24px*var(--ui)); font-weight:900; letter-spacing:-.01em; }
+.title small{ display:block; font-size:calc(13px*var(--hl)); font-weight:800; opacity:.86; }
+.title b{ font-size:calc(24px*var(--hl)); font-weight:900; letter-spacing:-.01em; }
 #hudL, #hudL .title > div{ min-width:0; } .title b{ display:block; overflow-wrap:break-word; hyphens:auto; }   /* a long single word (German) breaks instead of pushing the buttons off the screen */
-#lives{ margin-top:calc(4px*var(--ui)); font-size:calc(18px*var(--ui)); letter-spacing:calc(2px*var(--ui)); text-shadow:0 2px 8px rgba(40,10,60,.4); }
+#lives{ margin-top:calc(4px*var(--hl)); font-size:calc(18px*var(--hl)); letter-spacing:calc(2px*var(--hl)); text-shadow:0 2px 8px rgba(40,10,60,.4); }
 #lives b{ --t:#fff6e6; --l:#e8c9a0; --r:#c79f78; } #lives i{ --t:rgba(255,255,255,.3); --l:rgba(255,255,255,.18); --r:rgba(255,255,255,.12); font-style:normal; }
 #lives em{ font-style:normal; font-weight:700; vertical-align:middle; letter-spacing:0; color:var(--txt); }
-#lives svg{ width:calc(17px*var(--ui)); height:calc(19px*var(--ui)); margin-right:calc(3px*var(--ui)); vertical-align:middle; filter:drop-shadow(0 2px 3px rgba(40,10,60,.35)); }
+#lives svg{ width:calc(17px*var(--hl)); height:calc(19px*var(--hl)); margin-right:calc(3px*var(--hl)); vertical-align:middle; filter:drop-shadow(0 2px 3px rgba(40,10,60,.35)); }
 /* Level intro: the HUD's left column stays empty until the big title has flown into it, then "Level N of M" and the lives pop in */
 #hudL > *, #lvlNum{ transition:opacity .35s ease; } #hudL .off{ opacity:0; transition:none; }
 /* The level's artifact, once found: a small still right of the star counter (negative margins: the row keeps the text's height); a tap shows
    its award again (artView); .land — the award's relic is flying into it: only its glow fades in, the still shows in the frame the flight ends */
-#hudArt{ display:block; flex:none; margin:calc(-11px*var(--ui)) 0 calc(-11px*var(--ui)) calc(8px*var(--ui)); width:calc(38px*var(--ui)); height:calc(38px*var(--ui)); padding:0; border:0; border-radius:50%; cursor:pointer;
+#hudArt{ display:block; flex:none; margin:calc(-11px*var(--hl)) 0 calc(-11px*var(--hl)) calc(8px*var(--hl)); width:calc(38px*var(--hl)); height:calc(38px*var(--hl)); padding:0; border:0; border-radius:50%; cursor:pointer;
   background:radial-gradient(closest-side,rgba(255,214,120,.42),rgba(255,190,90,.12) 62%,transparent); }
 #hudArt[hidden]{ display:none; } .off #hudArt{ pointer-events:none; } #hudArt canvas{ display:block; width:100%; height:100%; } #hudArt:active{ transform:scale(.92); }
 #hudArt:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; } #hudArt.land canvas{ opacity:0; }
-#starCount{ display:flex; align-items:center; margin-top:calc(6px*var(--ui)); font-size:calc(15px*var(--ui)); font-weight:900; color:var(--gold); text-shadow:0 2px 8px rgba(40,10,60,.4); }
+#starCount{ display:flex; align-items:center; margin-top:calc(6px*var(--hl)); font-size:calc(15px*var(--hl)); font-weight:900; color:var(--gold); text-shadow:0 2px 8px rgba(40,10,60,.4); }
 /* Top right: restart and menu, Locations under the menu button; landscape — the camera under restart, portrait — the camera at the bottom centre */
 .btns{ flex:none; display:grid; gap:8px; grid-template-columns:repeat(2,44px); grid-template-areas:"reset menu" "cam lv"; }
 #btnCam{ grid-area:cam; } #btnReset{ grid-area:reset; } #btnMenu{ grid-area:menu; } #btnLv{ grid-area:lv; }
@@ -144,6 +145,7 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
 .msec.on{ opacity:1; visibility:visible; transform:none; transition:opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.15), visibility 0s; }
 .mhead{ margin:0 0 10px; font-size:27px; font-weight:900; text-align:center; line-height:1.1; text-shadow:0 3px 14px rgba(40,10,60,.45); }
 .msec .card{ width:100%; position:relative; display:flex; flex-direction:column; min-height:0; max-height:none; overflow:hidden; padding:0; }
+#levels:not(.map){ height:100%; }   /* tiles, list: the plate keeps its full size even with a few open levels (MAP.vis); tiles stay at the top */
 #levels .card{ flex:1 1 auto; max-height:100%; }
 #levels .aview{ flex:1 1 auto; }
 #levels .apage{ height:100%; }
@@ -738,13 +740,12 @@ body.mapon :is(#btnCam,#camRow){ visibility:visible !important; }   /* the camer
 :is(:lang(zh),:lang(ja),:lang(ko)) #mapLore p{ font-family:system-ui,sans-serif; }
 #mapX{ position:absolute; top:calc(12px + env(safe-area-inset-top,0px)); right:calc(12px + env(safe-area-inset-right,0px)); display:grid; place-items:center; padding:0; cursor:pointer; }
 /* the card: the game's plate; --dx — the sideways swipe (the whole plate moves), --dy — the vertical drag */
-#mapCard{ position:absolute; left:50%; bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:min(calc(100vw - 32px),400px); box-sizing:border-box; touch-action:none; cursor:pointer;
-  background:var(--panel-strong); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-radius:22px; padding:8px 18px 16px; color:var(--ink);
+#mapCard{ position:absolute; left:50%; bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:min(calc(100vw - 32px),400px); box-sizing:border-box; touch-action:none;
+  background:var(--panel-strong); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-radius:22px; padding:16px 18px; color:var(--ink);
   box-shadow:0 12px 34px rgba(20,8,40,.45); transform:translate(-50%,calc(100% + 40px)); transition:transform .32s cubic-bezier(.2,.9,.3,1.15); }
 #mapCard.on{ transform:translate(calc(-50% + var(--dx,0px)),var(--dy,0px)); }
 #mapCard.drag{ transition:none !important; }
 body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
-#mapCard .grab{ width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,.28); margin:0 auto 10px; }
 #mapCard h2{ margin:0; font-size:22px; font-weight:900; line-height:1.15; display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
 #mapCard h2 span{ font-size:13px; opacity:.6; font-weight:800; white-space:nowrap; }
 #mapCard .sub{ font-size:12px; font-weight:800; opacity:.7; margin-top:2px; }
@@ -752,9 +753,6 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #mapCard .bds:empty{ display:none; }
 #mapCard .bd{ display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:12px; background:rgba(255,255,255,.12); font-size:13px; font-weight:800; }
 #mapCard .bd.gold{ color:var(--gold); }
-#mapCard .cmore{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .32s cubic-bezier(.2,.9,.3,1); }
-#mapCard.big .cmore{ grid-template-rows:1fr; }
-#mapCard .cmore > div{ overflow:hidden; min-height:0; }
 #mapCard .task{ margin:12px 0 6px; font-size:15px; line-height:1.42; opacity:.92; }
 #mapCard .task b{ display:block; font-size:12px; font-weight:900; opacity:.6; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
 #mapCard .strow{ display:flex; justify-content:space-between; gap:12px; font-size:15px; font-weight:800; padding:6px 2px; border-bottom:1px solid rgba(255,255,255,.08); }
@@ -766,7 +764,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #mapToast{ position:absolute; left:50%; top:30%; transform:translate(-50%,-50%) scale(.9); opacity:0; transition:.3s; pointer-events:none;
   padding:10px 18px; border-radius:14px; background:var(--panel-strong); font:600 17px Fredoka,Nunito,sans-serif; text-align:center; color:var(--ink); }
 #mapToast.on{ opacity:1; transform:translate(-50%,-50%) scale(1); }
-@media (prefers-reduced-motion:reduce){ #mapLore, #mapLore .lin, #mapLb .lb span, #mapCard, #mapToast, #mapCard .cmore{ transition:none; } }
+@media (prefers-reduced-motion:reduce){ #mapLore, #mapLore .lin, #mapLb .lb span, #mapCard, #mapToast{ transition:none; } }
 </style>
 </head>
 <body>
@@ -1002,7 +1000,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.5.1';
+const VERSION = '2.6.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -2041,7 +2039,7 @@ const SND = (() => {
   let cave=null, caveT=0, caveOff=null;                              // the cave convolver is built on the first cave and fed only while it echoes
   let live=0; const voice1=n=>{ live++; n.onended=()=>live--; };
   let rk=1;                                                          // pitch factor of the action sound being built (see VARY), 1 otherwise
-  let lead=0;                                                        // tone/noise start this much later than asked (a menu cue: see uiPlay)
+  let lead=0;                                                        // every voice starts this much later than asked (a menu cue: see uiPlay; SPREAD)
   let warmVoice=null;                                                // idle warmup droid {g,t0} — faded out if the player moves
   const busy=()=>live>=VOICES;
   const holds = new Set();          // reasons for silence: 'menu', 'hidden', 'fb' (the beta feedback form: the output itself goes silent)
@@ -2190,7 +2188,7 @@ const SND = (() => {
   function voice(o){
     if(!ctx || busy()) return;
     const { fs=[200], d=.3, v=.05, F=[700,1400], q=5, when=0, a=.02, vib=0, rate=5, wet=.15, bus='a', pan=0 } = o;
-    const t=ctx.currentTime+when, os=ctx.createOscillator(), g=ctx.createGain(); os.type='sawtooth';
+    const t=ctx.currentTime+lead+when, os=ctx.createOscillator(), g=ctx.createGain(); os.type='sawtooth';
     os.frequency.setValueAtTime(fs[0]*rk,t); fs.slice(1).forEach((f,i)=>os.frequency.linearRampToValueAtTime(f*rk,t+d*(i+1)/(fs.length-1||1)));
     if(vib){ const l=ctx.createOscillator(), lg=ctx.createGain(); l.frequency.value=rate; lg.gain.value=vib; l.connect(lg); lg.connect(os.frequency); l.start(t); l.stop(t+d+.1); }
     env(g,t,a,v,d);
@@ -2202,7 +2200,7 @@ const SND = (() => {
   function warble(o){                                                 // tone with vibrato (frequency LFO) — the "flying saucer"
     if(!ctx || busy()) return;
     const { f=400, f2=0, d=1, v=.05, type='sine', a=.1, rate=7, depth=30, rate2=0, when=0, wet=.35, bus='s', pan=0 } = o;
-    const t=ctx.currentTime+when, os=ctx.createOscillator(), lfo=ctx.createOscillator(), lg=ctx.createGain(), g=ctx.createGain();
+    const t=ctx.currentTime+lead+when, os=ctx.createOscillator(), lfo=ctx.createOscillator(), lg=ctx.createGain(), g=ctx.createGain();
     os.type=type; os.frequency.setValueAtTime(f*rk,t); if(f2) os.frequency.exponentialRampToValueAtTime(f2*rk,t+d*.95);
     lfo.frequency.setValueAtTime(rate,t); if(rate2) lfo.frequency.exponentialRampToValueAtTime(rate2,t+d);
     lg.gain.value=depth; lfo.connect(lg); lg.connect(os.frequency);
@@ -2243,7 +2241,7 @@ const SND = (() => {
   function bub(o){
     if(!ctx || busy()) return;
     const { n=4, when=0, span=.6, f=[250,600], g=.6, d=[.04,.09], v=.04, wet=.3, bus='s', pan=0 } = o;
-    const t=ctx.currentTime+when, os=ctx.createOscillator(), gn=ctx.createGain(); gn.gain.value=0;
+    const t=ctx.currentTime+lead+when, os=ctx.createOscillator(), gn=ctx.createGain(); gn.gain.value=0;
     const ts=Array.from({length:n},()=>rand(0,span)).sort((a,b)=>a-b); let e=0;
     ts.forEach((w,i)=>{ const T=t+Math.max(w,e), dd=rand(d[0],d[1]), f0=rand(f[0],f[1])*rk, vv=v*rand(.5,1)*(1-.5*i/n);
       os.frequency.setValueAtTime(f0,T); os.frequency.exponentialRampToValueAtTime(f0*g,T+dd);
@@ -2256,7 +2254,7 @@ const SND = (() => {
   function taps(o){
     if(!ctx || busy()) return;
     const { n=6, when=0, span=.5, f=2000, q=2, type='bandpass', v=.08, d=[.02,.05], a=.003, dec=.6, wet=.1, bus='s', pan=0 } = o;
-    const t=ctx.currentTime+when, s=ctx.createBufferSource(), fl=ctx.createBiquadFilter(), gn=ctx.createGain();
+    const t=ctx.currentTime+lead+when, s=ctx.createBufferSource(), fl=ctx.createBiquadFilter(), gn=ctx.createGain();
     s.buffer=nbuf; s.loop=true; fl.type=type; fl.frequency.value=f*rk; fl.Q.value=q; gn.gain.value=0;
     const ts=Array.from({length:n},(_,i)=>i?rand(0,span):0).sort((a,b)=>a-b); let e=0;
     ts.forEach((w,i)=>{ const T=t+Math.max(w,e), dd=rand(d[0],d[1]), vv=v*rand(.45,1)*(1-dec*i/n);
@@ -2986,9 +2984,20 @@ const SND = (() => {
      exactly in tune — the interface and the melodic jingles — are on the NO_VARY list; a new sound is varied by default */
   const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic mapPop mapWave mapChime mapLift mapDrop click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
-    fx[n]=(...a)=>{ const p=rk; rk=1+rand(-VARY,VARY); try{ return f(...a); } finally{ rk=p; } }; }
+    fx[n]=(...a)=>{ const p=rk; rk=p*(1+rand(-VARY,VARY)); try{ return f(...a); } finally{ rk=p; } }; }
+  /* Appearance sounds that often fire together (one slam unearths two stars, blows several covers, drops loot): the same sound started
+     again within SPREAD_WIN of the previous one is pushed later — each next one SPREAD_GAP (+ jitter) after the last scheduled — and
+     detuned by up to ±SPREAD_DET, so they sound as a quick run of distinct pops, not one phase-locked doubled blast or a flanger.
+     sprLog[n] — the lead of each start in the latest run (for tests) */
+  const SPREAD=new Set('unearth uncover loot star life'.split(' ')), SPREAD_WIN=.06, SPREAD_GAP=[.07,.12], SPREAD_DET=.04, sprAt={}, sprLog={};
+  for(const n of SPREAD){ const f=fx[n]; if(typeof f!=='function') continue;
+    fx[n]=(...a)=>{ const now=performance.now()/1000, r=sprAt[n], run=r && now-r.t<SPREAD_WIN;
+      const off=run ? r.off+rand(SPREAD_GAP[0],SPREAD_GAP[1]) : 0;
+      sprAt[n]={ t:now, off }; if(!run) sprLog[n]=[]; sprLog[n].push(off);
+      const pl=lead, pr=rk; lead=pl+off; if(off) rk=pr*(1+rand(-SPREAD_DET,SPREAD_DET));
+      try{ return f(...a); } finally{ lead=pl; rk=pr; } }; }
   return { init, ready, hold, titleAmb, mapAmb, mapMix, get mapAmbOn(){ return !!mapA; }, setAmbient, setMood, setVol, setCave, slip, mach, gust, geyser, get caveMix(){ return cave&&cave.on ? cave.i.gain.value : 0; },
-    get loops(){ const o={}; for(const k in loops) o[k]=loops[k].v; return o; }, vol:VOL, get step(){return step;}, get running(){return !!ctx;}, get level(){ return ctx?master.gain.value:0; }, get ctxState(){ return ctx?ctx.state:'none'; }, get cut(){ return cut; }, get out(){ return ctx?boost.gain.value:0; }, get tune(){ return tune ? tune.i : -1; }, lat:LAT, get ui(){return uiN;}, get lastDeath(){return lastD;}, ...fx };
+    get loops(){ const o={}; for(const k in loops) o[k]=loops[k].v; return o; }, vol:VOL, get step(){return step;}, get running(){return !!ctx;}, get level(){ return ctx?master.gain.value:0; }, get ctxState(){ return ctx?ctx.state:'none'; }, get cut(){ return cut; }, get out(){ return ctx?boost.gain.value:0; }, get tune(){ return tune ? tune.i : -1; }, lat:LAT, get ui(){return uiN;}, get lastDeath(){return lastD;}, get spread(){ return sprLog; }, ...fx };
 })();
 
 /* =====================================================================
@@ -15590,7 +15599,7 @@ function arcY(y0,cc,y1,k){ return (1-k)*(1-k)*y0+2*k*(1-k)*cc+k*k*y1; }
 function doLeap(dx,dz){
   const bc=P.bClimb||0; P.bClimb=0;                                     // from a rubber slam bounce — as high as it springs
   const L=P.l, big=P.jpow>=.6, rub=P.mat==='rubber', climb=bc||(big?2:1)+(rub?1:0), maxD=bc?Math.min(bc+1,5):(big?3:2)+(rub?1:0);
-  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L];
+  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L], peaks=[L];   // peaks — the highest point of each cell on the way (a ramp: its high edge)
   for(let d=1; d<=maxD; d++){
     const x=P.x+dx*d, z=P.z+dz*d, nf=nicheFloor(x,z);
     if(nf!==null){ if(nf>L+STEPUP && nf<=L+climb+.01 && freeAt(x-dx,z-dz,nf)) return nicheGlide(x-dx,z-dz,x,z,dx,dz,nf,d-1);   // a niche up to the jump's height — fly to its mouth and slide in
@@ -15601,8 +15610,9 @@ function doLeap(dx,dz){
     if(rs && rs.bridge && rs.rail && !(dx*rs.rail[0]+dz*rs.rail[1]) && c.top===rs.mid){ if(c.top+1>L+climb+.01) break; railY=Math.max(railY,c.top+1); }
     if(c.top>L+climb+.01) break;
     dist=d; land=c; tops[d]=c.top; if(c.top>-Infinity) solid=[d,c];
+    const ar=slopes[K(x,z)], arc=!!(ar && !ar.bridge && ar.seg && ar.seg.arc && !ovhOn(K(x,z),L+climb)); peaks[d]=arc ? Math.max(ar.b,ar.b+ar.r) : c.top;
     if(geyCell(x,z)) break;                                            // a playing geyser on the way: the leap comes down into its column (geyCatch)
-    if(c.top>L+STEPUP && !(d<maxD && (big || obRoll(obst[K(x,z)])) && lowOb(K(x,z)))) break;   // fly over a bush (and a rock — when charged)
+    if(c.top>L+STEPUP && !(d<maxD && (big || obRoll(obst[K(x,z)])) && lowOb(K(x,z))) && !(d<maxD && arc && peaks[d]<=L+climb+.01)) break;   // fly over a bush (and a rock — when charged), over a curved ramp the jump clears
   }
   if(stick) return leapStick(dx,dz,stick[0],stick[1]);
   if(!dist){ leapUsed=false; P.bClimb=bc; SND.bump(); shakeObst(K(P.x+dx,P.z+dz),dx,dz); startAirBump(dx,dz); return; }   // blocked leap: the same ground bump pose, plus a plant sways if it can
@@ -15617,10 +15627,16 @@ function doLeap(dx,dz){
   let cap=Infinity;                                                  // the arc doesn't pass through overhanging blocks above the path
   for(let d=0; d<=dist; d++){ const t=d===dist?land.top:tops[d];
     for(const o of ovhsOf(K(P.x+dx*d,P.z+dz*d))) if(o.b>=L+1-.01 && t<o.b) cap=Math.min(cap,o.b-HALF-.02); }
-  const y1=to.pos.y, top=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF)+.35, Math.max(cap,p0.y,y1)), cc=2*top-(p0.y+y1)/2;
+  let pk=-Infinity; for(let d=1; d<dist; d++) pk=Math.max(pk,peaks[d]);   // the arc clears what it flies over (a ramp's high edge)
+  const y1=to.pos.y, top=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF,pk+HALF+.1)+.35, Math.max(cap,p0.y,y1)), cc=2*top-(p0.y+y1)/2;
+  // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top
+  const u0=(p0.x-P.x)*dx+(p0.z-P.z)*dz, uD=(to.pos.x-p0.x)*dx+(to.pos.z-p0.z)*dz, yE=mp?mp.y+HALF:y1;
+  const clears=e=>{ for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*k**e, yb=arcY(p0.y,cc,yE,k)-HALF;
+      for(let d=1; d<=dist; d++){ const h=d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; if(u>d-1+.02 && yb<h-.05) return false; } } return true; };
+  let hw=1; for(const e of [1,1.4,2,2.8,4,6]){ hw=e; if(clears(e)) break; }
   const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), D=.3+.1*dist, vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
   play(D, k=>{
-    root.position.set(lerp(p0.x,to.pos.x,k), arcY(p0.y,cc,mp?mp.y+HALF:y1,k), lerp(p0.z,to.pos.z,k));
+    const kh=k**hw; root.position.set(lerp(p0.x,to.pos.x,kh), arcY(p0.y,cc,yE,k), lerp(p0.z,to.pos.z,kh));
     q.setFromAxisAngle(axis,ease(k)*Math.PI/2*dist); qt.copy(t0).slerp(to.tilt,ease(k)); pMesh.quaternion.copy(qt).multiply(q).multiply(q0);
   }, ()=>{
     P.q.copy(q.setFromAxisAngle(axis,Math.PI/2*dist)).multiply(q0).normalize(); P.tilt.copy(to.tilt);
@@ -15704,7 +15720,7 @@ function poundBounce(h){
   const o=ovhCeil(K(P.x,P.z), P.l+1); if(o && o.b>=P.l+1-.01) H=Math.min(H,Math.max(.04,o.b-(P.l+1)-.02));   // ceiling overhead
   state='jump'; leapUsed=false; P.jpow=1; P.bClimb=n; P.dropH=0; SND.boing(Math.min(H,2.4));
   const base=root.position.clone(), dur=.3+Math.sqrt(H)*.32;
-  play(dur, k=>{ root.position.y=base.y+4*H*k*(1-k); if(k<.45) streak(.08);
+  play(dur, k=>{ root.position.set(base.x,base.y+4*H*k*(1-k),base.z); if(k<.45) streak(.08);   // x, z too: a blocked leap's air bump (applyAirBump) tilts from this pose each frame — not from the last one, which crept into the wall
     airLeapFromQueue(k,.05);
   }, ()=>{ P.bClimb=0; P.airH=H; afterLand(null,null,'hard'); });
 }
@@ -16728,6 +16744,25 @@ function touchStars(){
   for(const k in stars){ const s=stars[k]; if((s.got && !s.kept) || s.gone || !s.mesh || s.pop || hiddenAt(k)) continue;
     const o=ovh[k]; if(o && s.mesh.position.y<o.b && c.y+sinkVis*SIZE>o.b) continue;   // a roof between them (the cube on a plank roof, sunk in its snow; the star in the niche below)
     if(Math.abs(c.x-s.x)<STAR_R && Math.abs(c.z-s.z)<STAR_R && Math.abs(c.y-s.mesh.position.y)<STAR_H){ if(s.kept) ghostStar(s); else collectStar(k); } }
+}
+/* ==== SECRET HINTS ==== */
+/* def.shint {'x,z':'English text'} — a secret's hint: a held toast (loc(text); translations — tools/l10n.mjs) when the cube comes within a cell
+   of it (Chebyshev ≤ 1, about its height); once per secret per run (shintSeen, a new run in loadLevel clears it), never once the secret is found */
+let shintSeen=new Set();
+function shintFound(k){                                             // every star of the cell taken; no star — its cover, buried item or stash is gone
+  const [x,z]=k.split(',').map(Number), rel=[];
+  for(const id in stars){ const s=stars[id]; if(!s.virt && s.x===x && s.z===z) rel.push(s); }
+  if(rel.length) return rel.every(s=>s.got);
+  return !(covers[k] || buried[k] || loot[k] && !loot[k].done);
+}
+function shintCheck(){
+  const d=curDef().shint; if(!d || state==='dead' || state==='win' || SH.carry || inputOff() || $('toast').classList.contains('show')) return;
+  for(const k in d){ const id=(subLv||'')+':'+k; if(!d[k] || shintSeen.has(id)) continue;
+    const [x,z]=k.split(',').map(Number); if(Math.max(Math.abs(P.x-x),Math.abs(P.z-z))>1) continue;
+    let y=th(x,z) ?? P.l; for(const i in stars){ const s=stars[i]; if(s.x===x && s.z===z && s.hang!=null) y=s.hang; }   // a star up in a tunnel niche / on a wall
+    if(Math.abs(P.l-y)>1.25) continue;
+    shintSeen.add(id); if(shintFound(k)) continue;
+    toast(loc(d[k]),'',true); return; }
 }
 /* A ghost star (already counted in a completed run) melts away on touch: a pale sparkle, no count, no toast */
 function ghostStar(s){
@@ -18708,12 +18743,21 @@ function updateCam(snap){
   sun.position.copy(camTgt).add(SUN_OFF); sun.target.position.copy(camTgt); updateHaze(); updateSee();
   shake*=Math.exp(-dt*12);
 }
-/* See-through walls (SEE in materials), only underground: every SEE_DT s — is the cube hidden from the camera (camHide); the cut eases in and out */
-const SEE_DT=.1, SEE_IN=3.5, SEE_OUT=2, SEE_R=7; let seeT=-1, seeOn=false;
+/* See-through walls (SEE in materials): every SEE_DT s — is the cube hidden from the camera (camHide); the cut eases in and out.
+   Underground always; on open levels only when the cube is walled in: at least seeN of the 24 cells within 2 of it (seeWalls) rise
+   a whole block or more above its floor (terrain, or an overhang over that height). seeN, seeR (radius) — dev panel, cube-see-n / cube-see-r */
+const SEE_DT=.1, SEE_IN=3.5, SEE_OUT=2, SEE_N0=14, SEE_R0=7;
+let seeT=-1, seeOn=false, seeN=clamp(+LS.get('cube-see-n',SEE_N0)||SEE_N0,1,25), seeR=clamp(+LS.get('cube-see-r',SEE_R0)||SEE_R0,1,20);
+function seeWalls(){
+  const x0=Math.round(P.x), z0=Math.round(P.z), y=P.l+1-.02; let n=0;
+  for(let dz=-2;dz<=2;dz++) for(let dx=-2;dx<=2;dx++){ if(!dx && !dz) continue; const x=x0+dx, z=z0+dz, h=th(x,z);
+    if(h!==null && h>=y || ovhsOf(K(x,z)).some(o=>o.t>=y && o.b<=y)) n++; }
+  return n;
+}
 function updateSee(){
   const k=SEE.seeK.value, c=root.position;
-  if(time-seeT>SEE_DT || time<seeT){ seeT=time; seeOn=!!T.cave && state!=='dead' && state!=='win' && !SH.carry && camHide(az)>.15; }
-  k.x=clamp(k.x+(seeOn?SEE_IN:-SEE_OUT)*dt,0,1); k.y=SEE_R;
+  if(time-seeT>SEE_DT || time<seeT){ seeT=time; seeOn=state!=='dead' && state!=='win' && !SH.carry && (!!T.cave || seeWalls()>=seeN) && camHide(az)>.15; }
+  k.x=clamp(k.x+(seeOn?SEE_IN:-SEE_OUT)*dt,0,1); k.y=seeR;
   SEE.seeP.value.copy(c); SEE.seeV.value.subVectors(camTgt,cam.position).normalize();
 }
 /* Back onto the cube: by itself after camIdle s without touching the screen (a setting, cube-cam-idle; 0 — never) — the pan only
@@ -18731,10 +18775,13 @@ function camRecenter(start){
   if(e>=1) camRc=null;
 }
 function camTouched(){ camTouch=time; camRc=null; }
-let rszKey='', uiK=1;
+let rszKey='', uiK=1, hlK=1;
 /* UI scale (--ui) for the HUD, hint, toasts and stats: grows with the screen area (sqrt(w*h)); phones and laptops stay at 1;
    capped by the width (portrait) and the height (landscape) so the stats window always fits */
 const UI_AREA=1150, uiScale=(w,h)=>+Math.max(1,Math.min(Math.sqrt(w*h)/UI_AREA,w/440,h/560)).toFixed(3);
+/* The HUD's top-left block (--hl): 1 up to 1280x800 (sqrt(w*h) HL_S0), then grows faster than --ui — ~1.6 at 1920x1080,
+   ~2.2 at 2560x1440, ~2.8 at 4K; the same width/height caps */
+const HL_S0=1012, hlScale=(w,h)=>{ const s=Math.sqrt(w*h); return +Math.max(1,Math.min(1+(s-HL_S0)/713,.9+s/1500,w/440,h/560)).toFixed(3); };
 function resize(){
   const w=innerWidth, h=innerHeight, a=w/h, pr=dprNow(), key=w+'x'+h+'@'+pr;
   if(key===rszKey) return; rszKey=key; if(renderer.getPixelRatio()!==pr) renderer.setPixelRatio(pr); renderer.setSize(w,h); needDraw=true;   // setSize recreates the canvas buffer — only on a real change
@@ -18742,7 +18789,7 @@ function resize(){
   let vw,vh; if(a<1){ vw=9; vh=vw/a; } else { vh=h<500?11.5:9.5; vw=vh*a; }
   Object.assign(cam,{ left:-vw/2, right:vw/2, top:vh/2, bottom:-vh/2 }); cam.updateProjectionMatrix();
   shadowFit();
-  uiK=uiScale(w,h); document.documentElement.style.setProperty('--ui',uiK);
+  uiK=uiScale(w,h); hlK=hlScale(w,h); document.documentElement.style.setProperty('--ui',uiK); document.documentElement.style.setProperty('--hl',hlK);
   if($('lvIntro').dataset.phase==='hold') fitIntro();                  // the level's big title refits to the new screen
   if(!glLost) try{ renderer.render(scene,cam); }catch(e){}             // draw at once: setSize cleared the buffer — no empty frame while the screen turns
 }
@@ -20503,7 +20550,7 @@ function artFlyHome(){
    overlay and steps, nothing saved, no win flow */
 function hudArt(pop){
   const b=$('hudArt'), on=artGot(cur) && artPend!==cur && (!artOn || artHome), was=!b.hidden, img=on && (b.lv!==cur || !was) ? artImg(cur) : null;
-  if(on && img){ const cv=b.firstElementChild, px=Math.round(38*uiK*Math.min(2,devicePixelRatio||1)); cv.width=cv.height=px; const c=cv.getContext('2d'); c.clearRect(0,0,px,px); artDraw(c,img,px*.06,px*.06,px*.88,false); b.lv=cur; }
+  if(on && img){ const cv=b.firstElementChild, px=Math.round(38*hlK*Math.min(2,devicePixelRatio||1)); cv.width=cv.height=px; const c=cv.getContext('2d'); c.clearRect(0,0,px,px); artDraw(c,img,px*.06,px*.06,px*.88,false); b.lv=cur; }
   b.hidden=!(on && b.lv===cur); if(!b.hidden && !was && pop && !reduced()) b.animate([{ transform:'scale(0)', opacity:0 },{ transform:'scale(1.3)', opacity:1, offset:.6 },{ transform:'none', opacity:1 }],{ duration:520, easing:'ease-out' });
 }
 function artView(){ if(artOn || paused || inputOff() || state==='win' || !artGot(cur) || artPend===cur) return; SND.init(); dropInput(); artShow(); }
@@ -22037,7 +22084,7 @@ function loadLevel(i,retry,defer,sv){
   if(lastTheme!==def.theme||!retry) SND.setAmbient(T.weather||T.amb||(waterCells.length?'water':null));
   lastTheme=def.theme;
   trails=[]; P.lives=lvLives=bankLives(); updateLives();
-  if(!sv) P.studs=false;
+  if(!sv){ P.studs=false; shintSeen=new Set(); }                       // the secret hints start over with a new run
   if(!sv && !retry) stuckT={};                                         // a new level: the tips start over (a retry or a sublevel visit — the player already knows)
                                                 // stone corners last the run: a sublevel visit keeps them
   resetPlayer(start.x,start.z,terr[start.z][start.x],def.mat||'normal','w'); P.hist=[]; saveCheck();
@@ -23140,9 +23187,9 @@ function liftStep(dt){
   U_LIFT.uPh.value=GL.ph; U_LIFT.uK.value=LIFTED?sstep(.6,1,LIFTED.t):0;
 }
 
-/* ==== the card: the summary; swipe up (or a tap) — the task and the level's record, down — back to the map; sideways — the neighbouring
+/* ==== the card: always full — the summary, the task and the level's record; a swipe down — back to the map; sideways — the neighbouring
    pieces: the whole plate follows the finger, flies off and the neighbour's plate comes in from the other side ==== */
-let card=null, BIG=false;
+let card=null;
 const order=()=>PIECES.filter(Q=>Q.on&&Q.ready).sort((a,b)=>a.l.i-b.l.i);
 function nb(P,d){ const o=order(), i=o.indexOf(P); return i<0?undefined:o[i+d]; }
 function showCard(P){
@@ -23161,16 +23208,15 @@ function showCard(P){
   else rows.push(`<div class="none">${esc(loc('Not explored yet'))}</div>`);
   if(f.art) rows.push(row('Artifact',loc(artOf(i).n)));
   const hint=lvHint(mapL(i));
-  card.innerHTML=`<div class="grab"></div><div class="cin">
+  card.innerHTML=`<div class="cin">
     <h2><b>${esc(lvName(mapL(i)))}</b><span>${esc(loc('Level {0} of {1}',lvNo(i),DATA.areas[areaOf(i)].lv.filter(l=>l.st!=='hidden').length))}</span></h2>
     <div class="sub">${A.icon||''} ${esc(loc(A.name))}</div>
     <div class="bds">${bd.join('')}</div>
-    <div class="cmore"><div>${hint?`<div class="task"><b>${esc(loc('Task'))}</b>${esc(hint)}</div>`:''}${rows.join('')}</div></div>
+    ${hint?`<div class="task"><b>${esc(loc('Task'))}</b>${esc(hint)}</div>`:''}${rows.join('')}
     <button class="cta" data-a="go">${esc(loc(!st.done?'Explore':lvAllGot(i)?'Explore again':'Look more closely'))}</button></div>`;
-  card.classList.toggle('big',BIG); card.classList.add('on'); document.body.classList.add('mapcard');
+  card.classList.add('on'); document.body.classList.add('mapcard');
 }
-function hideCard(){ if(!card) return; card.classList.remove('on','big'); document.body.classList.remove('mapcard'); BIG=false; cardX(0); }
-function cardBig(on){ if(BIG===on) return; BIG=on; card.classList.toggle('big',on); SND.uiSwipe(.6); }   // the card opens over the piece, the camera stays
+function hideCard(){ if(!card) return; card.classList.remove('on'); document.body.classList.remove('mapcard'); cardX(0); }
 /* the plate's sideways offset (px) and its fade */
 function cardX(x,ms){ card.style.transition=ms===undefined?'':ms?`transform ${ms}ms cubic-bezier(.3,.7,.3,1), opacity ${ms}ms ease`:'none';
   card.style.setProperty('--dx',x+'px'); card.style.opacity=x?String(Math.max(0,1-Math.abs(x)/(card.offsetWidth*.9))):''; }
@@ -23196,14 +23242,11 @@ function cardEnd(e){
   card.eat=true; setTimeout(()=>card.eat=false,0);
   const h0=g.h[0], dt=h0?Math.max(16,performance.now()-h0[0]):1e9, vx=h0?(g.dx-h0[1])/dt:0, vy=h0?(g.dy-h0[2])/dt:0;   // px/ms over the last 0.1 s
   if(g.ax==='x'){ if(Math.abs(g.dx)>card.offsetWidth*.3||Math.abs(vx)>.5&&Math.sign(vx)===Math.sign(g.dx)) cardGo(g.dx<0?1:-1); else cardX(0,220); }
-  else if(g.dy<-45||vy<-.5) cardBig(true);
-  else if(g.dy>45||vy>.5){ if(BIG) cardBig(false); else unlift(); }
+  else if(g.dy>45||vy>.5) unlift();
 }
 function cardClick(e){
   if(card.eat||!LIFTED) return;
-  const a=e.target.closest('button')?.dataset.a;
-  if(!a) return cardBig(!BIG);   // a tap on the card opens or closes it, like a swipe up or down
-  if(a==='go') mapGo(LIFTED.P.l.i);
+  if(e.target.closest('button')?.dataset.a==='go') mapGo(LIFTED.P.l.i);
 }
 let toastT=0;
 function mToast(s){ const t=$('mapToast'); t.textContent=s; t.classList.add('on'); SND.mapChime(); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600); }
@@ -23279,7 +23322,9 @@ function ptrMove(e){
 function ptrEnd(e){
   if(!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId); clearTimeout(peekT);
   if(!gest) return;
-  if(gest.mode==='pan'&&!gest.moved&&e.type==='pointerup'&&performance.now()-gest.t<600) tap(e);
+  if(gest.mode==='pan'&&!gest.moved&&e.type==='pointerup'&&performance.now()-gest.t<600){
+    if(e.pointerType!=='mouse') tapEat=performance.now()+TAP_EAT;   // a finger's own click lands on what the tap just showed (the legend closed at once, the card's button) — swallowed (locations.js)
+    tap(e); }
   if(gest.mode!=='pan'&&gest.mode!=='mpan') C.azT=snapAz(C.az);
   if(gest.mode==='multi'&&ptrs.size) gest={ mode:'dead' };
   else if(!ptrs.size){ if(gest.mode!=='pan') C.vx=C.vy=0; gest=null; }
@@ -23294,16 +23339,16 @@ function tap(e){
   if(!LIFTED&&C.zoom<P.A.z*.8){ SND.uiTap(.7); return areaView(P.A,.9); }
   lift(P);
 }
-/* keys while the map is open (input.js hands them over): Esc — the card down, the piece back, then back into the level */
+/* keys while the map is open (input.js hands them over): Esc — the legend closed, the piece back, then back into the level */
 function mapKey(e){
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const k=e.code;
-  if(k==='Escape'){ e.preventDefault(); if(LORE) loreClose(); else if(BIG) cardBig(false); else if(LIFTED) unlift(); else mapClose(); return; }
+  if(k==='Escape'){ e.preventDefault(); if(LORE) loreClose(); else if(LIFTED) unlift(); else mapClose(); return; }
   if(busy) return;
   if(LORE){ if(k==='Enter'||k==='NumpadEnter'||k==='Space'){ e.preventDefault(); loreClose(); } return; }
   if(LIFTED&&(k==='ArrowLeft'||k==='ArrowRight')){ e.preventDefault(); return cardGo(k==='ArrowLeft'?-1:1); }
-  if(LIFTED&&k==='ArrowUp'){ e.preventDefault(); return cardBig(true); }
-  if(LIFTED&&k==='ArrowDown'){ e.preventDefault(); return BIG?cardBig(false):unlift(); }
+  if(LIFTED&&k==='ArrowDown'){ e.preventDefault(); return unlift(); }
+  if(LIFTED&&k==='ArrowUp'){ e.preventDefault(); return; }   // the card is always full: nothing to open
   if(LIFTED&&(k==='Enter'||k==='NumpadEnter')&&!e.target.closest('button')){ e.preventDefault(); return mapGo(LIFTED.P.l.i); }
   if(k==='KeyQ') C.azT=snapAz(C.azT)-2*STEP; else if(k==='KeyE') C.azT=snapAz(C.azT)+2*STEP;
   else if(k==='Equal'||k==='NumpadAdd') C.zoomT=Math.min(ZMAX,C.zoomT*1.15);
@@ -23417,7 +23462,7 @@ function mapGo(i){
 const mapBtnCam={ rot(da){ C.fly=null; mapCam.rot(da); }, zoom:k=>mapCam.zoom(k), pan(dx,dy){ C.fly=null; C.vx=C.vy=0; panBy(dx,dy); } };
 function mapHome(){ if(busy) return; SND.uiTap(.7); if(LORE) return loreClose(); if(LIFTED) frameLift(.7); else areaView(areaOfL(M.cur),.8); }
 const MAP_API={ open:mapOpen, close:mapClose, news:mapNews, vis:mapVis, frame:mapFrame, key:mapKey, hide:mapHide, cam:mapBtnCam, snap:()=>{ C.azT=snapAz(C.az); }, home:mapHome,
-  state:()=>({ on:mapOn, busy, pieces:PIECES.filter(P=>P.on).map(P=>P.l.id), fresh:RISE.length, lifted:LIFTED?LIFTED.P.l.id:null, big:BIG, lore:!!LORE, zoom:C.zoom, az:C.az }),
+  state:()=>({ on:mapOn, busy, pieces:PIECES.filter(P=>P.on).map(P=>P.l.id), fresh:RISE.length, lifted:LIFTED?LIFTED.P.l.id:null, lore:!!LORE, zoom:C.zoom, az:C.az }),
   lift:id=>{ const P=PIECES.find(P=>P.on&&P.l.id===id); if(P) lift(P); return !!P; }, cardGo,
   at:id=>{ const P=PIECES.find(P=>P.on&&P.l.id===id); if(!P) return null; const v=P.mid.clone().setY(P.mid.y+P.g.position.y).project(cam); return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight]; } };
 return MAP_API;
@@ -23859,7 +23904,7 @@ function tick(now){
   updateWinds(); updateFlow();
   starGlintTick();
   for(const k in stars){ const s=stars[k]; if((!s.got || s.kept && !s.gone) && s.mesh && !s.pop){ s.mesh.rotation.y+=dt*2.2; s.mesh.position.y=s.baseY+Math.sin(time*2.5)*.08; } }
-  touchStars(); updatePlates(); updateZones(); updateBoulders(); movSupport(); updateCine(); updatePals(); updateBeasts();
+  touchStars(); shintCheck(); updatePlates(); updateZones(); updateBoulders(); movSupport(); updateCine(); updatePals(); updateBeasts();
   for(const t of fx.teles){ t.ring.rotation.z+=dt*1.5; t.orb.forEach((m,i)=>{ const a=time*2.2+i*Math.PI/2+t.ph;
     m.position.set(t.x+Math.cos(a)*.3, t.h+.15+((time*.6+i*.25)%1)*.9, t.z+Math.sin(a)*.3); m.rotation.y=a; }); }
   if(fx.goal){ const G=fx.goal, u=G.beam.uniforms; u.t.value=time;                // goal post: shimmers smoothly and flickers
@@ -23896,14 +23941,27 @@ function tick(now){
    DEBUG OVERLAY (dev builds only: ?dev in the address, or localhost / a LAN address): FPS and render stats in the bottom-right corner; ` toggles it
    ===================================================================== */
 const DEV = /[?&]dev\b/.test(location.search) || /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
-let dbgEl=null, dbgOn=false, dbgN=0, dbgSum=0, dbgMax=0, dbgLong=0, dbgCpu=0, dbgRen=0, dbgT0=0, dbgPrev=0, dbgLast='';
+let dbgEl=null, dbgTx=null, dbgOn=false, dbgN=0, dbgSum=0, dbgMax=0, dbgLong=0, dbgCpu=0, dbgRen=0, dbgT0=0, dbgPrev=0, dbgLast='';
 function dbgShow(on){
   dbgOn=on; LSR.set('cube-dbg',on?'1':'0');
-  if(on && !dbgEl){ dbgEl=document.createElement('pre');
-    dbgEl.style.cssText='position:fixed;right:6px;bottom:6px;margin:0;padding:4px 7px;z-index:99999;pointer-events:none;font:11px/1.35 ui-monospace,Consolas,monospace;color:#9f9;background:rgba(0,0,0,.62);border-radius:5px;white-space:pre;text-align:left';
-    document.body.appendChild(dbgEl); }
+  if(on && !dbgEl){ dbgEl=document.createElement('div');
+    dbgEl.style.cssText='position:fixed;right:6px;bottom:6px;z-index:99999;pointer-events:none;font:11px/1.35 ui-monospace,Consolas,monospace;color:#9f9;background:rgba(0,0,0,.62);border-radius:5px;padding:4px 7px;text-align:left';
+    dbgTx=document.createElement('pre'); dbgTx.style.cssText='margin:0;white-space:pre;font:inherit';
+    dbgEl.append(dbgTx, dbgSee()); document.body.appendChild(dbgEl); }
   if(dbgEl) dbgEl.style.display=on?'block':'none';
   dbgN=dbgSum=dbgMax=dbgLong=dbgCpu=dbgRen=0; dbgT0=dbgPrev=0;
+}
+/* Live tuning sliders (touch works: only this block takes pointers; its keys and touches don't reach the game):
+   see-through walls on open levels — walls around the cube (seeN), the cut's radius (seeR); saved as device settings */
+function dbgSee(){
+  const b=document.createElement('div'); b.style.cssText='pointer-events:auto;touch-action:none;margin-top:4px;border-top:1px solid #9f93;padding-top:3px';
+  const row=(lab,lo,hi,st,get,set,key)=>{ const r=document.createElement('label'), v=document.createElement('b'), i=document.createElement('input');
+    r.style.cssText='display:flex;align-items:center;gap:6px'; r.append(lab+' ', i, v); v.style.cssText='min-width:2.2em;text-align:right;font-weight:normal';
+    Object.assign(i,{ type:'range', min:lo, max:hi, step:st, value:get() }); i.style.cssText='width:110px;height:22px;margin:0;accent-color:#9f9';
+    const up=()=>{ set(+i.value); v.textContent=i.value; LS.set(key,i.value); }; i.oninput=up; v.textContent=i.value; return r; };
+  b.append(row('see walls',1,25,1,()=>seeN,x=>{ seeN=x; },'cube-see-n'), row('see size',1,20,.5,()=>seeR,x=>{ seeR=x; },'cube-see-r'));
+  for(const e of ['pointerdown','pointerup','pointermove','touchstart','keydown','click','wheel']) b.addEventListener(e,ev=>ev.stopPropagation());
+  return b;
 }
 /* every rAF callback: now — its timestamp, cpu — the ms the callback itself took, ren — of them the renderer.render call (0 when paused) */
 function dbgFrame(now, cpu, ren){
@@ -23919,7 +23977,7 @@ function dbgFrame(now, cpu, ren){
     `geom ${I.memory.geometries}  tex ${I.memory.textures}  prog ${(I.programs||[]).length}\n`+
     `${renderer.domElement.width}x${renderer.domElement.height} dpr ${renderer.getPixelRatio()}  shadow ${renderer.shadowMap.enabled?sun.shadow.mapSize.x+(renderer.shadowMap.type===THREE.PCFShadowMap?' pcf':' soft'):'off'}\n`+
     `parts ${parts.length}  crit ${critters.length}  ${lvId(cur)||''}  ${st}`;
-  dbgEl.textContent=dbgLast; dbgN=dbgSum=dbgMax=dbgLong=dbgCpu=dbgRen=0; dbgT0=now;
+  dbgTx.textContent=dbgLast; dbgN=dbgSum=dbgMax=dbgLong=dbgCpu=dbgRen=0; dbgT0=now;
 }
 if(DEV){
   addEventListener('keydown', e=>{ if(e.code==='Backquote' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat){ e.preventDefault(); dbgShow(!dbgOn); } });
@@ -24096,11 +24154,11 @@ function fbEvErr(msg,lv){
 function fbEvCfg(){
   if(!fbEvOn || fbEvCfgd) return; fbEvCfgd=true; const v=SND.vol||{};
   fbEv('cfg',{ q:qMode, lang, mus:+v.mus, sfx:+v.sfx, amb:+v.amb, cam:camBtnN!=='0', fs:fsAuto, pwa:matchMedia('(display-mode: standalone)').matches || !!navigator.standalone });
-  if(LSR.get('cube-fb-lvinfo','')===VERSION) return;
+  if(LSR.get('cube-fb-lvinfo','')===VERSION+'s') return;   // 's' — the info with star ids (devices that sent it without them send it again)
   const levels={};
-  LEVELS.forEach((d,i)=>{ let st=0, sc=0; try{ const s=defStars(d); st=s.open.length; sc=s.sec.length; }catch(e){}
-    levels[d.id]={ n:d.name, a:(AREAS[areaOf(i)]||{}).id||'', no:lvNo(i), st, sc, h:d.h }; });
-  fbEv('lvinfo',{ levels },null); LSR.set('cube-fb-lvinfo',VERSION);
+  LEVELS.forEach((d,i)=>{ let s={ open:[], sec:[] }; try{ s=defStars(d); }catch(e){}
+    levels[d.id]={ n:d.name, a:(AREAS[areaOf(i)]||{}).id||'', no:lvNo(i), st:s.open.length, sc:s.sec.length, h:d.h, s:s.open, ss:s.sec }; });
+  fbEv('lvinfo',{ levels },null); LSR.set('cube-fb-lvinfo',VERSION+'s');
 }
 if(fbEvOn){
   FB_LOG.forEach(e=>fbEvErr(e[1],null)); FB_LOG.on=m=>fbEvErr(m);   // boot.js logs every console error and uncaught error / rejection
