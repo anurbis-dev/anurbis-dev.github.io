@@ -316,6 +316,8 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 .more.on{ opacity:1; }
 @media (prefers-reduced-motion: reduce){ .mi,.msec,#mPause,.more{ transition:none !important; } #mPause{ animation:none !important; } }
 button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
+body.padnav :is(button,input,select,a,[tabindex]):focus{ outline:3px solid var(--gold); outline-offset:2px; }   /* focus moved by a controller (gamepad.js) */
+#padRow .svmsg{ margin-top:4px; } #padRow[hidden]{ display:none; }
 body.lowq .btn, body.lowq #hint, body.lowq .card{ backdrop-filter:none; -webkit-backdrop-filter:none; }   /* adaptive quality: a slow device (qualityDown) */
 
 #hint{
@@ -941,6 +943,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
       <label class="sl vr"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg><input type="range" id="cZoom" min="25" max="300" step="25" data-ta aria-label="Camera zoom speed"><b id="cZoomV"></b></label>
       <label class="sl vr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg><input type="range" id="cPan" min="25" max="300" step="25" data-ta aria-label="Camera pan speed"><b id="cPanV"></b></label>
       <label class="sl gm"><span><i data-t>Camera return</i><b id="cIdleV"></b></span><input type="range" id="cIdle" min="0" max="10" step="1"></label>
+      <div class="sl" id="padRow"><span data-t>Controller</span><small class="svmsg" id="padName"></small><div class="shiprow saverow"><button id="padMap" data-t>Set up buttons</button><button id="padDef" data-t>Reset</button></div><small class="svmsg" id="padMsg" aria-live="polite"></small></div>
       <button class="tg" id="tgSmart" aria-pressed="false"><span data-t>Smart mode</span> <span class="sw"></span></button>
       <button class="tg" id="tgLv"><span data-t>Locations view</span> <span class="pill ico" id="tgLvV"></span></button>
       <!--web--><div class="sl"><span data-t>Saves</span><div class="shiprow saverow" id="saveRow"><button id="svExp" data-t>Export</button><button id="svImp" data-t>Import</button></div>
@@ -989,6 +992,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
       <div class="row"><i>⚠</i><span data-t="h23">At the edge of a drop, a <b>short swipe</b> only tilts the cube — swipe longer to step down</span></div>
       <div class="row"><i>⛰</i><span data-t="h24">A fall of three floors smashes the cube. Ice and steep scree are slippery</span></div>
       <!--web--><div class="keys" data-t="keys">Keyboard: arrows/WASD — roll, Shift+arrow — dash, Space — jump (hold to charge), X — slam, Q/E — rotate, +/− — zoom, R — restart, Esc — menu</div><!--/web-->
+      <div class="keys" data-t="pad">Controller: stick or D-pad — roll, A/✕ — jump (hold to charge), hold A/✕ or X/□ and push the stick — dash, B/○ in a jump — slam, right stick, LB/RB, LT/RT — camera, Y/△ — back onto the cube, Start — menu, Select — locations, touchpad — like the screen (swipe, tap, hold)</div>
     </div><i class="more dn" aria-hidden="true"><svg viewBox="0 0 64 12"><path d="M2 4h20M42 4h20M26 3l6 5 6-5"/></svg></i></div>
   </section>
 </div>
@@ -1003,7 +1007,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.7.2';
+const VERSION = '2.10.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1286,6 +1290,37 @@ const L10N={
   "Creatures met":["Встречено существ","Criaturas vistas","Criaturas vistas","Wesen getroffen","Créatures croisées","遇见的生灵","出会った生き物","만난 생물"],
   "A new area is open: {0}":["Открыта новая локация: {0}","Nueva región abierta: {0}","Nova região aberta: {0}","Neues Gebiet offen: {0}","Nouvelle région ouverte : {0}","新区域已开放：{0}","新しい地域が開いた：{0}","새 지역 개방: {0}"],
   "Map":["Карта","Mapa","Mapa","Karte","Carte","地图","マップ","지도"],
+  "Controller":["Геймпад","Mando","Controle","Controller","Manette","手柄","コントローラー","컨트롤러"],
+  "Set up buttons":["Настроить кнопки","Configurar botones","Configurar botões","Tasten belegen","Configurer les boutons","设置按键","ボタン設定","버튼 설정"],
+  "Reset":["Сбросить","Restablecer","Redefinir","Zurücksetzen","Réinitialiser","重置","リセット","초기화"],
+  "No controller":["Геймпад не подключён","Ningún mando conectado","Nenhum controle conectado","Kein Controller verbunden","Aucune manette connectée","未连接手柄","コントローラー未接続","연결된 컨트롤러 없음"],
+  "Controller connected":["Геймпад подключён","Mando conectado","Controle conectado","Controller verbunden","Manette connectée","手柄已连接","コントローラーを接続しました","컨트롤러 연결됨"],
+  "Controller disconnected":["Геймпад отключён","Mando desconectado","Controle desconectado","Controller getrennt","Manette déconnectée","手柄已断开","コントローラーが切断されました","컨트롤러 연결 끊김"],
+  "Press the button for: {0}":["Нажмите кнопку: {0}","Pulsa el botón para: {0}","Pressione o botão para: {0}","Drücke die Taste für: {0}","Appuyez sur le bouton pour : {0}","请按下按键：{0}","ボタンを押してください：{0}","버튼을 누르세요: {0}"],
+  "a button already used skips it, Esc cancels":["уже занятая кнопка — пропустить, Esc — отмена","un botón ya usado lo omite, Esc cancela","um botão já usado pula, Esc cancela","eine schon belegte Taste überspringt, Esc bricht ab","un bouton déjà utilisé passe, Échap annule","已用的按键跳过，Esc 取消","使用済みのボタンでスキップ、Escでキャンセル","이미 쓴 버튼은 건너뛰기, Esc는 취소"],
+  "Buttons saved":["Кнопки сохранены","Botones guardados","Botões salvos","Tasten gespeichert","Boutons enregistrés","按键已保存","ボタンを保存しました","버튼 저장됨"],
+  "Buttons are set up in Steam":["Кнопки настраиваются в Steam","Los botones se configuran en Steam","Os botões são configurados no Steam","Die Tasten werden in Steam belegt","Les boutons se configurent dans Steam","按键在 Steam 中设置","ボタンはSteamで設定します","버튼은 Steam에서 설정합니다"],
+  "Default buttons":["Кнопки по умолчанию","Botones predeterminados","Botões padrão","Standardbelegung","Boutons par défaut","默认按键","標準のボタン","기본 버튼"],
+  "Jump / OK":["Прыжок / ОК","Saltar / Aceptar","Pular / OK","Springen / OK","Sauter / OK","跳跃 / 确定","ジャンプ / 決定","점프 / 확인"],
+  "Slam / Back":["Удар / Назад","Golpe / Atrás","Pancada / Voltar","Stampfen / Zurück","Frappe / Retour","重击 / 返回","叩きつけ / 戻る","내려찍기 / 뒤로"],
+  "Camera to the cube":["Камера к кубику","Cámara al cubo","Câmera no cubo","Kamera zum Würfel","Caméra sur le cube","镜头回到方块","カメラをキューブへ","카메라를 큐브로"],
+  "Turn camera left":["Повернуть камеру влево","Girar cámara a la izquierda","Girar câmera à esquerda","Kamera nach links drehen","Tourner la caméra à gauche","镜头左转","カメラを左に回す","카메라 왼쪽 회전"],
+  "Turn camera right":["Повернуть камеру вправо","Girar cámara a la derecha","Girar câmera à direita","Kamera nach rechts drehen","Tourner la caméra à droite","镜头右转","カメラを右に回す","카메라 오른쪽 회전"],
+  "Zoom out":["Отдалить","Alejar","Afastar","Herauszoomen","Dézoomer","缩小","ズームアウト","축소"],
+  "Zoom in":["Приблизить","Acercar","Aproximar","Hineinzoomen","Zoomer","放大","ズームイン","확대"],
+  "Up":["Вверх","Arriba","Cima","Hoch","Haut","上","上","위"],
+  "Down":["Вниз","Abajo","Baixo","Runter","Bas","下","下","아래"],
+  "Left":["Влево","Izquierda","Esquerda","Links","Gauche","左","左","왼쪽"],
+  "Right":["Вправо","Derecha","Direita","Rechts","Droite","右","右","오른쪽"],
+  "pad":["Геймпад: стик или крестовина — катиться, A/✕ — прыжок (удержать — зарядить), удерживая A/✕ или X/□, толкнуть стик — рывок, B/○ в прыжке — удар, правый стик, LB/RB, LT/RT — камера, Y/△ — камера к кубику, Start — меню, Select — локации, тачпад — как экран (свайп, тап, удержание)",
+    "Mando: stick o cruceta — rodar, A/✕ — saltar (mantén para cargar), mantén A/✕ o X/□ y mueve el stick — carrera, B/○ en un salto — golpe, stick derecho, LB/RB, LT/RT — cámara, Y/△ — cámara al cubo, Start — menú, Select — lugares, panel táctil — como la pantalla (deslizar, tocar, mantener)",
+    "Controle: analógico ou direcional — rolar, A/✕ — pular (segure para carregar), segure A/✕ ou X/□ e mova o analógico — arrancada, B/○ no pulo — pancada, analógico direito, LB/RB, LT/RT — câmera, Y/△ — câmera no cubo, Start — menu, Select — locais, touchpad — como a tela (deslizar, tocar, segurar)",
+    "Controller: Stick oder Steuerkreuz — rollen, A/✕ — springen (halten zum Aufladen), A/✕ oder X/□ halten und Stick drücken — Sprint, B/○ im Sprung — Stampfen, rechter Stick, LB/RB, LT/RT — Kamera, Y/△ — Kamera zum Würfel, Start — Menü, Select — Orte, Touchpad — wie der Bildschirm (wischen, tippen, halten)",
+    "Manette : stick ou croix — rouler, A/✕ — sauter (maintenir pour charger), maintenir A/✕ ou X/□ et pousser le stick — ruée, B/○ en saut — frappe, stick droit, LB/RB, LT/RT — caméra, Y/△ — caméra sur le cube, Start — menu, Select — lieux, pavé tactile — comme l’écran (glisser, taper, maintenir)",
+    "手柄：摇杆或十字键 — 滚动，A/✕ — 跳跃（按住蓄力），按住 A/✕ 或 X/□ 再推摇杆 — 冲刺，跳跃中 B/○ — 重击，右摇杆、LB/RB、LT/RT — 镜头，Y/△ — 镜头回到方块，Start — 菜单，Select — 地点，触控板 — 同屏幕（滑动、轻点、按住）",
+    "コントローラー：スティックか十字キー — 転がる、A/✕ — ジャンプ（長押しでチャージ）、A/✕ か X/□ を押しながらスティック — ダッシュ、ジャンプ中に B/○ — 叩きつけ、右スティック・LB/RB・LT/RT — カメラ、Y/△ — カメラをキューブへ、Start — メニュー、Select — ロケーション、タッチパッド — 画面と同じ（スワイプ・タップ・長押し）",
+    "컨트롤러: 스틱 또는 십자키 — 구르기, A/✕ — 점프(누르고 있으면 충전), A/✕ 또는 X/□를 누른 채 스틱 — 대시, 점프 중 B/○ — 내려찍기, 오른쪽 스틱·LB/RB·LT/RT — 카메라, Y/△ — 카메라를 큐브로, Start — 메뉴, Select — 장, 터치패드 — 화면처럼(스와이프, 탭, 길게)"],
+
   "Tiles":["Плитка","Mosaico","Blocos","Kacheln","Tuiles","平铺","タイル","타일"],
   "List":["Список","Lista","Lista","Liste","Liste","列表","リスト","목록"],
   "keys":["Клавиатура: стрелки/WASD — катиться, Shift+стрелка — рывок, пробел — прыжок (удержать — зарядить), X — удар, Q/E — поворот, +/− — масштаб, R — рестарт, Esc — меню",
@@ -3509,7 +3544,7 @@ areaLevels('thule',[
    h:[".........~~~=~~~=111","11~~~~~11~=~=~=~=111","11~===~11~=~~~=~~111","11~~~~~11~=====~=111",".........~~~~~~~=111"],
    o:["....................","H.......H..........T","S..................G","H.......H........H..","...................."],
    dig:['1,1','18,0','17,4'] },
- { id:'crystal-cave', name:'Crystal cave', theme:'cave', over:[[3,2,4,2,3,4],[14,2,16,2,4,6]],
+ { id:'crystal-cave', name:'Crystal cave', theme:'cave', cam:{ see:true }, over:[[3,2,4,2,3,4],[14,2,16,2,4,6]],
    crystals:[[3,1,'S',1.9,0],[4,3,'N',1.6,1],[4,2,'D',0,2],[0,2,'W',.3,1],[7,2,'E',.2,3],[9,2,'W',.2,0],
              [9,1,'S',2.7,1],[11,1,'S',2.3,2],[8,1,'U',0,0],[11,3,'U',0,3],[3,0,'U',0,2],
              [15,1,'S',3.2,0],[14,3,'N',3,2],[15,2,'D',0,1],[18,2,'W',1,3],[20,1,'U',0,3],[22,3,'U',0,1],[14,4,'U',0,3]],
@@ -3806,20 +3841,20 @@ areaLevels('thule',[
 ]);
 /* Ultima Thule: hidden sublevels (keys are permanent ids; see areaSubs in js/levels.js) */
 areaSubs('thule',{
-  cellar:{ name:'Root cellar', theme:'cave', subs:{ '1':'out' },           // under the lifted lawn of "Quarters"
+  cellar:{ name:'Root cellar', theme:'cave', cam:{ see:true }, subs:{ '1':'out' },           // under the lifted lawn of "Quarters"
     hint:'Someone hid their treasures under the field. Even down here the steps are quarter-block.',
     h:["555555555555","511111111225","511111111115","511111111125","555555555555"],
     q:["000000000000","000000123220","000000000000","000000000200","000000000000"],
     o:["............","....k.....x.",".1S.........","..........x.","............"],
     crystals:[[3,1,'N',2.6,0],[8,3,'S',2.6,1],[6,1,'N',2.8,3],[10,2,'E',null,2],[2,3,'S',2.4,1]],
     dig:['6,3'] },
-  yeti:{ name:'Ice grotto', theme:'cave', subs:{ '1':'out' },
+  yeti:{ name:'Ice grotto', theme:'cave', cam:{ see:true }, subs:{ '1':'out' },
     hint:'Deep inside the mountain something big is humming a tune. Follow the glow.',
     h:["44444444444444","41111.11122334","51111.11122334","41111.11122334","44444444444444"],
     o:["..............","..k....x....k.",".1S...........","..........k...",".............."],
     crystals:[[3,1,'N',2.6,0],[7,3,'S',2.6,1],[10,1,'N',3,2],[12,3,'S',3.4,3],[4,2,'E',null,1],[6,2,'W',null,2]],
     dig:['3,3'], yeti:[ { at:'12,2', do:'meet' } ] },
-  lamps:{ name:'Lamplighter\'s den', theme:'cave', subs:{ '1':'out' },        // behind the lantern wall of Night portals
+  lamps:{ name:'Lamplighter\'s den', theme:'cave', cam:{ see:true }, subs:{ '1':'out' },        // behind the lantern wall of Night portals
     hint:'The lamplighter hid his treasures here, deep under the rock. Leap over the crack and climb the ledges — and one star sleeps in the ground.',
     h:["5555555555555","5111.11122335","5111.11122335","5111.11111125","5555555555555"],
     o:[".............","..k........x.",".1S.....x....","..........k..","............."],
@@ -4111,7 +4146,7 @@ areaLevels('rano',[
    o:[".........TK...T.H.......g..Tl.........",".S........K.............g...........9.","..K.H.....K.........K.H.g.K...........","......................................",".K..........D..K.....H....XK.T........","............D...x.........X...........","..K.TH......D...........T.X......H....","..............x.......................","..T.....KH......l...g...H...K.T.......","........K...........g.......K.........","......l.K...........g.H....lK..K.K....","......................................",".......KT....H..DH....T...T.X.........",".......K........D...........X.........","......HK..l..T..D.....H...H.X.........","..........................x...........",".........HK...K..lK.X.......g.T.......","..........K.........X.......g.x...G...","..T..H.T..K........lX.......g...H....."],
    s:["eeeeeeeeeeceeeeeeeeeeeeeceeeeeeeeeeeee","eeeeeeeeeeceeeeeeeeeeeeeceeeeeeeeeeeee","eeeeeeeeeeceeeeeeeeeeeeeceeeeeeeeeeeee","eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceee","egggggggggggcgggggggggggggcggggggggeee","egggggggggggcgggggggggggggcggggggggeee","egggggggggggcgggggggggggggcggggggggeee","eceeeeeeeeeeeeceeeeeeeeeeeeeeeeeeeeeee","eeeeeeeeceeeeeeeeeeeceeeeeeeceeeeeeeee","eeeeeeeeceeeeeeeeeeeceeeeeeeceeeeeeeee","eeeeeeeeceeeeeeeeeeeceeeeeeeceeeeeeeee","eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeceee","eggggggcggggggggcgggggggggggcggggggeee","eggggggcggggggggcgggggggggggcggggggeee","eggggggcggggggggcgggggggggggcggggggeee","eceeeeeeeeeeeeeeeeeeeeeeeeceeeeeeeeeee","eeeeeeeeeeceeeeeeeeeceeeeeeeceeeeeeeee","eeeeeeeeeeceeeeeeeeeceeeeeeeceeeeeeeee","eeeeeeeeeeceeeeeeeeeceeeeeeeceeeeeeeee"] },
 // portal-hopping through stone hen houses; a crate on the plate runs a bridge out, cracked tiles lead to the last yard
- { id:'hen-houses', name:'Hen houses', theme:'cave',
+ { id:'hen-houses', name:'Hen houses', theme:'cave', cam:{ see:true },
    caves:['1','2','3'],
    crystals:[[3,13,'U',0,0],[10,12,'U',0,2],[20,3,'U',0,1],[26,5,'U',0,3],[15,8,'U',0,2],[22,14,'U',0,0],[5,2,'U',0,1],[12,1,'U',0,2]],
    pieces:[ { type:'mover', cells:[[0,0],[1,0],[2,0]], at:[26,8], y:4, path:[[26,8],[26,4]], trigger:'hold', plate:['24,5'], latch:true, speed:1.4 } ],
@@ -4174,7 +4209,7 @@ areaLevels('rano',[
    o:["................................","................................","................................","................................","................................","................................","T..T...T..T...T..T.T..T.T....T..",".T...x..K..TH...H.........K....T","K.H....H...H.......H..K.H.......",".S.............x..............G.","K.H...H...K...........H..H...H..","..T......K...X.x.K......K..x..HT","T..T....T..HT.....TT..T...T..T..","................................","................................"],
    s:["................................","................................","................................","................................","................................","................................","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","ggggeeeeeegggccccccg.ggeeeeeeggg","................................","................................"] },
 // a one-cell tube spiralling inward and up, lit by crystals: timed spikes, lava pits to jump, cracked tiles and a rock with a star
- { id:'lava-tube', name:'Lava tube', theme:'cave',
+ { id:'lava-tube', name:'Lava tube', theme:'cave', cam:{ see:true },
    subs:{'9':'crystal-hall'},
    spikes:{'5,1':0,'11,1':-0.5,'1,9':0},
    crystals:[[15,1,'U',0,0],[15,13,'U',0,1],[2,15,'U',0,2],[1,7,'U',0,3],[11,5,'U',0,0],[11,10,'U',0,1],[8,11,'U',0,2],[5,9,'U',0,3],[8,1,'U',0,1],[3,5,'U',0,2]],
@@ -4440,7 +4475,7 @@ areaLevels('rano',[
 /* Rano Raraku: hidden sublevels (keys are permanent ids; see areaSubs in js/levels.js) */
 areaSubs('rano',{
   // a lit tunnel; three stars in three alcoves
-  'carvers-hollow':{ name:'Carver\'s hollow', theme:'cave',
+  'carvers-hollow':{ name:'Carver\'s hollow', theme:'cave', cam:{ see:true },
    subs:{'1':'out'},
    crystals:[[2,5,'U',0,0],[8,5,'U',0,1],[11,7,'U',0,2],[15,5,'U',0,3],[18,7,'U',0,0],[20,5,'U',0,1],[23,7,'U',0,2],[10,3,'U',0,3],[16,10,'U',0,0],[22,3,'U',0,1]],
    dig:['3,6'],
@@ -4449,7 +4484,7 @@ areaSubs('rano',{
    o:["..............................","..............................","..........x...........x.......","..............................","..............................","..............................",".S......................1.....","..............................","..............................","..............................","..............................","................x.............",".............................."],
    s:["cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc"] },
   // a cellar; one plank over a buried star
-  'under-the-scaffold':{ name:'Under the scaffold', theme:'cave',
+  'under-the-scaffold':{ name:'Under the scaffold', theme:'cave', cam:{ see:true },
    subs:{'1':'out'},
    brk:{'9,3':1,'9,5':1,'16,3':1,'16,5':1},
    under:{'9,3':'x','16,5':'x'},
@@ -4460,7 +4495,7 @@ areaSubs('rano',{
    o:["............................","............................","............................",".....k...w......w...........",".S..........x...........1...",".........w......w..k........","............................","............................","............................","............................"],
    s:["cccccccccccccccccccccccccccc","cccccccccccccccccccccccccccc","cccccccccccccccccccccccccccc","cwwwwwwwwwwwwwwwwwwwcccccccc","cwwwwwwwwwwwwwwwwwwwcccccccc","cwwwwwwwwwwwwwwwwwwwcccccccc","cccccccccccccccccccccccccccc","cccccccccccccccccccccccccccc","cccccccccccccccccccccccccccc","cccccccccccccccccccccccccccc"] },
   // a vault of plugs; three stars sealed in the alcoves
-  'basalt-vault':{ name:'Basalt vault', theme:'cave',
+  'basalt-vault':{ name:'Basalt vault', theme:'cave', cam:{ see:true },
    subs:{'1':'out'},
    loot:{'19,3':'x','6,5':'x'},
    crystals:[[2,4,'U',0,1],[8,6,'U',0,2],[16,4,'U',0,0],[21,6,'U',0,1],[25,4,'U',0,2]],
@@ -4470,7 +4505,7 @@ areaSubs('rano',{
    o:["..............................","..............................",".........................x....","...................K..........","..............................",".S....K.......g.......X....1..","..............................","...........D..................","...........x..................","..............................",".............................."],
    s:["cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc","cccccccccccccccccccccccccccccc"] },
   // a cellar of blocks: a spiked plank bridge, a crown with a star, and a lower hall where a crate on the plate runs out a bridge
-  'masons-cellar':{ name:'Mason\'s cellar', theme:'cave',
+  'masons-cellar':{ name:'Mason\'s cellar', theme:'cave', cam:{ see:true },
    subs:{'1':'out'},
    spikes:{'5,2':0},
    pieces:[ { type:'mover', cells:[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1]], at:[13,10], y:1, path:[[13,10],[13,6]], trigger:'hold', plate:['11,6'], latch:true, speed:1.6 } ],
@@ -4480,7 +4515,7 @@ areaSubs('rano',{
    o:[".........................","k.......k.....K...k......",".S...*...x.....c......1..","..K.......k.k...K...k....",".........................",".........................",".....C....._......x......","....K..k.................",".........................",".........................",".........................","........................."],
    s:[".........................","ccc.....ccc.ccc.ccc.cccc.","ccc.ccc.ccc.ccccccc.cccc.","ccc.....ccc.ccc.ccc.cccc.",".........................","ccc..............ccc.....","ccc.ccccccccc....ccc.....","ccc.ccccccccc....ccc.....",".........................",".........................",".........................","........................."] },
   // a ring hall with a crystal island: the left side has gaps and a cracked tile, the right one timed spikes; the island is reached by the ramp from the top
-  'crystal-hall':{ name:'Crystal hall', theme:'cave',
+  'crystal-hall':{ name:'Crystal hall', theme:'cave', cam:{ see:true },
    subs:{'1':'out'},
    spikes:{'16,8':0,'16,5':-0.5},
    ramps:[{at:[9,3],dir:'S',len:2,rise:2}],
@@ -4518,7 +4553,7 @@ areaSubs('rano',{
    h:[".................",".................","1111555555....777","11115555553333777","11115577753333777","11115577753333777","11115577753333777","11115555553333777","1111555555....777",".................","................."],
    o:[".................",".................",".....T...H.......","T..H.....x.T.....",".................",".S.....x.....1...",".................","T..H.......HT....","..K..H...K.......",".................","................."],
    s:[".................",".................","ggggeeeeee....eee","ggggeeeeeecccceee","ggggeecccecccceee","ggggeecccecccceee","ggggeecccecccceee","ggggeeeeeecccceee","ggggeeeeee....eee",".................","................."] },
-  'forgotten-passage':{ name:'Forgotten Passage', theme:'cave',
+  'forgotten-passage':{ name:'Forgotten Passage', theme:'cave', cam:{ see:true },
     h:['..................0','.0......11114100144','.111....10000000015','.20111111000.000015','3000000000046666615','4000000000063....25','3000000033353......','.300343433..2....2.','..3441111...1.2....','.....110.0.........','.........0.........'],
     o:['...................','.S.................','...................','...................','...................','...................','...................','.....X...........x.','........x..........','...................','...................'],
     q:['...................','...............1...','...................','..............1.1..','2.........1.21.1.1.','...1..1............','3..........3.......','.2....3.23.........','..3.........2......','.......3.2.........','.........1.........'],
@@ -5101,7 +5136,7 @@ areaLevels('mutul',[
 ]);
 /* Mutul: hidden sublevels (keys are permanent ids; see areaSubs in js/levels.js) */
 areaSubs('mutul',{
-  'cenote-grotto':{ name:'Cenote grotto', theme:'grotto', subs:{ '1':'out' },        // behind the leaves of "Sacred cenote"
+  'cenote-grotto':{ name:'Cenote grotto', theme:'grotto', cam:{ see:true }, subs:{ '1':'out' },        // behind the leaves of "Sacred cenote"
     hint:'Cool air and glowing crystals: the priests left offerings in the dark. One star sleeps in the ground.',
     h:["55555555555555","51111112222235","51111112222235","51111111111235","55555555555555"],
     o:["..............",".....k.....x..",".1S...........","..........k...",".............."],
@@ -5304,7 +5339,7 @@ areaLevels('tsingy',[
    h:["565676.9575666..95676569..65557679","1111444441117777771.11555555111167","1111444441117799771.11555555111159","1111444441117799771.11555555111166","1111444441117799771.11555555111168","1111444441117777771.11555555111179","657657.6577759..97677769..85765656"],
    o:["..................................","......x...T.......................","..................................",".S.............................G..",".............................H....","................x.................",".................................."],
    s:["eeeeee.eeeeeee..eeeeeeee..eeeeeeee","ggggeeeeegggeeeeeeg.ggeeeeeeggggee","ggggeeeeegggeeeeeeg.ggeeeeeeggggee","ggggeeeeegggeeeeeeg.ggeeeeeeggggee","ggggeeeeegggeeeeeeg.ggeeeeeeggggee","ggggeeeeegggeeeeeeg.ggeeeeeeggggee","eeeeee.eeeeeee..eeeeeeee..eeeeeeee"] },
- { id:"dark-river", name:"Dark river", theme:"grotto",
+ { id:"dark-river", name:"Dark river", theme:"grotto", cam:{ see:true },
    flow:[[4,5,"EEEEEEEESSSEEEEEEEE"]],
    dig:["24,9","22,7"],
    crystals:[[22,6,"U",0,0],[24,9,"U",0,2],[23,3,"U",0,1],[27,8,"U",0,3],[8,5,"N",1.4,0],[15,8,"S",1.4,2],[2,4,"U",0,0]],
@@ -6611,7 +6646,7 @@ areaLevels('dilmun',[
 ]);
 /* Dilmun: hidden sublevels (keys are permanent ids; see areaSubs in js/levels.js) */
 areaSubs('dilmun',{
-  barrow:{ name:'Burial chamber', theme:'cave', subs:{ '1':'out' },        // behind the sand-heaped door of "Barrow field"
+  barrow:{ name:'Burial chamber', theme:'cave', cam:{ see:true }, subs:{ '1':'out' },        // behind the sand-heaped door of "Barrow field"
     hint:'The mound-builders sealed their dead with gifts. Leap the crack, climb the ledge — and one gift lies under the floor.',
     h:["5555555555555","5111.11122335","5111.11122335","5111.11111125","5555555555555"],
     o:[".............","..k........x.",".1S.....x....","..........k..","............."],
@@ -7104,7 +7139,7 @@ areaLevels('hattusa',[
 ]);
 /* Hattusa: hidden sublevels (keys are permanent ids; see areaSubs in js/levels.js) */
 areaSubs('hattusa',{
-  sanctuary:{ name:'Rock sanctuary', theme:'cave', subs:{ '1':'out' },   // behind the stones at the end of Yazilikaya
+  sanctuary:{ name:'Rock sanctuary', theme:'cave', cam:{ see:true }, subs:{ '1':'out' },   // behind the stones at the end of Yazilikaya
     hint:'Twelve gods walk in a line along the rock wall. Leap the crack and follow them: the last one holds a star, and one more sleeps in the ground.',
     h:["55555555555555",
       "5111.111223315",
@@ -7366,7 +7401,7 @@ function seeAdd(m){                                                   // a mater
 }
 const SEE_MC=new WeakMap();
 function seeMat(m){                                                   // the shared dissolving copy of a shared material (overhangs, sticky films; batches like it)
-  let n=SEE_MC.get(m); if(n) return n;
+  let n=SEE_MC.get(m); if(n){ if(m.color) n.color.copy(m.color); if(m.emissive) n.emissive.copy(m.emissive); return n; }   // the shared one is recoloured per theme (loadLevel) — the copy follows
   n=m.clone(); n.onBeforeCompile=m.onBeforeCompile; n.customProgramCacheKey=m.customProgramCacheKey; n.userData={ keep:true };   // r128 clone drops the hooks
   seeAdd(n); SEE_MC.set(m,n); return n;
 }
@@ -15622,12 +15657,15 @@ function landAt(fromL,mode){
 }
 /* A swipe in the air after k0 of the jump — a leap that way (once per jump) */
 function airLeapFromQueue(k,k0){ if(!leapUsed && k>k0 && queue.length && queue[0].t==='dir'){ const a=queue.shift(); leapUsed=true; doLeap(a.d[0],a.d[1]); } }
+/* The height of slope cell sl under the cube's centre f (0..1) of the way through it along (dx,dz): its near edge, rising or falling to the far one */
+const SL_LIP=.35;                                                     // a leap onto a slope moves sideways at once: the cube's lower edge may graze its near edge this much (it rolls over it)
+function slopeAlong(sl,dx,dz,f){ const a=dx*sl.d[0]+dz*sl.d[1]; f=clamp(f,0,1); return a>0 ? sl.b+sl.r*f : a<0 ? sl.b+sl.r*(1-f) : sl.b+sl.r/2; }
 /* Quadratic Bezier height of a jump arc: from y0 through control cc to y1 at k */
 function arcY(y0,cc,y1,k){ return (1-k)*(1-k)*y0+2*k*(1-k)*cc+k*k*y1; }
 function doLeap(dx,dz){
   const bc=P.bClimb||0; P.bClimb=0;                                     // from a rubber slam bounce — as high as it springs
   const L=P.l, big=P.jpow>=.6, rub=P.mat==='rubber', climb=bc||(big?2:1)+(rub?1:0), maxD=bc?Math.min(bc+1,5):(big?3:2)+(rub?1:0);
-  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L], peaks=[L], obIn=[];   // peaks — the highest point of each cell on the way (a ramp: its high edge); obIn — a low obstacle flown over (narrower than its cell)
+  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L], peaks=[L], obIn=[], slIn=[];   // peaks — the highest point of each cell on the way (a ramp: its high edge); obIn — a low obstacle flown over (narrower than its cell)
   for(let d=1; d<=maxD; d++){
     const x=P.x+dx*d, z=P.z+dz*d, nf=nicheFloor(x,z);
     if(nf!==null){ if(nf>L+STEPUP && nf<=L+climb+.01 && freeAt(x-dx,z-dz,nf)) return nicheGlide(x-dx,z-dz,x,z,dx,dz,nf,d-1);   // a niche up to the jump's height — fly to its mouth and slide in
@@ -15636,7 +15674,9 @@ function doLeap(dx,dz){
     if(y!==null){ stick=[d-1,y]; break; }                               // a sticky face on the way — stick, don't fly past
     const rs=slopes[K(x,z)];                                            // onto a bridge deck from the side over its rail: the rail (a block above the deck) must be cleared
     if(rs && rs.bridge && rs.rail && !(dx*rs.rail[0]+dz*rs.rail[1]) && c.top===rs.mid){ if(c.top+1>L+climb+.01) break; railY=Math.max(railY,c.top+1); }
-    if(c.top>L+climb+.01) break;
+    const rk=rs && !rs.bridge && c.top!==Infinity && !ovhOn(K(x,z),L+climb) ? Math.min(c.top,edgeH(x,z,[-dx,-dz],L+climb)) : c.top;   // a slope: reached when the jump gets to its near edge (its low end), not its middle
+    if(rk>L+climb+.01) break;
+    slIn[d]=rk!==c.top ? rs : null;                                    // a slope reached by its edge: the arc may come down onto it along its rise
     dist=d; land=c; tops[d]=c.top; if(c.top>-Infinity) solid=[d,c];
     const ar=slopes[K(x,z)], arc=!!(ar && !ar.bridge && ar.seg && ar.seg.arc && !ovhOn(K(x,z),L+climb)); peaks[d]=arc ? Math.max(ar.b,ar.b+ar.r) : c.top; obIn[d]=!arc && !!lowOb(K(x,z));
     if(geyCell(x,z)) break;                                            // a playing geyser on the way: the leap comes down into its column (geyCatch)
@@ -15660,7 +15700,7 @@ function doLeap(dx,dz){
   // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top
   const u0=(p0.x-P.x)*dx+(p0.z-P.z)*dz, uD=(to.pos.x-p0.x)*dx+(to.pos.z-p0.z)*dz, yE=mp?mp.y+HALF:y1;
   const clears=e=>{ for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*k**e, yb=arcY(p0.y,cc,yE,k)-HALF;
-      for(let d=1; d<=dist; d++){ const h=d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && obIn[d]; if(u>d-1+(ob ? .25 : .02) && !(ob && u>d+.75) && yb<h-.05) return false; } } return true; };
+      for(let d=1; d<=dist; d++){ const sl=d===dist && !air && slIn[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && obIn[d]; if(u>d-1+(ob ? .25 : .02) && !(ob && u>d+.75) && yb<h-(sl ? SL_LIP : .05)) return false; } } return true; };
   let hw=1; for(const e of [1,1.4,2,2.8,4,6]){ hw=e; if(clears(e)) break; }
   const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), D=.3+.1*dist, vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
   play(D, k=>{
@@ -19226,6 +19266,7 @@ function updateCharge(){
 const KEYS={ ArrowUp:[.35,-1], KeyW:[.35,-1], ArrowDown:[-.35,1], KeyS:[-.35,1], ArrowLeft:[-1,-.35], KeyA:[-1,-.35], ArrowRight:[1,.35], KeyD:[1,.35] };
 addEventListener('keydown', e=>{
   if(document.body.classList.contains('ed-edit')) return;             // editor owns keys; Q/E must not yaw the camera
+  if(padRemap && e.code==='Escape'){ e.preventDefault(); padRemapEnd(); return; }   // binding the controller's buttons — Esc cancels it, the menu stays
   if(mapOn){ MAP.key(e); return; }                                       // the level map has its own keys
   const ov=document.querySelector('.overlay:not(.hidden)');
   if(ov && ov.id==='title'){ if(!xMode && (e.code==='Enter'||e.code==='Space')){ e.preventDefault(); titleTap(e); } else if(e.code==='Escape'){ e.preventDefault(); xBack(); } return; }   // with the options — buttons take the keys
@@ -22827,7 +22868,7 @@ const BAKED={ key:'e2d390a561a23321', head:[{"id":"thule","s":11,"GW":140,"GD":1
    (its own scene, camera and lights), loc, the progress (lvStat, artGot, palsAt…), goLevel, boxCurtain, SND; the camera gestures are
    the game's own (camgest.js). Built lazily on the first open (under the curtain), kept for the session.
    Open: the HUD's Locations button (lvMode 'map') → mapOpen: the box curtain closes from the edges to the centre, the map is shown under it.
-   Back into the level (Esc, Android back, the back button): the reverse — a cover grows from the centre out and shrinks back (boxCurtain rev).
+   Back into the level (Esc, Android back, the back button): the same curtain as the way in — from the edges to the centre and back.
    A level from the card: goLevel's side curtain, the map hides under it.
    A tap lifts the piece out of its slot (a socket stays), the rest dims, the card comes up. Unlock rule: groups (1, then up to 5);
    the next group needs every level of the previous one; the next area opens once the previous one is fully done — and a level the
@@ -23492,6 +23533,60 @@ function tap(e){
   if(!LIFTED&&C.zoom<P.A.z*.8){ SND.uiTap(.7); return areaView(P.A,.9); }
   lift(P);
 }
+/* ==== a controller (gamepad.js → MAP.pad). Far (the areas): the d-pad / triggers pick an area — framed as a tap from afar would,
+   A — in to its levels, X — its legend, B — closes the map. Near (the levels): they pick a level (its name lit — HOVER), A lifts it,
+   B — back out to the areas. Lifted: the d-pad goes to the neighbour that way, the triggers — to the next / previous (cardGo),
+   A or B puts it back, X — into the level. The left stick pans, the right one turns (x) and zooms (y) ==== */
+let PF=null;   // the level the controller points at
+const pfNear=()=>!!LIFTED || !!CUR_A && C.zoom>CUR_A.z*1.3;
+function pfScr(p){ _v.copy(p).project(cam); return [(_v.x+1)/2*innerWidth,(1-_v.y)/2*innerHeight]; }
+function pfDir(list,from,d,pos){                                       // the nearest on the screen that way: along + 2×across
+  const o=pfScr(from), [dx,dy]={ u:[0,-1], d:[0,1], l:[-1,0], r:[1,0] }[d]; let best=null, bs=1e9;
+  for(const it of list){ const s=pfScr(pos(it)), ax=(s[0]-o[0])*dx+(s[1]-o[1])*dy; if(ax<=8) continue;
+    const sc=ax+Math.abs((s[0]-o[0])*dy-(s[1]-o[1])*dx)*2; if(sc<bs){ bs=sc; best=it; } }
+  return best;
+}
+function pfSet(P,fly){ PF=P; HOVER=P; if(P&&fly) flyTo(P.c.clone().setY(C.tgt.y),C.zoomT,.6); if(P) SND.uiTick(); }
+function pfStart(A){                                                   // the level to point at first: the current one if it is in sight, else the nearest
+  const o=order().filter(P=>!A||P.A===A); if(!o.length) return null;
+  const cp=M.cur&&M.cur.piece; if(cp&&o.includes(cp)) return cp;
+  return o.reduce((b,P)=>Math.hypot(P.c.x-C.tgt.x,P.c.z-C.tgt.z)<Math.hypot(b.c.x-C.tgt.x,b.c.z-C.tgt.z)?P:b);
+}
+function mapPad(cmd,a,b){
+  if(!mapOn||busy) return;
+  if(cmd==='pan'){ if(a||b){ C.fly=null; C.vx=C.vy=0; panBy(-a*700,-b*700); } return; }
+  if(cmd==='cam'){ if(a){ C.fly=null; mapCam.rot(a*2.4); } if(b) mapCam.zoom(Math.exp(-b*1.2)); return; }
+  if(LORE){ if(cmd==='ok'||cmd==='back') loreClose(); return; }
+  const As=M.areas.filter(A=>A.open&&A.c);
+  if(cmd==='ok'){
+    if(LIFTED){ PF=LIFTED.P; HOVER=PF; return unlift(); }
+    if(pfNear()){ const P=PF&&PF.on&&PF.ready?PF:pfStart(CUR_A); if(P){ pfSet(P); lift(P); } return; }
+    const A=CUR_A; if(!A) return; SND.uiTap(.7); flyTo(A.c.clone().setY(2),Math.min(ZMAX,A.z*1.7),.8); pfSet(pfStart(A)); return;
+  }
+  if(cmd==='back'){
+    if(LIFTED){ PF=LIFTED.P; HOVER=PF; return unlift(); }
+    if(pfNear()){ SND.uiTap(.7); PF=HOVER=null; return areaView(CUR_A,.8); }
+    return mapClose();
+  }
+  if(cmd==='more'){
+    if(LIFTED) return mapGo(LIFTED.P.l.i);
+    if(!pfNear()&&CUR_A&&areaLoreOn(AREAS.indexOf(CUR_A.a.A))) loreOpen(CUR_A);
+    return;
+  }
+  if(LIFTED){                                                          // lifted: to a neighbour
+    if(cmd==='step'){ const Q=nb(LIFTED.P,a); if(Q){ PF=HOVER=Q; cardGo(a); } return; }
+    const Q=pfDir(order().filter(P=>P!==LIFTED.P),LIFTED.P.mid,a,P=>P.mid); if(Q){ PF=HOVER=Q; lift(Q,a==='l'||a==='u'?-1:1); }
+    return;
+  }
+  if(pfNear()){                                                        // the levels
+    const cur=PF&&PF.on&&PF.ready?PF:null; if(!cur) return pfSet(pfStart(CUR_A),true);
+    const Q=cmd==='step'?nb(cur,a):pfDir(order(),cur.mid,a,P=>P.mid); if(Q) pfSet(Q,true);
+    return;
+  }
+  const cur=CUR_A; if(!cur||!As.length) return;                        // the areas
+  const B=cmd==='step'?As[As.indexOf(cur)+a]:pfDir(As,cur.c,a,A=>A.c);
+  if(B){ SND.uiTap(.7); PF=HOVER=null; areaView(B,.7); }
+}
 /* keys while the map is open (input.js hands them over): Esc — the legend closed, the piece back, then back into the level */
 function mapKey(e){
   if(e.ctrlKey||e.metaKey||e.altKey) return;
@@ -23596,7 +23691,7 @@ function mapClose(){
   if(!mapOn||busy) return;
   if(AFTER!==null){ const i=AFTER; AFTER=null; busy=true; SND.uiTap(.7); goLevel(i,false,undefined,()=>{ mapHide(); busy=false; }); if(!lvWipe) busy=false; return; }
   busy=true; SND.uiTap(.7);
-  boxCurtain(()=>{ mapHide(); return nextFrame(); },()=>{ busy=false; },true,null,true);
+  boxCurtain(()=>{ mapHide(); return nextFrame(); },()=>{ busy=false; },false,null,true);   // the same as the way in: from the edges to the centre
 }
 /* would the map show new pieces now (not seen yet in this expedition: cube-map)? — the stats' «Move On» opens the map then */
 function mapNews(){
@@ -23616,6 +23711,7 @@ const mapBtnCam={ rot(da){ C.fly=null; mapCam.rot(da); }, zoom:k=>mapCam.zoom(k)
 function mapHome(){ if(busy) return; SND.uiTap(.7); if(LORE) return loreClose(); if(LIFTED) frameLift(.7); else areaView(areaOfL(M.cur),.8); }
 const MAP_API={ open:mapOpen, close:mapClose, news:mapNews, vis:mapVis, frame:mapFrame, key:mapKey, hide:mapHide, cam:mapBtnCam, snap:()=>{ C.azT=snapAz(C.az); }, home:mapHome,
   state:()=>({ on:mapOn, busy, pieces:PIECES.filter(P=>P.on).map(P=>P.l.id), fresh:RISE.length, lifted:LIFTED?LIFTED.P.l.id:null, lore:!!LORE, zoom:C.zoom, az:C.az }),
+  pad:mapPad, padState:()=>({ near:pfNear(), pf:PF?PF.l.id:null, area:CUR_A?CUR_A.a.id:null }),
   lift:id=>{ const P=PIECES.find(P=>P.on&&P.l.id===id); if(P) lift(P); return !!P; }, cardGo,
   at:id=>{ const P=PIECES.find(P=>P.on&&P.l.id===id); if(!P) return null; const v=P.mid.clone().setY(P.mid.y+P.g.position.y).project(cam); return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight]; } };
 return MAP_API;
@@ -23778,6 +23874,269 @@ function smartXY(){ cam.updateMatrixWorld();                            // lookA
   _sv2.set(root.position.x,root.position.y+.95,root.position.z).project(cam);
   return [(_sv2.x+1)/2*innerWidth, (1-_sv2.y)/2*innerHeight]; }
 function smartPlace(){ const [x,y]=smartXY(); sayEl.style.left=x+'px'; sayEl.style.top=y+'px'; }   // the voice plate's tail sits where the bubble was
+/* =====================================================================
+   GAMEPAD — any controller through the Gamepad API, polled from frame() (menus, title and the map too)
+   ===================================================================== */
+/* Inputs are read as keys: 'b3' — a button, 'a2+'/'a2-' — an axis pushed one way, 'h9u/d/l/r' — a hat switch (DirectInput pads:
+   one axis, −1…1 in 8 steps, above 1 at rest). An action (PAD_ACTS) is bound to one key. A standard mapping (Xbox, PlayStation,
+   Switch Pro, Steam Deck through Steam Input, most Android pads) — PAD_STD, by position (A — the lower face button); any other pad —
+   the same numbers as a guess and the d-pad on its hat, if it has one. Settings → Controller → "Set up buttons" binds per pad id
+   (cube-pad). Sticks: axes 0/1 move, 2/3 the camera — only axes ever seen centred (a trigger resting at −1 is not a stick).
+   Gameplay goes through the same calls as the keyboard and touch (dirInput, onDash, kbHold, pound…); overlays — focus moves
+   between visible controls by direction (padMove), A clicks, B is Esc; the map — MAP.pad. The settings row shows only while a pad is connected (padUi) */
+const PAD_ACTS=[['A','Jump / OK'],['B','Slam / Back'],['X','Dash'],['Y','Camera to the cube'],['LB','Turn camera left'],['RB','Turn camera right'],
+  ['LT','Zoom out'],['RT','Zoom in'],['ST','Menu'],['SEL','Locations'],['DU','Up'],['DD','Down'],['DL','Left'],['DR','Right']];
+const PAD_STD={ A:'b0', B:'b1', X:'b2', Y:'b3', LB:'b4', RB:'b5', LT:'b6', RT:'b7', SEL:'b8', ST:'b9', L3:'b10', R3:'b11', DU:'b12', DD:'b13', DL:'b14', DR:'b15' };
+const PAD_DZ=.2, PAD_ON=.55, PAD_OFF=.35, PAD_REP0=.38, PAD_REP=.13, PAD_TURN=.5, PAD_ROT=2.4, PAD_ZOOM=1.1;   // dead zone; stick engages / lets go; nav repeat (s); a held stick re-aims after swinging this far (rad); camera speeds
+const PAD_VEN={ '054c':'PlayStation', '045e':'Xbox', '057e':'Nintendo', '28de':'Steam' };
+const PAD_FIRST=['btnNext','xCont','xNew','lvdGo','crRestart'];       // what A focuses first when nothing is focused
+let padMaps={}; try{ padMaps=JSON.parse(LS.get('cube-pad','{}'))||{}; }catch(e){}
+let padI=-1, padPrev={}, padMute=false, padLast=0, padRemap=null, padUiT=0, padUiS='';
+const padHat={}, padCen={}, padS={ on:false, v:null, ang:0, dash:false, rot:false, nav:'', navT:0 };
+
+function padRaw(g){                                                   // every input of the pad by its key, 0…1
+  const r={};
+  g.buttons.forEach((b,i)=>{ r['b'+i]=typeof b==='object' ? (b.value||(b.pressed?1:0)) : +b||0; });
+  g.axes.forEach((v,i)=>{ const id=g.index+':'+i;
+    if(Math.abs(v)>1.05) padHat[id]=1;                                // a hat at rest reads ~3.29
+    if(padHat[id]){ if(Math.abs(v)<=1.05){ const s=Math.round((v+1)*3.5)&7; r['h'+i+'u']=+[7,0,1].includes(s); r['h'+i+'r']=+[1,2,3].includes(s); r['h'+i+'d']=+[3,4,5].includes(s); r['h'+i+'l']=+[5,6,7].includes(s); } return; }
+    if(Math.abs(v)<.15) padCen[id]=1;
+    r['a'+i+'+']=Math.max(0,v); r['a'+i+'-']=Math.max(0,-v); });
+  return r;
+}
+function padMapOf(g){
+  const m=Object.assign({},PAD_STD);
+  if(g.mapping!=='standard'){ const h=g.axes.findIndex((v,i)=>padHat[g.index+':'+i]); if(h>=0) Object.assign(m,{ DU:'h'+h+'u', DD:'h'+h+'d', DL:'h'+h+'l', DR:'h'+h+'r' }); }
+  return Object.assign(m,padMaps[g.id]||{});
+}
+function padAx(g,i){ const v=g.axes[i]; if(v==null || padHat[g.index+':'+i] || !padCen[g.index+':'+i]) return 0; return Math.abs(v)<PAD_DZ ? 0 : v; }
+function padName(g){
+  if(!g) return '';
+  if(g.steam) return 'Steam Input'+(PAD_SI_T[g.steam] ? ' · '+PAD_SI_T[g.steam] : '');
+  const n=g.id.replace(/\(.*?\)/g,'').replace(/^[0-9a-f]{4}-[0-9a-f]{4}-/i,'').replace(/standard gamepad/i,'').trim() || 'Gamepad';
+  const v=(g.id.match(/vendor:\s*([0-9a-f]{4})/i)||g.id.match(/^([0-9a-f]{4})-/i)||[])[1], b=v && PAD_VEN[v.toLowerCase()];
+  return b && !n.toLowerCase().includes(b.toLowerCase()) ? b+' · '+n : n;
+}
+function padGet(){ let gs; try{ gs=navigator.getGamepads ? navigator.getGamepads() : []; }catch(e){ gs=[]; } gs=[...gs].filter(g=>g && g.connected!==false);
+  const st=padSteam(); if(st) gs.push(st); return gs; }
+/* Steam Input (the desktop build, desktop/steam-input.cjs → preload window.cubeSteam): the game's own action sets (Game, Menu, Map)
+   come back as one standard-mapped pad (index PAD_SI) — buttons in PAD_STD order, axes 0–3, t — the touch surface [on, x, y];
+   Steam owns its bindings (the rebind row is hidden). Each poll tells it which set is live (padSteamSet) */
+const PAD_SI=99, PAD_SI_T={ SteamDeckController:'Steam Deck', PS4Controller:'PlayStation 4', PS5Controller:'PlayStation 5', XBoxOneController:'Xbox', XBox360Controller:'Xbox 360', SwitchProController:'Switch Pro', SteamController:'Steam Controller' };
+let padSiSet='';
+function padSteam(){
+  const S=window.cubeSteam, s=S && S.get && S.get(); if(!s || !s.on) return null;
+  return { id:'Steam Input', steam:s.type||'?', index:PAD_SI, connected:true, mapping:'standard', axes:s.a||[0,0,0,0], buttons:(s.b||[]).map(v=>({ pressed:v>.5, value:+v })), steamT:s.t };
+}
+function padSteamSet(n){ const S=window.cubeSteam; if(S && S.set && n!==padSiSet){ padSiSet=n; S.set(n); } }
+function padKey(code){                                                // a keyboard event for the code that already handles the keys
+  const t=document.activeElement && document.activeElement!==document.body ? document.activeElement : document.body;
+  t.dispatchEvent(new KeyboardEvent('keydown',{ code, key:{ Escape:'Escape', Enter:'Enter', Space:' ' }[code]||code, bubbles:true, cancelable:true }));
+}
+
+/* ==== polling ==== */
+function padPoll(now){
+  const ov0=document.querySelector('.overlay:not(.hidden)'); padSteamSet(mapOn ? 'Map' : ov0 ? 'Menu' : 'Game');
+  const gs=padGet(); const dt=Math.min(.05,padLast ? (now-padLast)/1000 : 0); padLast=now;
+  if(!gs.length){ if(padI>=0) padLost(); padTouch(null); return; }
+  for(const g of gs){ if(g.index===padI) continue; const r=padRaw(g);   // another pad wakes up — it becomes the one in use
+    if(g.buttons.some(b=>b.pressed) || g.axes.some((v,i)=>padCen[g.index+':'+i] && !padHat[g.index+':'+i] && Math.abs(v)>PAD_ON) || Object.keys(r).some(k=>k[0]==='h' && r[k])){ padI=g.index; padPrev={}; padUi(); break; } }
+  const g=gs.find(p=>p.index===padI) || gs[0]; if(g.index!==padI){ padI=g.index; padPrev={}; padUi(); }
+  const r=padRaw(g), m=padMapOf(g), dn={}, e={};
+  for(const k in m){ dn[k]=(r[m[k]]||0)>.5; e[k]=dn[k] && !padPrev[k] && !padMute; }
+  padMute=false;
+  const up=k=>!dn[k] && padPrev[k];
+  if(padRemap) padRemapStep(g,r);
+  else if(!document.body.classList.contains('ed-edit')){
+    if(Object.values(e).some(Boolean)) SND.init();
+    const ov=document.querySelector('.overlay:not(.hidden)');
+    if(mapOn) padMapCtl(e,dn,g,now,dt);
+    else if(ov) padUI(ov,e,dn,g,now);
+    else if(!paused) padGame(e,dn,up,g,dt);
+    if(ov || mapOn){ const st=padStick(g); padS.on=!!st; padS.v=padDpad(dn)||st; padHalt(); }   // a stick held into a menu doesn't roll on the way out
+    padTouch(padTouchOf(g), mapOn ? 'map' : ov || paused ? '' : 'game');
+  }
+  padPrev=dn;
+  if(now>padUiT){ padUiT=now+500; if($('settings').classList.contains('on')) padUi(); }
+}
+function padHalt(){ if(holdDir && holdDir.pad) holdDir=null; if(kbHold && kbHold.pad) kbHold=null; if(padS.rot){ padS.rot=false; camSnapEnd(); } }
+function padLost(){ padHalt(); padS.on=false; padS.v=null; padI=-1; padPrev={}; if(padRemap) padRemapEnd(); padUi(); }
+function padStick(g){ const x=padAx(g,0), y=padAx(g,1), l=Math.hypot(x,y); return l>(padS.on?PAD_OFF:PAD_ON) ? [x,y] : null; }
+function padDpad(dn){                                                 // the d-pad as the keyboard's arrows (the same screen vectors)
+  let x=0, y=0; const a=(k,v)=>{ if(dn[k]){ x+=v[0]; y+=v[1]; } };
+  a('DU',KEYS.ArrowUp); a('DD',KEYS.ArrowDown); a('DL',KEYS.ArrowLeft); a('DR',KEYS.ArrowRight);
+  return x||y ? [x,y] : null;
+}
+
+/* ==== gameplay: the stick or the d-pad rolls (held — keeps rolling, swung — turns), A — jump / hold to charge, hold A or X + a
+   direction — dash, B in a jump — slam, right stick, LB/RB, LT/RT — camera, Y / R3 — back onto the cube, Start — menu, Select — locations */
+function padGame(e,dn,up,g,dt){
+  if(['A','B','X','Y','ST','SEL','DU','DD','DL','DR'].some(k=>e[k])){ toastTap(); if(state!=='intro') dimHint(); }
+  const st=padStick(g); padS.on=!!st;
+  const v=padDpad(dn) || st, was=padS.v; padS.v=v;
+  if(v && !was){                                                     // a direction is pushed
+    if(kbHold && kbHold.pad && kbHold.hold) padDash(v,true);         // charging with A — the charge goes into the dash, as press and swipe
+    else if(dn.X) padDash(v);
+    else padDir(v);
+  } else if(v && !padS.dash){
+    if(e.X) padDash(v);                                               // X while holding a direction — dash that way
+    else { const a=Math.atan2(v[1],v[0]); let da=Math.abs(a-padS.ang); if(da>Math.PI) da=2*Math.PI-da;
+      if(da>PAD_TURN) padDir(v,true); }                               // the stick swung round — turn like a finger turning in a swipe
+  } else if(!v && was){ padS.dash=false; if(holdDir && holdDir.pad) holdDir=null; }
+  if(e.A) kbHold={ t0:time, hold:false, pad:1 };
+  if(up('A') && kbHold && kbHold.pad){ const h=kbHold.hold, u=kbHold.used; kbHold=null; if(!u){ if(h) releaseCharge(); else onTap(); } chargeV=0; }
+  if(e.B && state==='jump' && !inputOff()) pound();
+  if(e.Y || e.R3) camHome();
+  if(e.LB || e.RB){ if(!camLock) azT+=(e.RB?2:-2)*STEP; camHand=time; }
+  const rx=padAx(g,2), z=(dn.RT?1:0)-(dn.LT?1:0)-padAx(g,3);
+  if(rx){ inCam.rot(rx*dt*PAD_ROT*camK.rot); camHand=time; camTouched(); padS.rot=true; }
+  else if(padS.rot){ padS.rot=false; camSnapEnd(); camHand=time; }
+  if(z){ zoomBy(Math.exp(z*dt*PAD_ZOOM*camK.zoom)); camTouched(); }
+  if(e.ST) padKey('Escape');
+  if(e.SEL){ const b=$('btnLv'); if(b && !b.inert && !b.hidden && !b.closest('.hidden')) b.click(); }
+}
+function padDir(v,turn){
+  padS.ang=Math.atan2(v[1],v[0]); padS.dash=false;
+  const d=pickDir(v[0],v[1]); if(!d) return;
+  if(turn){ if(holdDir && holdDir.d[0]===d[0] && holdDir.d[1]===d[1] && holdDir.d.m===d.m) return; queue=queue.filter(a=>a.t!=='dir'); }   // a step queued the old way is dropped
+  dirInput(d); holdDir={ d, t0:time, pad:1 };
+}
+function padDash(v,ch){
+  padS.dash=true; padS.ang=Math.atan2(v[1],v[0]);
+  if(holdDir && holdDir.pad) holdDir=null;
+  let c=1; if(ch){ c=chargeV; chargeV=0; kbHold.used=true; }
+  onDash(v[0],v[1],c);
+}
+
+/* ==== overlays: the d-pad / stick moves the focus to the nearest visible control that way (none — the arrow key goes to the page:
+   areas, cards), a range takes ←/→, A clicks the focused control (nothing focused — the first one; the title and the award — Enter),
+   B and Start — Esc, LB/RB — ←/→ (area pages, card neighbours) */
+function padNavDir(dn,g){
+  const v=padDpad(dn) || padStick(g); padS.on=!!padStick(g); if(!v) return '';
+  return Math.abs(v[0])>Math.abs(v[1]) ? (v[0]>0?'r':'l') : (v[1]>0?'d':'u');
+}
+function padRep(d,now,fire){
+  if(!d){ padS.nav=''; return; }
+  if(d!==padS.nav){ padS.nav=d; padS.navT=now+PAD_REP0*1000; fire(d); }
+  else if(now>=padS.navT){ padS.navT=now+PAD_REP*1000; fire(d); }
+}
+const PAD_ARR={ u:'ArrowUp', d:'ArrowDown', l:'ArrowLeft', r:'ArrowRight' };
+function padUI(ov,e,dn,g,now){
+  padRep(padNavDir(dn,g),now,d=>padMove(ov,d));
+  if(e.A) padOk(ov);
+  if(e.B || e.ST) padKey('Escape');
+  if(e.LB || e.RB) padKey(e.LB?'ArrowLeft':'ArrowRight');
+}
+function padMapCtl(e,dn,g,now,dt){                                    // the level map: its own controller navigation (MAP.pad, app.js)
+  const v=padDpad(dn); padRep(v ? (Math.abs(v[0])>Math.abs(v[1]) ? (v[0]>0?'r':'l') : (v[1]>0?'d':'u')) : '',now,d=>MAP.pad('dir',d));
+  if(e.LT || e.RT) MAP.pad('step',e.RT?1:-1);
+  if(e.A) MAP.pad('ok');
+  if(e.B) MAP.pad('back');
+  if(e.X) MAP.pad('more');
+  if(e.Y) MAP.home();
+  if(e.ST) padKey('Escape');
+  if(e.LB || e.RB) padKey(e.LB?'KeyQ':'KeyE');
+  MAP.pad('pan',padAx(g,0)*dt,padAx(g,1)*dt);
+  MAP.pad('cam',padAx(g,2)*dt,padAx(g,3)*dt);
+}
+const PAD_SEL='button,input,select,a[href],[tabindex]:not([tabindex="-1"])';
+function padSeen(el){
+  if(el.disabled || el.closest('[inert],.hidden,[hidden]')) return false;
+  if(el.checkVisibility ? !el.checkVisibility({ opacityProperty:true, visibilityProperty:true }) : !el.offsetParent) return false;
+  const r=el.getBoundingClientRect(); if(r.width<2 || r.height<2) return false;
+  const x=r.left+r.width/2, y=r.top+r.height/2, sc=el.closest('.scr');
+  if(sc){ const s=sc.getBoundingClientRect(); if(y<s.top || y>s.bottom) return true; }   // scrolled out of its list — focusing scrolls it in
+  if(x<0 || y<0 || x>innerWidth || y>innerHeight) return false;
+  const h=document.elementFromPoint(x,y);                             // covered (a level card over the list) — not there
+  return !h || el===h || el.contains(h) || h===el.closest('label');
+}
+function padCands(root){ return [...root.querySelectorAll(PAD_SEL)].filter(padSeen); }
+function padFocus(el){
+  document.body.classList.add('padnav');
+  try{ el.focus({ preventScroll:true }); el.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){}
+  SND.uiTick();
+}
+function padFirst(c){ for(const id of PAD_FIRST){ const el=c.find(x=>x.id===id); if(el) return el; } return c.find(x=>x.matches('.lv.on')) || c[0]; }
+function padMove(root,d){
+  const c=padCands(root), a=document.activeElement, cur=a && c.includes(a) ? a : null;
+  if(!cur){ if(c.length) padFocus(padFirst(c)); else padKey(PAD_ARR[d]); return; }
+  if(cur.type==='range' && (d==='l' || d==='r')){ d==='r' ? cur.stepUp() : cur.stepDown(); cur.dispatchEvent(new Event('input',{ bubbles:true })); cur.dispatchEvent(new Event('change',{ bubbles:true })); return; }
+  const r=cur.getBoundingClientRect(), [ux,uy]={ u:[0,-1], d:[0,1], l:[-1,0], r:[1,0] }[d];
+  let best=null, bs=1e9;
+  for(const el of c){ if(el===cur) continue; const q=el.getBoundingClientRect();
+    const along=(q.left+q.width/2-r.left-r.width/2)*ux+(q.top+q.height/2-r.top-r.height/2)*uy; if(along<=4) continue;
+    const side=ux ? Math.max(0,q.top-r.bottom,r.top-q.bottom) : Math.max(0,q.left-r.right,r.left-q.right);   // gap across the move; overlapping — none
+    const s=along+side*3; if(s<bs){ bs=s; best=el; } }
+  if(best) padFocus(best); else padKey(PAD_ARR[d]);
+}
+function padOk(root){
+  const a=document.activeElement;
+  if(a && root.contains(a) && a.matches(PAD_SEL) && padSeen(a)){ if(a.type!=='range'){ document.body.classList.add('padnav'); a.click(); } return; }
+  if(root.id==='art' || root.id==='title' && !xMode) return padKey('Enter');
+  const c=padCands(root); if(c.length) padFocus(padFirst(c)); else padKey('Enter');
+}
+addEventListener('pointerdown', e=>{ if(e.isTrusted) document.body.classList.remove('padnav'); }, true);
+addEventListener('keydown', e=>{ if(e.isTrusted) document.body.classList.remove('padnav'); }, true);
+
+/* ==== connect / settings: the pad in use, "Set up buttons" (each action in turn: press its button; a button already taken skips the
+   action; Esc or the button again — cancel), "Reset" — back to the default for this pad ==== */
+addEventListener('gamepadconnected', e=>{ if(padI<0) padI=e.gamepad.index; toast(loc('Controller connected'),padName(e.gamepad)); padUi(); });
+addEventListener('gamepaddisconnected', e=>{ toast(loc('Controller disconnected'),padName(e.gamepad)); if(e.gamepad.index===padI) padLost(); else padUi(); });
+function padNow(){ return padGet().find(p=>p.index===padI) || null; }
+function padUi(){
+  const g=padNow(), n=$('padName'), s=g ? padName(g) : loc('No controller');
+  if(padUiS!==s+lang){ padUiS=s+lang; n.textContent=s; }
+  $('padRow').hidden=!g; $('padMap').disabled=!g; $('padDef').disabled=!g || !padMaps[g.id];
+  const si=!!(g && g.steam); $('padMap').parentNode.hidden=si; const sm=loc('Buttons are set up in Steam'); if(si && !padRemap) $('padMsg').textContent=sm; else if(!si && $('padMsg').textContent===sm) $('padMsg').textContent='';
+  if(padRemap) $('padMsg').textContent=loc('Press the button for: {0}',loc(PAD_ACTS[padRemap.i][1]))+' — '+loc('a button already used skips it, Esc cancels');
+}
+function padRemapStart(){
+  const g=padNow(); if(!g) return;
+  padHalt(); padRemap={ id:g.id, i:0, map:{}, used:new Set(), base:new Set() };
+  padRemapBase(g); padUi();
+}
+function padRemapBase(g){ const r=padRaw(g); padRemap.base=new Set(Object.keys(r).filter(k=>r[k]>.3)); }   // what is already pressed or resting off-centre doesn't count
+function padRemapStep(g,r){
+  if(g.id!==padRemap.id) return padRemapEnd();
+  if(!$('settings').classList.contains('on') || $('menu').classList.contains('hidden')) return padRemapEnd();
+  for(const k of [...padRemap.base]) if(!(r[k]>.3)) padRemap.base.delete(k);
+  const k=Object.keys(r).find(k=>!padRemap.base.has(k) && r[k]>(k[0]==='a'?.75:.6)); if(!k) return;
+  const act=PAD_ACTS[padRemap.i][0];
+  if(padRemap.used.has(k)) padRemap.map[act]=''; else { padRemap.map[act]=k; padRemap.used.add(k); }
+  SND.uiTap(.7); padRemapBase(g);
+  if(++padRemap.i<PAD_ACTS.length) return padUi();
+  padMaps[padRemap.id]=padRemap.map; LS.set('cube-pad',JSON.stringify(padMaps));
+  padRemap=null; padMute=true; $('padMsg').textContent=loc('Buttons saved'); padUi();
+}
+function padRemapEnd(){ padRemap=null; padMute=true; $('padMsg').textContent=''; padUi(); }
+/* ==== the touch surface — the PlayStation touchpad (the browser's gamepad.touches where it has them) or a trackpad through Steam Input:
+   in the game it is a finger on the screen (tap — jump, hold — charge, swipe — roll, hold and swipe — dash: the canvas gets the
+   same pointer events as a touch), on the map — a finger on the camera button (sideways — turn, up/down — zoom, hold — pan, tap — home) ==== */
+const PAD_TP=420, PAD_TP_ID=7311;                                     // px for the whole width of a touchpad; the pointer id of the fake finger
+let padTp=null;
+function padTouchOf(g){                                               // [x, y] in px while a finger is on the pad, else null
+  if(g.steamT) return g.steamT[0] ? [g.steamT[1],g.steamT[2]] : null;
+  const ts=g.touches || g.touchEvents; if(!ts || !ts.length) return null;
+  const t=ts[0], p=t.position || [0,0], d=t.surfaceDimensions, k=d && d[0] ? d[1]/d[0] : .5;
+  return [p[0]*PAD_TP/2, p[1]*PAD_TP*k/2];                            // position −1…1 across the surface
+}
+function padTpFire(type,x,y){
+  padTp.el.dispatchEvent(new PointerEvent(type,{ bubbles:true, cancelable:true, pointerId:PAD_TP_ID, pointerType:'touch', isPrimary:false, button:0, buttons:type==='pointerup'?0:1, clientX:x, clientY:y }));
+}
+function padTouch(p,ctx){
+  if(p && !padTp && ctx){ const el=ctx==='map' ? $('btnCam') : canvas, r=el.getBoundingClientRect();
+    padTp={ el, cx:r.left+r.width/2, cy:r.top+r.height/2, ox:p[0], oy:p[1], x:0, y:0, far:false, map:ctx==='map' };
+    padTpFire('pointerdown',padTp.cx,padTp.cy); return; }
+  if(!padTp) return;
+  if(p && (ctx==='map')===padTp.map){ padTp.x=p[0]-padTp.ox; padTp.y=p[1]-padTp.oy; if(Math.hypot(padTp.x,padTp.y)>=TAP_MOVE) padTp.far=true;
+    padTpFire('pointermove',padTp.cx+padTp.x,padTp.cy+padTp.y); return; }
+  const T=padTp; padTpFire(p || !ctx ? 'pointercancel' : 'pointerup',T.cx+T.x,T.cy+T.y); padTp=null;   // lifted — or the screen changed under the finger
+  if(T.map && !p && ctx && !T.far) T.el.click();                    // a tap on the camera button (a real tap's click comes from the browser)
+}
+$('padMap').onclick=()=>{ if(padRemap) padRemapEnd(); else padRemapStart(); };
+$('padDef').onclick=()=>{ const g=padNow(); if(!g) return; delete padMaps[g.id]; LS.set('cube-pad',JSON.stringify(padMaps)); $('padMsg').textContent=loc('Default buttons'); padUi(); };
+document.addEventListener('cube-lang',()=>{ padUiS=''; padUi(); });
+padUi();
 let sinkVis=0, sinkOut=false, dashLean=null, leanPre=0;   // sinkOut — off a mound onto hard ground: the rest of the sink eases out after the landing   // dashLean — {dx,dz,t}: the lean at the end of a dash
 const LEAN_T=.55, LEAN_A=.4, LEAN_PRE=.2, _lnP=new V3(), _lnQ=new Q(), _lnA=new V3();   // LEAN_PRE — the lean starts this long before the stop (the last dash cell)
 function leanApply(dx,dz,u){ _lnQ.setFromAxisAngle(_lnA.set(dz,0,-dx),LEAN_A*Math.sin(Math.PI*Math.pow(u,.65)));
@@ -23932,6 +24291,7 @@ function frame(now){
   if(gfxCap && !paused){ if(now-loopCapT<850/gfxCap) return; loopCapT=now; }  // a cap: skip the display's frames in between (an even pace — 45 on a 90 Hz screen)
   const t0=performance.now(); dbgRenT=0;
   try{
+    padPoll(now);                                                         // the controller (gamepad.js) — in menus and on the map too
     if(paused || artLv || artLvTune) artLive(now);
     if(mapOn){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); MAP.frame(now); frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }   // the level map draws itself
     if(paused){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0);   // the game's loops fade out (stats, award and settings don't hold the master)
