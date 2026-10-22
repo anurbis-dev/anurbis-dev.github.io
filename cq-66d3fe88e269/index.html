@@ -1007,7 +1007,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.13.1';
+const VERSION = '2.13.2';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -9703,7 +9703,7 @@ function parseBevels(def){
     const {A,B,R,arc,inner,W2}=geo||{}, [xc,zc]=d.at, out=(x,z)=>!(x>=0 && x<W && z>=0 && z<D);
     if(!geo || [[0,0],[R-1,0],[0,R-1],[R-1,R-1]].some(([i,j])=>out(xc-i*A[0]-j*B[0], zc-i*A[1]-j*B[1]))){
       console.error('bevel: '+d.at+' has a bad direction or its square leaves the map ('+def.name+')'); return; }
-    const ix=xc-R*A[0]-R*B[0], iz=zc-R*A[1]-R*B[1];
+    const ix=xc-R*A[0]-R*B[0], iz=zc-R*A[1]-R*B[1], land0=th(xc,zc)!==null;   // land0 — the corner had a floor before the cut (a cut into a well leaves none)
     const fo=d.float || th(xc,zc)===null ? ovhsOf(K(xc,zc)).filter(bvFloatOk).sort((a,c)=>c.t-a.t)[0] : null;   // float — the floating block's bevel even with a column under it
     if(d.float && !fo){ console.error('bevel: '+d.at+' float — no floating block at the corner ('+def.name+')'); return; }
     if(fo) return bevelFloat(geo,fo);                      // a floating block (def.over) at the corner: the cut runs from its bottom to its top
@@ -9712,7 +9712,8 @@ function parseBevels(def){
     const wS=sqC.find(c=>water[c.k] && (c.solid || c.k===K(xc,zc))), wc=!!wS && !landS.length;   // a water bevel: water at the corner or a kept cell, no kept cell on land (land painted into its cut corner stays a cut cell)
     let top=wc ? bvColTop(wS.x,wS.z) : water[K(xc,zc)] ? Math.max(...landS.map(c=>bvColTop(c.x,c.z))) : bvColTop(xc,zc), g=null, back=false;
     if(top!==null){                                                  // the corner cell is the cut block: its own height (quarters too, the floor slab 0) is the wall, whatever stands behind;
-      const ga=th(xc+A[0],zc+A[1]), gb=th(xc+B[0],zc+B[1]);           // under the cut — the lower of the two outside neighbours, or void
+      const gw=(x,z)=>{ const k=K(x,z); return deep[k] && !wlk(k) && !whang[k] ? null : th(x,z); };   // a ground-level bottomless well ('=') is void below: its cut is that well
+      const ga=gw(xc+A[0],zc+A[1]), gb=gw(xc+B[0],zc+B[1]);           // under the cut — the lower of the two outside neighbours, or void
       g=ga===null||gb===null ? null : Math.min(ga,gb);
       if(g!==null && g>=top-.01) g=top;                                // not a corner at all
       back=true;
@@ -9749,7 +9750,7 @@ function parseBevels(def){
       b.st.push({ x:end?Math.round(x):x, z:end?Math.round(z):z, n, t, psi:f+k*Math.PI/2, cell }); });
     const wIn=!wc && sqC.find(c=>!c.solid && water[c.k] && wlk(c.k)+WATER_Y<top);   // water painted into a land bevel's cut
     if(wc) wsBvParse(b,false,wS.k);                                   // a water corner: the bed is cut like a block, the water by the same face (water-shell.js)
-    else if(back && (wIn || wsBvInv(xc,zc,A,B,top))) wsBvParse(b,true,wIn&&wIn.k);   // a land corner by the water: its cut part is that water — one bevel shapes the shore
+    else if(back && (wIn || wsBvInv(xc,zc,A,B,top,land0))) wsBvParse(b,true,wIn&&wIn.k);   // a land corner by the water: its cut part is that water — one bevel shapes the shore
     bevels.push(b);
   });
 }
@@ -10886,17 +10887,18 @@ function wsBvParse(b,inv,src){                                        // inv —
     return u<=1e-9 || v<=1e-9 || inReg(u,v) ? -dm : dm; };
   b.wf=inv ? (px,pz)=>-fo(px,pz) : fo;                                // < 0 — the water keeps it
   Object.assign(b,{ wB:B, wInv:!!inv, wFace:face, wTo:!inv && water[out] && wlk(out)<B-.01 ? wlk(out) : null,
-    wFloor:inv ? wbedK(out) : deep[ck] && !B && !whang[ck] ? BOT : wbedK(ck) });
+    wFloor:(n=>deep[n] && !B && !whang[n] ? BOT : wbedK(n))(inv?out:ck) });   // a ground-level bottomless well reaches down to BOT
   for(let i=0;i<g.R;i++) for(let j=0;j<g.R;j++){ const x=xc-i*g.A[0]-j*g.B[0], z=zc-i*g.A[1]-j*g.B[1], k=K(x,z);
     if(inv ? water[k] && wlk(k)!==B : !water[k] || wlk(k)!==B) continue;   // a shore: water painted into its cut stays, clipped by the face
     let wet=false, dry=false; for(let a=0;a<=4;a++) for(let c=0;c<=4;c++){ const f=b.wf(x-.5+a/4,z-.5+c/4); if(f<-1e-6) wet=true; else if(f>1e-6) dry=true; }
     if(inv ? !wet : !dry) continue;
     const cut=b.wf(x,z)>1e-9; wsBv[k]={ b, cut };
     if(cut){ if(!inv){ delete water[k]; delete wl[k]; delete wbed[k]; delete deep[k]; delete whang[k]; } }
-    else if(inv && !water[k]){ water[k]=true; if(B) wl[k]=B; if(wbed[out]!==undefined) wbed[k]=wbed[out]; } }
+    else if(inv && !water[k]){ water[k]=true; if(B) wl[k]=B; if(wbed[out]!==undefined) wbed[k]=wbed[out];
+      if(deep[out] && th(x,z)===null){ deep[k]=true; terr[z][x]=B; if(whang[out]) whang[k]=whang[out]; } } }   // cut down into a bottomless well: that well (its cell as '=' would be)
 }
-const wsBvInv=(xc,zc,A,B,top)=>{ const ck=K(xc,zc), a=K(xc+A[0],zc+A[1]), c=K(xc+B[0],zc+B[1]);
-  return th(xc,zc)!==null && !water[ck] && [a,c].every(n=>water[n] && !deep[n] && !whang[n] && wlk(n)===wlk(a)) && top>wlk(a)+WATER_Y; };
+const wsBvInv=(xc,zc,A,B,top,land)=>{ const ck=K(xc,zc), a=K(xc+A[0],zc+A[1]), c=K(xc+B[0],zc+B[1]);   // land — the corner had a floor before its cut
+  return land && !water[ck] && [a,c].every(n=>water[n] && !deep[n]===!deep[a] && !whang[n] && wlk(n)===wlk(a)) && top>wlk(a)+WATER_Y; };
 function wsBvKeep(k,A,Bp){                                           // a cell side → its parts before a water bevel's face
   const q=wsBv[k]; if(!q) return [[A,Bp]];
   const f=t=>q.b.wf(lerp(A[0],Bp[0],t),lerp(A[1],Bp[1],t)), N=24, out=[]; let t0=null;

@@ -335,11 +335,15 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .prog .ar>span:first-child{width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prog .ar{align-items:flex-start}
 .cells{display:flex;flex-wrap:wrap;gap:3px;flex:1;min-width:0}
-.cells i{width:20px;height:20px;border-radius:4px;background:rgba(255,255,255,.07);cursor:pointer;transition:transform .12s}
-.cells i:hover{transform:scale(1.18);box-shadow:0 0 0 1px var(--gold)}
-.cells i.d{background:rgba(139,227,160,var(--a))}
-.cells i.c{outline:2px solid var(--gold);outline-offset:-2px;background:rgba(255,214,107,.25);animation:blink 1.6s infinite}
-.cells i.f{box-shadow:inset 0 0 0 2px var(--gold)}
+.cells > i{width:28px;height:28px;border-radius:4px;background:#140e22;cursor:pointer;transition:transform .12s;display:grid;place-items:center;overflow:hidden;padding:2px}
+.cells > i:hover{transform:scale(1.35);box-shadow:0 0 0 1px var(--gold);z-index:2}
+.cells > i .hmap{width:100%;gap:0;--mh:24px;margin:0}
+.cells > i .hmap i{width:auto;height:auto;border-radius:0;outline:none;box-shadow:none;animation:none;cursor:inherit;padding:0}
+.cells > i.d{box-shadow:inset 0 0 0 2px rgba(139,227,160,var(--a))}
+.cells > i.c{outline:2px solid var(--gold);outline-offset:-2px;animation:blink 1.6s infinite}
+.cells > i.f{box-shadow:inset 0 0 0 2px var(--gold)}
+.cells > i:not(:has(.hmap)){background:rgba(255,255,255,.07)}
+.cells > i.d:not(:has(.hmap)){background:rgba(139,227,160,var(--a))}
 .dl{display:grid;gap:4px;font-size:12.5px}
 .dl div{display:flex;gap:2px 6px;flex-wrap:wrap;align-items:baseline}
 .dl small{color:var(--dim);font-size:11.5px}
@@ -554,7 +558,9 @@ const uaH=u=>[osH(u.os),brH(u.br)].filter(Boolean).join(' · ');
 
 /* ==================== Data ==================== */
 let LVS=null, ORD=[], LVI={}, LVBN={};   // levels.json (tools/beta-levels.mjs at publish): the game order; without it — what the reports tell
-function setLevels(d){ LVS=d; ORD=d ? d.areas.flatMap(a=>a.levels.map((l,i)=>({ id:l.id, name:l.name, a, no:i+1 }))) : []; LVI={}; LVBN={}; ORD.forEach((l,gi)=>{ l.gi=gi; LVI[l.id]=l; LVBN[l.name]=l; }); }
+function setLevels(d){ LVS=d; ORD=d ? d.areas.flatMap(a=>a.levels.map((l,i)=>({ id:l.id, name:l.name, a, no:i+1, h:l.h||null }))) : []; LVI={}; LVBN={}; ORD.forEach((l,gi)=>{ l.gi=gi; LVI[l.id]=l; LVBN[l.name]=l; }); }
+/* The published level's height rows, else what a player sent. A new publish replaces levels.json, so an edited level gets a new icon. */
+const lvH=id=>{ const b=LVI[id]; return b && b.h && b.h.length ? b.h : ((lvInfo()[id]||{}).h||null); };
 const xName=e=>(LVS && LVS.xnames && LVS.xnames[e.nm]) || 'Экспедиция';
 let RAW=[], TRAW=[], REPS=[], TS=[], TSI={}, seen=null, unseen=0, loadAt=0, tpAt=0, loading=false, failed='';
 let LST=null, ERR=null;   // gameplay telemetry from D1: /stats/levels and /stats/errors (null — the worker has no DB yet)
@@ -773,9 +779,9 @@ function plBody(t){
     const body=!op ? '' : ORD.length ? (LVS.areas.map(a=>{ const ls=ORD.filter(l=>l.a===a); if(!ls.length || ls[0].gi>far+1 && !(cl && cl.a===a)) return '';
       return `<div class="ar"><span>${esc(a.icon||'')} ${esc(a.name)}</span><span class="cells">${ls.map(l=>{ const v=lv[l.id]||{}, d=v.n>0, c=l.id===e.cur, inf=LI[l.id], tot=inf ? (inf.st||0)+(inf.sc||0) : 0, g=v.got||0;
         const w=t.wins[l.id], avg=w && w.t>0 ? mmss(w.t) : '';
-        const scheme=inf && inf.h && inf.h.length ? hGrid(inf.h,()=>null,{ cls:' mini' }) : '';
-        const tip=`<b>${esc(l.name)}</b>\n${d ? 'пройден '+v.n+' '+nf(v.n,'раз','раза','раз') : c ? 'сейчас здесь, не пройден' : 'не пройден'}\n★ ${g}${tot ? ' из '+tot : ''}${avg ? '\nсреднее время '+avg : v.best ? '\nлучшее время '+mmss(v.best) : ''}${scheme ? '\n'+scheme : ''}`;
-        return `<i class="${d ? 'd' : c ? 'c' : ''}${tot && g>=tot ? ' f' : ''}" style="--a:${d ? Math.min(1,.35+(tot ? g/tot*.65 : g/10)).toFixed(2) : 0}" data-tip="${esc(tip)}" data-act="pmap" data-id="${esc(l.id)}" data-t="${esc(t.id)}" data-x="${xi}"></i>`; }).join('')}</span></div>`; }).join('') || '<span class="note">Ни одного уровня не пройдено</span>')
+        const h=lvH(l.id), icon=h ? hGrid(h,()=>null,{ cls:' mini' }) : '';
+        const tip=`<b>${esc(l.name)}</b>\n${d ? 'пройден '+v.n+' '+nf(v.n,'раз','раза','раз') : c ? 'сейчас здесь, не пройден' : 'не пройден'}\n★ ${g}${tot ? ' из '+tot : ''}${avg ? '\nсреднее время '+avg : v.best ? '\nлучшее время '+mmss(v.best) : ''}${icon ? '\n'+icon : ''}`;
+        return `<i class="${d ? 'd' : c ? 'c' : ''}${tot && g>=tot ? ' f' : ''}" style="--a:${d ? Math.min(1,.35+(tot ? g/tot*.65 : g/10)).toFixed(2) : 0}" data-tip="${esc(tip)}" data-act="pmap" data-id="${esc(l.id)}" data-t="${esc(t.id)}" data-x="${xi}">${icon}</i>`; }).join('')}</span></div>`; }).join('') || '<span class="note">Ни одного уровня не пройдено</span>')
       : dn.length ? `<span class="note">Пройдены: ${dn.map(esc).join(', ')}</span>` : '<span class="note">Ни одного уровня не пройдено</span>';
     return `<div class="xp"><button class="xh${op ? '' : ' shut'}" data-act="xp" data-k="${esc(k)}"><span class="ar">▾</span><b>${esc(xName(e))}</b><span class="sp"></span><span>ур. <b>${dn.length}</b></span><span>★ ${e.stars||0}</span>${e.time ? `<span>⏱ ${hm(e.time*1e3)}</span>` : ''}<span title="${e.at ? full(e.at) : ''}">${e.at ? ago(e.at) : '—'}</span></button>${op ? `<div class="xb prog">${body}</div>` : ''}</div>`; }).join('');
   const prog=xps || '<span class="note">Прогресса в облаке нет</span>';
@@ -1476,7 +1482,7 @@ function lvModel(){
     const won=TS.filter(s=>s.done.has(l.id)), here=TS.filter(s=>s.cur===l.id && !s.done.has(l.id));
     const got=won.map(s=>Math.max(0,...s.prog.map(e=>((e.lv||{})[l.id]||{}).got||0))), best=won.map(s=>Math.min(...s.prog.map(e=>((e.lv||{})[l.id]||{}).best||1e9))).filter(v=>v<1e9).sort((a,b)=>a-b);
     const tot=(x.st||0)+(x.sc||0), reach=Math.max(t ? t.players : 0, won.length+here.length), bugs=rp.filter(r=>r.kind==='bug').length;
-    return { ...l, st:x.st, sc:x.sc, tot, h:x.h||null, t, reach, won:won.length, stuck:here.filter(s=>now-s.last>STUCK_D*DAY), here,
+    return { ...l, st:x.st, sc:x.sc, tot, h:lvH(l.id), t, reach, won:won.length, stuck:here.filter(s=>now-s.last>STUCK_D*DAY), here,
       starPct:tot && got.length ? got.reduce((a,b)=>a+b,0)/(got.length*tot) : null, best:best.length ? best[best.length>>1] : null,
       rp, bugs, ops:rp.length-bugs, bugRate:reach ? bugs/reach*10 : 0, dpp:t && t.players ? t.deaths/t.players : 0,
       fps:t && t.fps ? Math.min(...Object.values(t.fps).filter(v=>v>0)) : null, quitRate:t && t.players ? t.quits/t.players : 0,
