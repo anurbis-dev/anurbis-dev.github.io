@@ -1007,7 +1007,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.13.4';
+const VERSION = '2.14.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -2473,18 +2473,69 @@ const SND = (() => {
   }
   function cascade(v,big=0,pan=0){ loopDrive('cascade',v*.14,mkCascade,(L,t)=>{ aim(L.lo.frequency,820-320*big,t,.4); aim(L.fl.frequency,1500-600*big,t,.4);
     if(L.p) aim(L.p.pan,clamp(pan,-1,1),t,.2); }); }
-  function pad(notes,t,dur,cut,dest,wetK){
+  function pad(notes,t,dur,cut,dest,wetK,wetDest,atk){
     if(live+notes.length*2>VOICES) return;                            // its oscillators count toward the voice limit too
     const fl=ctx.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=cut;
-    const g=ctx.createGain();
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.022,t+1.8);
-    g.gain.setValueAtTime(.022,t+dur-2); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    const g=ctx.createGain(), a=atk||1.8;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.022,t+a);
+    g.gain.setValueAtTime(.022,t+Math.max(dur-2,a+.15)); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
     fl.connect(g); g.connect(dest||musBus);
-    const w=ctx.createGain(); w.gain.value=wetK||.7; g.connect(w); w.connect(dest?ttl.v:verbM);
+    const w=ctx.createGain(); w.gain.value=wetK||.7; g.connect(w); w.connect(wetDest||(dest?ttl.v:verbM));
     notes.forEach(n=>[-7,7].forEach(det=>{
       const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=mtof(n); o.detune.value=det;
       o.connect(fl); voice1(o); o.start(t); o.stop(t+dur+.1);
     }));
+  }
+  let musCue=null, musCueOff=null, musCueI=0, ambCue=null, ambCueOff=null;
+  function cueLev(k){ return Math.max(0,VOL[k])*BASE[k]; }
+  function cueFade(z){
+    if(!z || !ctx) return;
+    const t=ctx.currentTime; holdAt(z.out.gain,t); z.out.gain.setTargetAtTime(0,t,.1);
+    z.src.forEach(o=>{ try{ o.stop(t+.45); }catch(e){} });
+    setTimeout(()=>{ try{ z.out.disconnect(); }catch(e){} },700);
+  }
+  function musCueStop(){ clearTimeout(musCueOff); musCueOff=null; const z=musCue; musCue=null; cueFade(z); }
+  function ambCueStop(){ clearTimeout(ambCueOff); ambCueOff=null; const z=ambCue; ambCue=null; cueFade(z); }
+  function musCueHold(){
+    if(!ctx) init(); if(!ctx || holds.has('hidden')) return;
+    const go=()=>{
+      const t=ctx.currentTime, lev=cueLev('mus');
+      if(!musCue){
+        const M=MOODS[mood]||MOODS.day, ch=M.prog[(musCueI++)%M.prog.length];
+        const out=ctx.createGain(); out.gain.value=lev; out.connect(boost);
+        const fl=ctx.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=M.cut;
+        const g=ctx.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.022,t+.05);
+        fl.connect(g); g.connect(out);
+        const src=[];
+        ch.map(n=>M.root+n-12).forEach(n=>[-7,7].forEach(det=>{
+          const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=mtof(n); o.detune.value=det;
+          o.connect(fl); voice1(o); o.start(t); src.push(o);
+        }));
+        musCue={ out, src };
+      } else { holdAt(musCue.out.gain,t); musCue.out.gain.setValueAtTime(lev,t); }
+      clearTimeout(musCueOff); musCueOff=setTimeout(musCueStop, 800);
+      if(holds.size) sleepSoon();
+    };
+    if(ctx.state==='running') go();
+    else if(ctx.state!=='closed') ctx.resume().then(go).catch(()=>{});
+  }
+  function ambCueHold(){
+    if(!ctx) init(); if(!ctx || holds.has('hidden')) return;
+    const go=()=>{
+      const t=ctx.currentTime, lev=cueLev('amb');
+      if(!ambCue){
+        const out=ctx.createGain(); out.gain.value=lev; out.connect(boost);
+        const s=ctx.createBufferSource(); s.buffer=nbuf; s.loop=true;
+        const fl=ctx.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=280; fl.Q.value=.5;
+        const g=ctx.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.16,t+.05);
+        s.connect(fl); fl.connect(g); g.connect(out); s.start();
+        ambCue={ out, src:[s] };
+      } else { holdAt(ambCue.out.gain,t); ambCue.out.gain.setValueAtTime(lev,t); }
+      clearTimeout(ambCueOff); ambCueOff=setTimeout(ambCueStop, 800);
+      if(holds.size) sleepSoon();
+    };
+    if(ctx.state==='running') go();
+    else if(ctx.state!=='closed') ctx.resume().then(go).catch(()=>{});
   }
   /* Latency guard: after audio-thread overruns some systems (Android) grow the output buffer and never shrink it back — every sound
      then lags behind the game. If the output latency stays well above the lowest seen, restart the stream (suspend → resume);
@@ -2588,7 +2639,7 @@ const SND = (() => {
     if(!ctx || holds.size || awake()) return Promise.resolve();
     return Promise.race([ctx.resume().catch(()=>{}), new Promise(r=>setTimeout(r,400))]);
   }
-  function setVol(k,v){ VOL[k]=v; LS.set('cube-vol-'+k,String(v)); if(ctx){ if(k==='amb' && ttl) ttl.g.gain.setTargetAtTime(v*BASE.amb*TTL_VOL,ctx.currentTime,.08);busOf(k).gain.setTargetAtTime(v*BASE[k],ctx.currentTime,.08); if(k==='sfx') uiBus.gain.setTargetAtTime(v*BASE.sfx,ctx.currentTime,.08); if(k==='mus' && tuneBus) tuneBus.gain.setTargetAtTime(v*BASE.mus,ctx.currentTime,.08); if(mapA && k!=='sfx') (k==='mus'?mapA.mg:mapA.ag).gain.setTargetAtTime(v*BASE[k],ctx.currentTime,.08); verbOf(k).gain.setTargetAtTime(WET[k]*v*BASE[k],ctx.currentTime,.08); } }
+  function setVol(k,v){ VOL[k]=v; LS.set('cube-vol-'+k,String(v)); if(ctx){ if(k==='amb' && ttl) ttl.g.gain.setTargetAtTime(v*BASE.amb*TTL_VOL,ctx.currentTime,.08); if(k==='mus' && musCue) musCue.out.gain.setValueAtTime(Math.max(0,v)*BASE.mus,ctx.currentTime); if(k==='amb' && ambCue) ambCue.out.gain.setValueAtTime(Math.max(0,v)*BASE.amb,ctx.currentTime); busOf(k).gain.setTargetAtTime(v*BASE[k],ctx.currentTime,.08); if(k==='sfx') uiBus.gain.setTargetAtTime(v*BASE.sfx,ctx.currentTime,.08); if(k==='mus' && tuneBus) tuneBus.gain.setTargetAtTime(v*BASE.mus,ctx.currentTime,.08); if(mapA && k!=='sfx') (k==='mus'?mapA.mg:mapA.ag).gain.setTargetAtTime(v*BASE[k],ctx.currentTime,.08); verbOf(k).gain.setTargetAtTime(WET[k]*v*BASE[k],ctx.currentTime,.08); } }
   /* Pause: fade the master level smoothly, then suspend the context; removing the last reason fades back in.
      Once faded out, the master is unplugged (MUTE_CUT): the silent game graph — the reverbs above all — is no longer rendered, so the
      audio thread has spare time for the menu cues while the menu draws (on a phone a busy CPU otherwise makes the cues crackle) */
@@ -2849,6 +2900,10 @@ const SND = (() => {
       if(on){ tone({ f:170, f2:80, d:.16, v:.24, a:.004, type:'triangle' }); noise({ d:.1, v:.13, f:900, q:1.6, type:'bandpass', a:.003 }); tone({ f:2300, d:.03, v:.05, type:'square', when:.06 }); }
       else { tone({ f:110, f2:190, d:.1, v:.14, a:.004, type:'triangle' }); noise({ d:.06, v:.07, f:1500, q:1.5, type:'bandpass', a:.003 }); } },
     click(){ tone({ f:900, d:.05, v:.1, type:'square' }); tone({ f:mtof(84), d:.5, v:.07, when:.05, wet:.4 }); },
+    volCue(k){                                                            // settings: music pad, ambient bed, sfx click — volume follows the slider
+      if(k==='sfx'){ tone({ f:900, d:.05, v:.1, type:'square', bus:'u' }); tone({ f:mtof(84), d:.5, v:.07, when:.05, wet:.4, bus:'u' }); }
+      else if(k==='mus') musCueHold();
+      else if(k==='amb') ambCueHold(); },
     slide(){ if(!loops.slip) noise({ d:.14, v:.05, f:3500, type:'highpass' }); },   // only the onset: the slide itself is the slip loop
     slope(up){ noise({ d:.38, v:.09, f:up?600:1500, f2:up?1500:500, type:'bandpass', q:1 }); },
     star(){ [0,7,12,19,24].forEach((n,i)=>tone({ f:mtof(79+n), d:.5, v:.07, when:i*.06, wet:.5 })); },
@@ -3040,7 +3095,7 @@ const SND = (() => {
   /* Every sound in fx varies a little in pitch (±VARY) so repeats don't sound the same: one factor per call keeps a sound's layers
      in tune with each other (tone/noise/voice/warble/bub/taps/bushChirp multiply by rk). Only the sounds that must stay
      exactly in tune — the interface and the melodic jingles — are on the NO_VARY list; a new sound is varied by default */
-  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic mapPop mapWave mapChime mapLift mapDrop click win star relic life loot cave ship shipIn shipOut beam'.split(' '));
+  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic mapPop mapWave mapChime mapLift mapDrop click volCue win star relic life loot cave ship shipIn shipOut beam'.split(' '));
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
     fx[n]=(...a)=>{ const p=rk; rk=p*(1+rand(-VARY,VARY)); try{ return f(...a); } finally{ rk=p; } }; }
   /* Appearance sounds that often fire together (one slam unearths two stars, blows several covers, drops loot): the same sound started
@@ -3514,23 +3569,40 @@ areaLevels('thule',[
    o:["................",".T..............",".T..............",".S..............",".T..............","................","................","...............G","..............T."],
    dig:['0,1','2,5','13,8'] },
  { id:'sticky-ceiling', name:'Sticky ceiling', theme:'dusk',
-   // Three tall walls with wooded tops you can't walk along. A sticky ceiling ends in an inner corner at a wall, and only a winding purple
-   // path on the wall holds (sticky ranges): up wall 1 and round its south end; through wall 2 by a niche at a jump's height
-   // (a charged jump — the north niche to a high ledge; a dash — the plugged niches with stars); a winding ceiling over the bottomless lake,
-   // up wall 3 under a sticky eave and onto a buttress, to the summit by the pool whose waterfall drops into the lake
-   over:[[5,6,10,6,4,5,1],[25,7,28,7,7,8,1],[28,5,28,6,7,8,1],[29,5,31,5,7,8,1],[31,3,31,4,10,11,1]],
-   sticky:[[11,6,11,6,3,3],[11,7,11,7,3,4],[11,8,11,8,4,7],[11,9,11,12,7,7],[12,12,12,12,6,7],[13,12,13,12,5,6],
-     [32,5,32,5,6,6],[32,4,32,4,6,6],[32,3,32,3,6,8],[32,4,32,4,8,9],[31,2,31,2,9,9],[30,2,30,2,9,12]],
-   tunnels:[[12,9,13,9,4],[20,1,22,1,7],[20,7,22,7,5],[20,11,21,11,4]],
-   ramps:[ { at:[2,10], dir:'N', len:1, rise:1, arc:'out' }, { at:[12,8], dir:'N', len:2, rise:2 }, { at:[12,10], dir:'S', len:2, rise:2, arc:'out' },
-     { at:[21,10], dir:'N', len:2, rise:1, arc:'in' }, { at:[12,3], dir:'S', len:1, rise:1 }, { at:[21,6], dir:'N', len:1, rise:1 }, { at:[34,6], dir:'S', len:1, rise:1 } ],
-   hang:{ '10,8':6, '31,3':8 },
    hint:'Jump under the sticky ceiling and you\'ll stick. Roll along it to the wall and climb the purple path: only it holds. Tap to let go.',
-   h:[".22222.........55555bbb777...........",".22222.....aaa.55555bbb777......ddddd","...2.......aaa...4..bbb7771111ddddeee","...2.......aaa...4..ccc555======ddddd","222222.....bbb...4..ccc555======ddddd","222222.....bbb444444ccc555======ddddd","222222.....bbb444444aaa555======ddddd","222222.....999444444aaa555======eeeee","222222.....999444444aaa555======~eeee","222222.....999444444999555======~eeee","..1.1......b9b44~~44999555======eeeee","11111......b9b44~~44999555======ccccc","11111......bbb444444999555======ccccc","11111.....................111111....."],
-   q:[".33333.........00000000000...........",".33333.....000.00000000000......00000","...2.......002...3..00000000000000000","...1.......000...2..00000000000000000","000000.....000...1..00200000000000222","000000.....20000000000000000000000030","000000.....00000000000000000000000030","000000.....00000000000000000000000000","000000.....00001000000000000000000000","000000.....00000000000000000000000000","..0.3......00000000000022200000000000","00002......00100000000022200000000000","00001......00000001030022200000000000","00000.....................000000....."],
-   o:[".x..K...............T.TT.x...........",".....T.....T.T...................T.T.","............T........T.....K....G.T..","...........T........T.T.H........T..T","T....T.....T.T.......T.............T.","............T.T...xHT...K.........T..",".S...........T.K......T...........T.T","...........T......................T..","...H.........T......T.T.............T","T...........xX....K...T...........T..",".............T......T.T..T.......T.T.",".K.........T........Xx..........TT...","...........T.T.T.....TTTxK......T.T.T","T.........................T.KT......."],
-   wl:[".....................................",".....................................",".....................................",".....................................",".....................................",".....................................",".....................................",".....................................","................................d....","................................d....","................33...................","................33...................",".....................................","....................................."],
-   dig:['1,12','19,12'] },
+   h:['.22222.........55555bbb777...........','.22222.....aaa.55555bbb777......ddddd','...2.......aaa...4..bbb7771111ddddeee','...2.......aaa...4..ccc555======ddddd','222222.....bbb...4..ccc555======ddddd','222222.....bbb444444ccc555======ddddd','222222.....bbb444444aaa555======ddddd','222222.....999444444aaa555======eeeee','222222.....999444444aaa555======~eeee','222222.....999444444999555======~eeee','..1.1......b9b44~~44999555======eeeee','11111......b9b44~~44999555======ccccc','11111......bbb444444999555======ccccc','11111.....................111111.....'],
+   o:['.x..K...............T.TT.x...........','.....T.....T.T...................T.T.','............T........T.....K....G.T..','...........T........T.T.H........T..T','T....T.....T.T.......T.............T.','............T.T...xHT...K.........T..','.S...........T.K......T...........T.T','...........T......................T..','...H.........T......T.T.............T','T...........xX....K...T...........T..','.............T......T.T..T.......T.T.','.K.........T........Xx..........TT...','...........T.T.T.....TTTxK......T.T.T','T.........................T.KT.......'],
+   q:['.33333.........00000000000...........','.33333.....000.00000000000......00000','...2.......002...3..00000000000000000','...1.......000...2..00000000000000000','000000.....000...1..00200000000000222','000000.....20000000000000000000000030','000000.....00000000000000000000000030','000000.....00000000000000000000000000','000000.....00001000000000000000000000','000000.....00000000000000000000000000','..0.3......00000000000022200000000000','00002......00100000000022200000000000','00001......00000001030022200000000000','00000.....................000000.....'],
+   wl:['.....................................','.....................................','.....................................','.....................................','.....................................','.....................................','.....................................','.....................................','................................d....','................................d....','................33...................','................33...................','.....................................','.....................................'],
+   over:[[5,6,10,6,4,5,1],[25,7,28,7,7,8,1],[28,5,28,6,7,8,1],[29,5,31,5,7,8,1],[31,3,31,4,10,11,1]],
+   sticky:[
+     [11,6,11,6,3,3],
+     [11,7,11,7,3,4],
+     [11,8,11,8,4,7],
+     [11,9,11,12,7,7],
+     [12,12,12,12,6,7],
+     [13,12,13,12,5,6],
+     [32,5,32,5,6,6],
+     [32,4,32,4,6,6],
+     [32,3,32,3,6,8],
+     [32,4,32,4,8,9],
+     [31,2,31,2,9,9],
+     [30,2,30,2,9,12]
+   ],
+   tunnels:[[12,9,13,9,4],[20,1,22,1,7],[20,7,22,7,5],[20,11,21,11,4]],
+   ramps:[
+     { at:[2,10], dir:'N', len:1, rise:1, arc:'out' },
+     { at:[12,8], dir:'N', len:2, rise:2 },
+     { at:[12,10], dir:'S', len:2, rise:2, arc:'out' },
+     { at:[21,10], dir:'N', len:2, rise:1, arc:'in' },
+     { at:[12,3], dir:'S', len:1, rise:1 },
+     { at:[21,6], dir:'N', len:1, rise:1 },
+     { at:[34,6], dir:'S', len:1, rise:1 }
+   ],
+   hang:{ '10,8':6, '31,3':8 },
+   dig:['1,12','19,12'],
+   cam:{ see:true },
+   rng:{ '0,4':'97,635' } },
  { id:'quarters', name:'Quarters', theme:'day',
    hint:'The cube rolls up a quarter-block step by itself; a half-block step takes a jump. Swipe and keep your finger down — it rolls until it hits something. A crate can be pushed down a quarter step, but not up.',
    h:['...........444................','.......333344444445544444.....','.......3............44444.....','.......2............44444400..','1111222222222222333444444440..','1111.2.....66665....44444400..','.....2.....57775.....4........','..2222221222111222...4........','..2222222222111222...4........','..22222222222222222333........','..2212222212222122............'],
@@ -14259,21 +14331,59 @@ function updateFowl(c,px,pz){
   fowlFeet(c, c.wait>0 ? 'hang' : 'paddle');
   c.call-=dt; if(c.call<=0){ c.call=rand(8,22); const v=nearV(c.x,c.z)*.7; if(v>.05) (c.kind==='duck'?SND.quack:SND.honk)(v); }
 }
-/* Ducklings and goslings: a duck or a goose now and then leads 2–4 young in a line behind her (type 'chick'); they paddle after her, ashore too, and when she flies off they hurry to where she lands */
+/* Ducklings and goslings: a duck or a goose now and then leads 2–4 young in a line behind her (type 'chick'); they paddle along her own path (her trail — a turn is an arc, a little overshoot from their inertia),
+   ashore too, and when she flies off they fly after her (chickFly), one after another */
 function fowlChicks(c){
   if(c.kind!=='duck' && c.kind!=='goose' || Math.random()<.45) return;
   for(let i=0,n=irand(2,4);i<n;i++){ const m=mkFowl(c.kind==='duck'?'duckling':'gosling'); m.position.copy(c.m.position); m.rotation.y=c.yaw; world.add(m);
-    critters.push({ type:'chick', mom:c, i, m, x:c.x, z:c.z, yaw:c.yaw, ph:rand(0,6), call:rand(3,9), lag:rand(-.06,.06) }); }
+    critters.push(Object.assign({ type:'chick', mom:c, i, m, x:c.x, z:c.z, yaw:c.yaw, vx:0, vz:0, stk:0, fly:null, ph:rand(0,6), call:rand(3,9), lag:rand(-.06,.06), fa:1 }, wingSet(rand(16,22)))); }
+}
+// The mother's trail (newest first): a point every .04; seed — a straight line behind (x,z) against the heading yaw
+function chickTrail(M,x,z,yaw){ M.trail=[]; for(let j=0;j<30;j++) M.trail.push([x-Math.sin(yaw)*j*.05, z-Math.cos(yaw)*j*.05]); }
+// The point s along the trail behind the mother
+function chickAt(M,s){
+  const a=M.fly; let px=a?a.x1:M.x, pz=a?a.z1:M.z;                   // in flight — from where she lands
+  for(const [x,z] of M.trail){ const l=Math.hypot(x-px,z-pz); if(l>=s) return [px+(x-px)*s/l, pz+(z-pz)*s/l]; s-=l; px=x; pz=z; }
+  return [px-Math.sin(M.yaw)*s, pz-Math.cos(M.yaw)*s];
+}
+const chickY=(x,z)=>{ const xi=Math.round(x), zi=Math.round(z), g=terr[zi]&&terr[zi][xi];
+  return g===null||g===undefined ? null : water[K(xi,zi)] ? wsurf(xi,zi)-.01 : g; };
+const chickOk=(M,x,z)=>{ const xi=Math.round(x), zi=Math.round(z); return th(xi,zi)!==null && (water[K(xi,zi)] || !!M.trip); };   // only into the water (ashore — only after her)
+// Flies an arc to (x,z) after a delay dl; false — no ground there
+function chickFly(c,x,z,dl,h){
+  const y1=chickY(x,z); if(y1===null) return false;
+  const d=Math.hypot(x-c.x,z-c.z); c.fly={ t:-dl, dur:.7+d*.2, x0:c.x, z0:c.z, y0:c.m.position.y, x1:x, z1:z, y1, h:h||.6+d*.18 }; c.vx=c.vz=0; c.stk=0;
+  return true;
 }
 function updateChick(c){
-  const M=c.mom, m=c.m, u=m.userData, a=M.fly, mx=a?a.x1:M.x, mz=a?a.z1:M.z, my=a?M.yaw:M.yaw;
-  const d0=.2+.17*(c.i+1)+c.lag, tx=mx-Math.sin(my)*d0+Math.sin(time*1.3+c.ph)*.04, tz=mz-Math.cos(my)*d0+Math.cos(time*1.1+c.ph)*.04;   // in a line behind her
-  const dx=tx-c.x, dz=tz-c.z, d=Math.hypot(dx,dz), sp=Math.min(d,dt*(a?1.8:Math.max(.3,d*2.2)));
-  if(d>.02){ const nx=c.x+dx/d*sp, nz=c.z+dz/d*sp, xi=Math.round(nx), zi=Math.round(nz);
-    if(th(xi,zi)!==null && (water[K(xi,zi)] || M.trip)){ c.x=nx; c.z=nz; } else if(d>4){ c.x=M.x; c.z=M.z; }        // only into the water (ashore — only after her); left far behind — catches up
-    if(d>.05) c.yaw+=wrapA(Math.atan2(dx,dz)-c.yaw)*(1-Math.exp(-dt*6)); }
-  const xi=Math.round(c.x), zi=Math.round(c.z), w=water[K(xi,zi)], y=w ? wsurf(xi,zi)-.01 : (terr[zi]&&terr[zi][xi])??m.position.y;
-  m.position.set(c.x, m.position.y+(y+(w?Math.sin(time*2.4+c.ph)*.006:Math.abs(Math.sin(time*9+c.ph))*.02*Math.min(1,d*4))-m.position.y)*(1-Math.exp(-dt*10)), c.z);
+  const M=c.mom, m=c.m, u=m.userData, a=M.fly;
+  if(!M.trail) chickTrail(M,M.x,M.z,M.yaw);
+  if(a && M.trailOf!==a){ M.trailOf=a; chickTrail(M,a.x1,a.z1,M.yaw); }                       // she took off: the line waits behind where she lands
+  else if(!a && Math.hypot(M.x-M.trail[0][0],M.z-M.trail[0][1])>.04){ M.trail.unshift([M.x,M.z]); if(M.trail.length>40) M.trail.pop(); }
+  const d0=.2+.17*(c.i+1)+c.lag;
+  if(a && c.flyOf!==a){ c.flyOf=a; let [x,z]=chickAt(M,d0);                                   // and they take off after her, one by one
+    if(!chickOk(M,x,z)) { x=a.x1+rand(-.2,.2); z=a.z1+rand(-.2,.2); }
+    if(chickFly(c,x,z,.15+c.i*.12,a.h*.8)) SND.flap(.3,0); }
+  if(c.fly){ const f=c.fly; f.t+=dt;
+    if(f.t>0){ const k=Math.min(1,f.t/f.dur), e=ease(k);
+      c.x=lerp(f.x0,f.x1,e); c.z=lerp(f.z0,f.z1,e); c.yaw+=wrapA(Math.atan2(f.x1-f.x0,f.z1-f.z0)-c.yaw)*(1-Math.exp(-dt*10));
+      m.position.set(c.x, lerp(f.y0,f.y1,e)+Math.sin(k*Math.PI)*f.h, c.z); m.rotation.set(lerp(-.35,.25,k),c.yaw,0);
+      flap(c,.95,.1,.1); u.wings.forEach(w=>w.visible=true);
+      if(k>=1){ c.fly=null; m.rotation.x=0; u.wings.forEach(w=>w.visible=false); if(water[K(Math.round(c.x),Math.round(c.z))]) splash(c.x,c.z,.15); }
+      return; }
+    if(m.rotation.x) m.rotation.x=0; }
+  const [bx,bz]=chickAt(M,d0), tx=bx+Math.sin(time*1.3+c.ph)*.04, tz=bz+Math.cos(time*1.1+c.ph)*.04;   // her own path, not a rigid line behind her
+  const dx=tx-c.x, dz=tz-c.z, d=Math.hypot(dx,dz);
+  c.vx+=(dx*16-c.vx*4.6)*dt; c.vz+=(dz*16-c.vz*4.6)*dt;                                         // a soft spring: a turn swings them a little outward
+  const v=Math.hypot(c.vx,c.vz), vm=a?1.8:1.4; if(v>vm){ c.vx*=vm/v; c.vz*=vm/v; }
+  const nx=c.x+c.vx*dt, nz=c.z+c.vz*dt, xi0=Math.round(nx), zi0=Math.round(nz);
+  if(chickOk(M,nx,nz)){ c.x=nx; c.z=nz; c.stk=0; }          // only into the water (ashore — only after her)
+  else { c.vx=c.vz=0; c.stk+=dt; }
+  if(!a && (d>3 || c.stk>1 && d>.5) && chickOk(M,tx,tz) && chickFly(c,tx,tz,0)) return;                             // cut off or left far behind — flies to her
+  const sp=Math.hypot(c.vx,c.vz);
+  if(sp>.04) c.yaw+=wrapA(Math.atan2(c.vx,c.vz)-c.yaw)*(1-Math.exp(-dt*7));
+  const xi=Math.round(c.x), zi=Math.round(c.z), w=water[K(xi,zi)], y=chickY(c.x,c.z)??m.position.y;
+  m.position.set(c.x, m.position.y+(y+(w?Math.sin(time*2.4+c.ph)*.006:Math.abs(Math.sin(time*9+c.ph))*.02*Math.min(1,sp*3))-m.position.y)*(1-Math.exp(-dt*10)), c.z);
   m.rotation.y=c.yaw; m.rotation.z=w?Math.sin(time*2+c.ph)*.05:0;
   if(u.neck) u.neck.rotation.x=Math.max(0,Math.sin(time*.9+c.ph*3))*.5;   // pecks at the water
   c.call-=dt; if(c.call<=0){ c.call=rand(4,11); const v=nearV(xi,zi)*.35; if(v>.05) SND.bird('tweet',v,clamp(_v.copy(m.position).project(cam).x,-1,1)*.8); }
@@ -16236,19 +16346,19 @@ function doLeap(dx,dz){
   let cap=Infinity;                                                  // the arc doesn't pass through overhanging blocks above the path
   for(let d=0; d<=dist; d++){ const t=d===dist?land.top:tops[d];
     for(const o of ovhsOf(K(P.x+dx*d,P.z+dz*d))) if(o.b>=L+1-.01 && t<o.b) cap=Math.min(cap,o.b-HALF-.02); }
-  let pk=-Infinity; for(let d=1; d<dist; d++) pk=Math.max(pk,peaks[d]);   // the arc clears what it flies over (a ramp's high edge)
+  let pk=-Infinity; for(let d=1; d<dist; d++) if(!obIn[d]) pk=Math.max(pk,peaks[d]);   // the arc clears what it flies over (a ramp's high edge); over a tree, a bush, a rock — the ordinary jump height
   const y1=to.pos.y, capY=Math.max(cap,p0.y,y1), top0=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF,pk+HALF+.1)+.35, capY);
   // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top;
-  // over a tree or a ramp mid-way it moves forward first and comes down after it (hw<1), or the arc rises a little — never a rise in place and a snap onto the far cell
+  // over a ramp mid-way it may move forward first and come down after it (hw<1) — never a rise in place and a snap onto the far cell
   const u0=(p0.x-P.x)*dx+(p0.z-P.z)*dz, uD=(to.pos.x-p0.x)*dx+(to.pos.z-p0.z)*dz, yE=mp?mp.y+HALF:y1;
   const ovSl=(sl,d,u)=>{ const a=Math.max(u-.5,d-.5), b=Math.min(u+.5,d+.5); return Math.max(slopeY(sl,P.x+dx*a,P.z+dz*a),slopeY(sl,P.x+dx*b,P.z+dz*b)); };   // a ramp flown over: its highest point under the cube
   let top=top0, cc=2*top-(p0.y+y1)/2;
   const clears=e=>{ for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*k**e, yb=arcY(p0.y,cc,yE,k)-HALF;
-      for(let d=1; d<=dist; d++){ const sl=d===dist && !air && slIn[d], so=d<dist && slOv[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : so ? ovSl(so,d,u) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && (obIn[d] || so);
+      for(let d=1; d<=dist; d++){ if(d<dist && obIn[d] && !slOv[d]) continue; const sl=d===dist && !air && slIn[d], so=d<dist && slOv[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : so ? ovSl(so,d,u) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && (obIn[d] || so);
         if(u>d-1+(ob && !so ? .25 : .02) && !(ob && u>d+.75) && yb<h-(sl||so ? SL_LIP : .05)) return false; } } return true; };
-  let hw=0;
-  for(const lift of [0,.3,.6,1]){ top=Math.min(top0+lift,capY); cc=2*top-(p0.y+y1)/2; for(const e of [1,.8,1.4,.6,2,.45,2.8,4]) if(clears(e)){ hw=e; break; } if(hw) break; }
-  if(!hw){ top=top0; cc=2*top-(p0.y+y1)/2; hw=6; }
+  // a ballistic flight at the ordinary jump height: steady forward speed (k^1); bending the progress — only when a ramp or a high step is in the way
+  let hw=0; for(const e of [1,1.4,.8,2,.6,2.8,4]) if(clears(e)){ hw=e; break; }
+  if(!hw) hw=6;
   const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), D=.3+.1*dist, vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
   play(D, k=>{
     const kh=k**hw; root.position.set(lerp(p0.x,to.pos.x,kh), arcY(p0.y,cc,yE,k), lerp(p0.z,to.pos.z,kh));
@@ -16460,6 +16570,9 @@ function dashStep(dx,dz,left,soft){                                 // soft — 
     P.tilt.copy(to.tilt); if(entering) P.q.copy(q1);
     if(!entering) return onArrive(nx,nz,dx,dz,'hard',eA);
     P.x=nx; P.z=nz; P.l=top; snowPlow(nx,nz,top,dx,dz); if(!soft && Math.abs(top-eA)<.05) dashScratch(nx-dx,nz-dz,nx,nz,top);
+    if(!hiddenAt(k) && !(ovhOn(k,top) && top>(terr[nz][nx]??-9)+STEPUP+.01)){   // a pad passed mid-dash still takes (settle only sees the last cell)
+      if(mats[k] && mats[k].mat!==P.mat) setMaterial(mats[k].mat);
+      if(pads[k] && pads[k].color!==P.color) setColor(pads[k].color); }
     if(left>1) return dashStep(dx,dz,left-1);
     { const w=wpDoor(dx,dz); if(w){ leanPre=0; return enterCave(w.key,'slide'); } }   // the dash ends at an arch facing its way: it slides on in
     if(iceSlip(K(P.x,P.z)) && !slopes[K(P.x,P.z)] || iceSlip(K(P.x+dx,P.z+dz)) && !slopes[K(P.x+dx,P.z+dz)]){
@@ -22446,7 +22559,7 @@ function updatePause(){
   paused=!!ov && ov?.id!=='title' || fbPaused || mapOn;
   document.body.classList.toggle('mopen', paused && ov?.id==='menu');   // the menu button on top — closes
   document.body.classList.toggle('artopen', paused && ov?.id==='art');
-  SND.hold('menu', paused && !(ov?.id==='menu' && mSec==='settings') && ov?.id!=='stats' && ov?.id!=='art' && ov?.id!=='xp');   // the expedition screen keeps the title's music (the game is held by 'title' anyway)
+  SND.hold('menu', paused && ov?.id!=='stats' && ov?.id!=='art' && ov?.id!=='xp');   // settings stay muted too; volume sliders preview on the UI bus. The expedition screen keeps the title's music
   SND.hold('art', paused && ov?.id==='art'); SND.hold('fb', fbPaused);
   const mo=paused && ov?.id==='menu'; if(mo!==menuOn){ menuOn=mo; mo ? SND.pauseOn() : SND.pauseOff(); }   // the pause menu opens / the game resumes
   if(paused) dropInput();
@@ -22459,7 +22572,9 @@ function modalSync(ov){
   ov=ov||null; if(ov===modalOv) return; const was=modalOv;
   if(ov && !was){ const a=document.activeElement; modalRet=a && a!==document.body && !a.closest('.overlay') ? a : null; }
   modalOv=ov;
-  ['stage','hudL','btnReset','btnLv'].forEach(id=>$(id).inert=!!ov); ['btnCam','camRow'].forEach(id=>$(id).inert=!!ov && ov.id!=='map');   // the level map keeps the camera buttons $('btnMenu').inert=!!ov && ov.id!=='menu';
+  ['stage','hudL','btnReset'].forEach(id=>$(id).inert=!!ov);
+  $('btnLv').inert=!!ov && ov.id!=='map';                             // the map keeps its own HUD button so it can close
+  ['btnCam','camRow'].forEach(id=>$(id).inert=!!ov && ov.id!=='map');   // the level map keeps the camera buttons $('btnMenu').inert=!!ov && ov.id!=='menu';
   document.querySelectorAll('.overlay').forEach(o=>o.inert=o!==ov);
   if(!ov){ const r=modalRet; modalRet=null; if(r && was && was.id!=='title' && r.isConnected && !r.closest('[inert],.hidden,[hidden]')) try{ r.focus({ preventScroll:true }); }catch(e){} }
 }
@@ -22494,7 +22609,7 @@ if(document.fonts) document.fonts.ready.then(moreAll);
 [['vMus','mus'],['vSfx','sfx'],['vAmb','amb']].forEach(([id,k])=>{
   const el=$(id), out=$(id+'V'), show=()=>{ out.textContent=el.value; };
   el.value=Math.round(SND.vol[k]*100); show();
-  el.oninput=()=>{ SND.init(); SND.setVol(k,el.value/100); show(); if(k==='sfx') SND.click(); else if(k==='amb') SND.chirp(); else SND.uiTick(); };
+  el.oninput=()=>{ SND.init(); SND.setVol(k,el.value/100); show(); SND.volCue(k); };
 });
 SHIPS.forEach(([name],i)=>{ const b=document.createElement('button'); b.textContent=loc(name); b.classList.toggle('on',i===shipKind);
   b.onclick=()=>{ setShip(i); needDraw=true; [...$('shipRow').children].forEach((c,j)=>c.classList.toggle('on',j===i)); }; $('shipRow').append(b); });
@@ -22537,7 +22652,29 @@ const FLAGS={
 LANGS.forEach(([k,name],i)=>{ const b=document.createElement('button'); b.type='button'; b.lang=k; b.title=name; b.setAttribute('aria-label',name);
   b.innerHTML='<svg viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+FLAGS[k]+'</svg>';
   b.style.setProperty('--d',i-(LANGS.length-1)/2); b.style.setProperty('--e',i-(LANGS.length-1)); b.onclick=e=>{ e.stopPropagation(); SND.uiTap(); setLang(k); tlOpen(false); }; $('tlRow').append(b); });
-function tlOpen(on){ $('tLang').classList.toggle('open',on); $('tlBtn').setAttribute('aria-expanded',on); }
+let tlRet=null;                                                        // pad focus before the flags opened (expedition row) — restored when they fold
+function tlMark(){
+  const a=document.activeElement;
+  if(!a || !$('title').contains(a) || a.closest('#tLang')) return;
+  const r=a.closest('.xrow');
+  tlRet=r ? { k:r.dataset.k, del:a.classList.contains('xdel') } : { id:a.id||'' };
+}
+function tlBack(){
+  const s=tlRet; tlRet=null; if(!s) return;
+  let b=null;
+  if(s.k){ const r=$('xList').querySelector('.xrow[data-k="'+s.k+'"]'); b=r && (s.del ? r.querySelector('.xdel') : r.querySelector('.xgo')); }
+  else if(s.id) b=$(s.id);
+  if(!b) b=$('xList').querySelector('.xgo') || $('xNew');
+  if(b){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} }
+}
+function tlCur(){
+  const b=[...$('tlRow').children].find(x=>x.lang===lang) || $('tlRow').firstElementChild;
+  if(b){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); }catch(e){} }
+}
+function tlOpen(on){
+  if(on){ if(!$('tLang').classList.contains('open')) tlMark(); $('tLang').classList.add('open'); $('tlBtn').setAttribute('aria-expanded','true'); tlCur(); }
+  else { $('tLang').classList.remove('open'); $('tlBtn').setAttribute('aria-expanded','false'); tlBack(); }
+}
 $('tlBtn').onclick=e=>{ e.stopPropagation(); SND.init(); SND.uiTap(); tlOpen(!$('tLang').classList.contains('open')); };
 let tlEat=false;   // the touch that folded the flags must not act on the title either (its click is swallowed)
 $('title').addEventListener('pointerdown',e=>{ tlEat=false; if(!$('tLang').classList.contains('open') || e.target.closest('#tlRow button')) return;
@@ -22581,7 +22718,7 @@ $('cIdle').oninput=e=>{ camIdle=+e.target.value; LS.set('cube-cam-idle',e.target
    A press of LV_HUD_HOLD (barely moving) steps the Locations view instead (lvView; its icon swaps on the button) — the click that ends it is swallowed (lvHudEat, until the next press) */
 const LV_HUD_HOLD=500;
 let lvHudHold=null, lvHudEat=0;
-$('btnLv').onclick=()=>{ if(lvHudEat && performance.now()<lvHudEat){ lvHudEat=0; return; } if(cine || lvWipe) return; if(lvMode==='map' && MAP.open()) return; openMenu(); if($('menu').classList.contains('hidden')) return; setSecNow('levels'); };
+$('btnLv').onclick=()=>{ if(lvHudEat && performance.now()<lvHudEat){ lvHudEat=0; return; } if(cine || lvWipe) return; if(mapOn){ MAP.close(); return; } if(lvMode==='map' && MAP.open()) return; openMenu(); if($('menu').classList.contains('hidden')) return; setSecNow('levels'); };
 (()=>{ const b=$('btnLv'), off=()=>{ if(lvHudHold){ clearTimeout(lvHudHold.tm); lvHudHold=null; } };
   b.addEventListener('pointerdown',e=>{ if(e.button>0) return; off(); lvHudEat=0; const id=e.pointerId, x=e.clientX, y=e.clientY;
     lvHudHold={ id, x, y, tm:setTimeout(()=>{ lvHudHold=null; lvHudEat=Infinity; lvView(lvModeNext(),true); }, LV_HUD_HOLD) }; });
@@ -22681,8 +22818,10 @@ function xRows(){
 function xShow(m,kb){
   xMode=m; const t=$('title'), on=m==='opt'||m==='replace'; t.classList.toggle('opt',on); t.classList.toggle('rep',m==='replace');
   xNewTxt();
-  if(on){ xRows(); $('xList').scrollTop=0; }
-  if(kb) setTimeout(()=>{ const b=t.querySelector(m==='opt' ? '#xNew' : '.xgo'); if(b) b.focus(); },60);
+  if(on){ xRows();
+    const b=$('xList').querySelector('.xgo') || (m==='opt' ? $('xNew') : null);
+    $('xList').scrollTop=0;
+    if(b) setTimeout(()=>{ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} },60); }
 }
 function xNewTxt(){ $('xNew').textContent=loc([...Array(SLOTS)].some((_,j)=>slotUsed(j+1)) ? 'New expedition' : 'Start expedition'); }   // none yet — just start (setLang calls it too)
 function titleTap(e){ const t=$('title'); if(xMode || ['hidden','boot','dead'].some(c=>t.classList.contains(c))) return;
@@ -24429,18 +24568,18 @@ function smartPlace(){ const [x,y]=smartXY(); sayEl.style.left=x+'px'; sayEl.sty
    one axis, −1…1 in 8 steps, above 1 at rest). An action (PAD_ACTS) is bound to one key. A standard mapping (Xbox, PlayStation,
    Switch Pro, Steam Deck through Steam Input, most Android pads) — PAD_STD, by position (A — the lower face button); any other pad —
    the same numbers as a guess and the d-pad on its hat, if it has one. Settings → Controller → "Set up buttons" binds per pad id
-   (cube-pad). Sticks: axes 0/1 move, 2/3 the camera — only axes ever seen centred (a trigger resting at −1 is not a stick).
+   (cube-pad). Sticks: axes 0/1 pan the camera, 2/3 turn and zoom — only axes ever seen centred (a trigger resting at −1 is not a stick).
    Gameplay goes through the same calls as the keyboard and touch (dirInput, onDash, kbHold, pound…); overlays — focus moves
    between visible controls by direction (padMove), A clicks, B is Esc; the map — MAP.pad. The settings row shows only while a pad is connected (padUi) */
 const PAD_ACTS=[['A','Jump / OK'],['B','Slam / Back'],['X','Dash'],['Y','Camera to the cube'],['LB','Turn camera left'],['RB','Turn camera right'],
   ['LT','Zoom out'],['RT','Zoom in'],['ST','Menu'],['SEL','Locations'],['DU','Up'],['DD','Down'],['DL','Left'],['DR','Right']];
 const PAD_STD={ A:'b0', B:'b1', X:'b2', Y:'b3', LB:'b4', RB:'b5', LT:'b6', RT:'b7', SEL:'b8', ST:'b9', L3:'b10', R3:'b11', DU:'b12', DD:'b13', DL:'b14', DR:'b15' };
-const PAD_DZ=.2, PAD_ON=.55, PAD_OFF=.35, PAD_REP0=.38, PAD_REP=.13, PAD_TURN=.5, PAD_ROT=2.4, PAD_ZOOM=1.1;   // dead zone; stick engages / lets go; nav repeat (s); a held stick re-aims after swinging this far (rad); camera speeds
+const PAD_DZ=.2, PAD_ON=.55, PAD_OFF=.35, PAD_REP0=.38, PAD_REP=.13, PAD_TURN=.5, PAD_ROT=2.4, PAD_ZOOM=1.1, PAD_PAN=520;   // dead zone; stick engages / lets go; nav repeat (s); a held stick re-aims after swinging this far (rad); camera speeds (pan in px/s)
 const PAD_VEN={ '054c':'PlayStation', '045e':'Xbox', '057e':'Nintendo', '28de':'Steam' };
 const PAD_FIRST=['btnNext','xCont','xNew','lvdGo','crRestart'];       // what A focuses first when nothing is focused
 let padMaps={}; try{ padMaps=JSON.parse(LS.get('cube-pad','{}'))||{}; }catch(e){}
 let padI=-1, padPrev={}, padMute=false, padLast=0, padRemap=null, padUiT=0, padUiS='';
-const padHat={}, padCen={}, padS={ on:false, v:null, ang:0, dash:false, rot:false, nav:'', navT:0 };
+const padHat={}, padCen={}, padS={ on:false, v:null, ang:0, dash:false, rot:false, nav:'', navT:0, sec:'', secT:0 };
 
 function padRaw(g){                                                   // every input of the pad by its key, 0…1
   const r={};
@@ -24508,7 +24647,7 @@ function padPoll(now){
   if(now>padUiT){ padUiT=now+500; if($('settings').classList.contains('on')) padUi(); }
 }
 function padHalt(){ if(holdDir && holdDir.pad) holdDir=null; if(kbHold && kbHold.pad) kbHold=null; if(padS.rot){ padS.rot=false; camSnapEnd(); } }
-function padLost(){ padHalt(); padS.on=false; padS.v=null; padI=-1; padPrev={}; if(padRemap) padRemapEnd(); padUi(); }
+function padLost(){ padHalt(); padS.on=false; padS.v=null; padS.sec=''; padI=-1; padPrev={}; if(padRemap) padRemapEnd(); padUi(); }
 function padStick(g){ const x=padAx(g,0), y=padAx(g,1), l=Math.hypot(x,y); return l>(padS.on?PAD_OFF:PAD_ON) ? [x,y] : null; }
 function padDpad(dn){                                                 // the d-pad as the keyboard's arrows (the same screen vectors)
   let x=0, y=0; const a=(k,v)=>{ if(dn[k]){ x+=v[0]; y+=v[1]; } };
@@ -24516,12 +24655,13 @@ function padDpad(dn){                                                 // the d-p
   return x||y ? [x,y] : null;
 }
 
-/* ==== gameplay: the stick or the d-pad rolls (held — keeps rolling, swung — turns), A — jump / hold to charge, hold A or X + a
+/* ==== gameplay: the d-pad rolls (held — keeps rolling, swung — turns), left stick pans the camera, A — jump / hold to charge, hold A or X + a
    direction — dash, B in a jump — slam, right stick, LB/RB, LT/RT — camera, Y / R3 — back onto the cube, Start — menu, Select — locations */
 function padGame(e,dn,up,g,dt){
   if(['A','B','X','Y','ST','SEL','DU','DD','DL','DR'].some(k=>e[k])){ toastTap(); if(state!=='intro') dimHint(); }
-  const st=padStick(g); padS.on=!!st;
-  const v=padDpad(dn) || st, was=padS.v; padS.v=v;
+  const lx=padAx(g,0), ly=padAx(g,1);
+  if(lx||ly){ panBy(lx*dt*PAD_PAN*camK.pan, ly*dt*PAD_PAN*camK.pan); camHand=time; camTouched(); }
+  const v=padDpad(dn), was=padS.v; padS.v=v; padS.on=!!v;
   if(v && !was){                                                     // a direction is pushed
     if(kbHold && kbHold.pad && kbHold.hold) padDash(v,true);         // charging with A — the charge goes into the dash, as press and swipe
     else if(dn.X) padDash(v);
@@ -24569,9 +24709,31 @@ function padRep(d,now,fire){
   else if(now>=padS.navT){ padS.navT=now+PAD_REP*1000; fire(d); }
 }
 const PAD_ARR={ u:'ArrowUp', d:'ArrowDown', l:'ArrowLeft', r:'ArrowRight' };
+function padSecRep(d,now,fire){
+  if(!d){ padS.sec=''; return; }
+  if(d!==padS.sec){ padS.sec=d; padS.secT=now+PAD_REP0*1000; fire(d); }
+  else if(now>=padS.secT){ padS.secT=now+PAD_REP*1000; fire(d); }
+}
+function padMenuSec(dir){                                              // right stick up/down: click the section icon (its tap sound), focus stays in the panel
+  const btns=[...$('mbar').querySelectorAll('.mi')]; if(!btns.length) return;
+  const secs=btns.map(b=>b.dataset.sec);
+  let i=secs.indexOf(mSec);
+  if(i<0) i=dir>0?-1:0;
+  i=(i+dir+secs.length*8)%secs.length;
+  const keep=document.activeElement;
+  btns[i].click();
+  const card=$('menu').querySelector('.msec.on');
+  if(card && keep && card.contains(keep)) return;
+  if(card){ const c=padCands(card); if(c.length) padFocus(c[0]); }
+}
 function padUI(ov,e,dn,g,now){
+  if(ov.id==='menu'){
+    const y=padAx(g,3);
+    padSecRep(y>PAD_ON?'d':y<-PAD_ON?'u':'',now,d=>padMenuSec(d==='d'?1:-1));
+  } else padS.sec='';
   padRep(padNavDir(dn,g),now,d=>padMove(ov,d));
   if(e.A) padOk(ov);
+  if(e.ST && ov.id==='title'){ $('tlBtn').click(); return; }
   if(e.B || e.ST) padKey('Escape');
   if(e.LB || e.RB) padKey(e.LB?'ArrowLeft':'ArrowRight');
 }
@@ -24582,6 +24744,7 @@ function padMapCtl(e,dn,g,now,dt){                                    // the lev
   if(e.B) MAP.pad('back');
   if(e.X) MAP.pad('more');
   if(e.Y) MAP.home();
+  if(e.SEL) MAP.close();
   if(e.ST) padKey('Escape');
   if(e.LB || e.RB) padKey(e.LB?'KeyQ':'KeyE');
   MAP.pad('pan',padAx(g,0)*dt,padAx(g,1)*dt);
@@ -24598,13 +24761,13 @@ function padSeen(el){
   const h=document.elementFromPoint(x,y);                             // covered (a level card over the list) — not there
   return !h || el===h || el.contains(h) || h===el.closest('label');
 }
-function padCands(root){ return [...root.querySelectorAll(PAD_SEL)].filter(padSeen); }
+function padCands(root){ return [...root.querySelectorAll(PAD_SEL)].filter(el=>!el.closest('#mbar') && padSeen(el)); }
 function padFocus(el){
   document.body.classList.add('padnav');
   try{ el.focus({ preventScroll:true }); el.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){}
   SND.uiTick();
 }
-function padFirst(c){ for(const id of PAD_FIRST){ const el=c.find(x=>x.id===id); if(el) return el; } return c.find(x=>x.matches('.lv.on')) || c[0]; }
+function padFirst(c){ const go=c.find(x=>x.classList.contains('xgo')); if(go) return go; for(const id of PAD_FIRST){ const el=c.find(x=>x.id===id); if(el) return el; } return c.find(x=>x.matches('.lv.on')) || c[0]; }
 function padMove(root,d){
   const c=padCands(root), a=document.activeElement, cur=a && c.includes(a) ? a : null;
   if(!cur){ if(c.length) padFocus(padFirst(c)); else padKey(PAD_ARR[d]); return; }
