@@ -341,6 +341,18 @@ body.artopen #hint{ opacity:0; }   /* the level hint would show through the awar
 #smart.abil{ border-radius:0; width:calc(40px*var(--ui)); height:calc(36px*var(--ui)); padding-top:calc(8px*var(--ui)); box-sizing:border-box; background:#7cf0a0; color:#0d4a2a;
   clip-path:polygon(50% 0,100% 100%,0 100%); box-shadow:none; }
 #smart::after{ content:''; position:absolute; inset:calc(-12px*var(--ui)); }   /* a bigger tap target than the bubble */
+/* A pal has something to say (palBubShow): a white speech cloud with three bouncing dots over his head; a tap on it opens his panel (#palAsk) */
+#palBub{ position:fixed; left:0; top:0; z-index:3; border:0; padding:0 calc(10px*var(--ui)); height:calc(30px*var(--ui)); min-width:calc(46px*var(--ui)); border-radius:calc(16px*var(--ui));
+  display:flex; align-items:center; justify-content:center; gap:calc(4px*var(--ui)); background:#fff; cursor:pointer; touch-action:none; will-change:transform;
+  box-shadow:0 3px 10px rgba(40,10,60,.4), inset 0 -3px 0 rgba(0,0,0,.08); animation:pbIn .35s cubic-bezier(.3,1.6,.5,1) both; }
+#palBub[hidden]{ display:none; }
+#palBub::before{ content:''; position:absolute; left:50%; bottom:calc(-7px*var(--ui)); width:calc(12px*var(--ui)); height:calc(12px*var(--ui)); margin-left:calc(-6px*var(--ui)); background:#fff; transform:rotate(45deg); border-radius:2px; }
+#palBub::after{ content:''; position:absolute; inset:calc(-12px*var(--ui)); }   /* a bigger tap target */
+#palBub i{ position:relative; width:calc(7px*var(--ui)); height:calc(7px*var(--ui)); border-radius:50%; background:#5a6a8c; animation:pbDot 1.1s ease-in-out infinite; }
+#palBub i:nth-child(2){ animation-delay:.15s; } #palBub i:nth-child(3){ animation-delay:.3s; }
+@keyframes pbDot{ 0%,60%,100%{ transform:none; opacity:.55; } 30%{ transform:translateY(calc(-4px*var(--ui))); opacity:1; } }
+@keyframes pbIn{ from{ opacity:0; scale:.4; } to{ opacity:1; scale:1; } }
+@media (prefers-reduced-motion: reduce){ #palBub, #palBub i{ animation:none; } }
 /* Idle warmup marks: same hop-over-cube family as #smart, one kind per pose (anime glyphs, not tappable) */
 #mood{ position:fixed; left:0; top:0; z-index:3; pointer-events:none; visibility:hidden; display:flex; align-items:flex-end; justify-content:center;
   gap:calc(3px*var(--ui)); transform-origin:50% 100%; will-change:transform; filter:drop-shadow(0 2px 0 rgba(38,16,62,.5)) drop-shadow(0 3px 8px rgba(40,10,60,.35)); }
@@ -726,7 +738,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #mapBg[hidden]{ display:none; }
 #mapBg i{ position:absolute; inset:0; background:#0d0a18; opacity:0; will-change:opacity; }
 #map[hidden]{ display:none; }
-body.mapon :is(#hud,#hint,#toast,#smart,#mood,#say,#lvIntro,#sky){ visibility:hidden !important; }   /* !important: the mood bubble and the toast set their own inline visibility */
+body.mapon :is(#hud,#hint,#toast,#smart,#mood,#palBub,#say,#lvIntro,#sky){ visibility:hidden !important; }   /* !important: the mood bubble and the toast set their own inline visibility */
 body.mapon::before{ opacity:1; }
 body.mapon #hud{ z-index:8; }   /* over the map's layer (z 7), under the curtains that come later at z 8 */
 body.mapon :is(#btnCam,#camRow){ visibility:visible !important; }   /* the camera button (or the three-button row) as in the game, for the map's camera */
@@ -828,6 +840,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 <!--web--><div id="upd" role="status" hidden><p><b data-t>A new version of the game is out</b><small data-t>Reload the page to get it — your progress is saved.</small></p><button id="updGo" data-t>Reload</button><button id="updX" aria-label="Later" data-ta>×</button></div><!--/web-->
 <div id="smart" aria-hidden="true">!</div>
 <div id="mood" aria-hidden="true"></div>
+<button id="palBub" hidden data-ta aria-label="The Yeti wants to tell you something"><i></i><i></i><i></i></button>
 <div id="say" aria-live="polite"></div>
 <div id="lvIntro" class="otl" aria-hidden="true"><b id="liName"></b></div>
 <div id="map" hidden><div id="mapIn"></div><div id="mapLb"></div><div id="mapLore"></div>
@@ -1024,7 +1037,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.15.3';
+const VERSION = '2.15.5';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -3702,7 +3715,7 @@ areaLevels('thule',[
    o:["S.iiiii.K............",".....................","........H............",".........x...........",".............iiii...G","..............T....._","","","","...................H"],
    ramps:[ { at:[8,4], dir:'E', len:2, arc:'in', icy:true } ],
    pieces:[ { type:'mover', cells:[[0,0],[0,1],[0,2]], at:[22,6], y:2, path:[[22,6],[18,6]], trigger:'hold', plate:'20,5', speed:2.2 } ],   // the Yeti's bridge to the ledge with a life
-   loot:{ '19,9':'l' }, dig:['3,0','12,5','19,3'], yeti:[ { at:'16,5', do:'hold', plate:'20,5' } ] },
+   loot:{ '19,9':'l' }, dig:['3,0','12,5','19,3'], yeti:[ { at:'16,5', do:'hold', plate:'20,5', prize:['19,9'] } ] },
  { id:'lava', name:'Lava', theme:'night',
    hint:'Lava: paper burns up, rubber melts, concrete slowly heats up and crumbles, wood catches fire — get off the lava in time. Water lies beyond.',
    h:["..1111................","1111111===111111111111","..1111....111111111111"],
@@ -9708,7 +9721,8 @@ function parse(def){
     else if(kind==='g') buried[k]={ x, z, y, hidden:true, dig:true, kind:'g' };
     else console.error('dig: '+k+' unknown kind '+kind+' ('+def.name+')'); });
   wsBeachParse();                                                      // sand on the waterline (water-shell.js)
-  starTotal=Object.keys(stars).length; starGot=0;
+  const pz=palPrizeCells(def); for(const k in stars) if(pz.has(K(stars[k].x,stars[k].z))) stars[k].pal=true;   // behind a pal's help: a bonus star, not the level's
+  starTotal=Object.values(stars).filter(s=>!s.pal).length; starGot=0;
 }
 /* Durability (def.hits {'x,z':n}): a rock, a wall, a door, rubble, a mound, frost spikes and a w/d/z slab break by default (1 hit, granite GRANITE_HP);
    any other object — a bush, a tree, a lantern, a prop (its at cell), a crate (its start cell), a boulder — only with its own n, else it can't be broken.
@@ -15706,7 +15720,7 @@ function flyLoot(kind, id, x, y0, z){
   tween(.8, q=>{ const t=root.position, e=ease(q); m.position.set(lerp(p0.x,t.x,e), lerp(p0.y,t.y+.2,e)+Math.sin(Math.PI*q)*H, lerp(p0.z,t.z,e));
       m.rotation.y+=dt*8; if(!star) m.rotation.x+=dt*5; m.scale.setScalar((star?1:.34)*(1+.35*Math.sin(Math.PI*q))); },
     ()=>{ drop(m); const c=root.position;
-      if(star){ const s=stars['L'+id]||stars['D'+id]; if(s && !s.got){ s.got=true; starGot++; updateStars(); artCheck(); } SND.star(); cubeStar(); sparkle(c.x,c.y,c.z,[0xffd84a,0xfff0a0],24); toast(loc('Star!'),loc('It was hidden'),true); }
+      if(star){ const s=stars['L'+id]||stars['D'+id]; if(s && !s.got){ s.got=true; if(s.pal) palGift('S'+s.id); else { starGot++; updateStars(); artCheck(); } } SND.star(); cubeStar(); sparkle(c.x,c.y,c.z,[0xffd84a,0xfff0a0],24); if(!(s && s.pal)) toast(loc('Star!'),loc('It was hidden'),true); }
       else { P.lives++; updateLives(); SND.life(); cubeLife(); sparkle(c.x,c.y,c.z,[0xfff0d6,0xffe2b0,0xffffff],26); toast(loc('Extra cube!'),loc('Cubes: {0}',P.lives),true); } });
 }
 function lifeCube(){                                                  // extra life: a small light cube with white edges
@@ -17338,7 +17352,8 @@ const lvSave=i=>LS.set('cube-level',lvId(i));
 const lsNum=(k,d)=>{ const v=Math.floor(+LS.get(k,d)); return Number.isFinite(v) && v>=0 ? v : d; };
 const bankLives=()=>Math.min(99,Math.max(LIVES,lsNum('cube-lives',LIVES)));
 function bankStars(){
-  const got=gotIds(cur), add=Object.values(stars).filter(s=>s.got && !got.has(s.id)), t0=lsNum('cube-stars-total',0), t1=t0+add.length;
+  const got=gotIds(cur), add=Object.values(stars).filter(s=>s.got && !s.pal && !got.has(s.id)),   // a pal's bonus star went to the total when taken (palGift)
+    t0=lsNum('cube-stars-total',0), t1=t0+add.length;
   const bonus=Math.floor(t1/STAR_LIFE)-Math.floor(t0/STAR_LIFE);
   LS.set(lvKey('got',cur),JSON.stringify([...got,...add.map(s=>s.id)])); LS.set('cube-stars-total',String(t1));
   LS.set('cube-lives',String(Math.max(LIVES,P.lives)+bonus)); lifeGain=bonus;
@@ -17366,8 +17381,9 @@ function lvRec(i){
 }
 function keepProgress(){                                               // after parse(), before build(): the ghosts get their own look
   const got=gotIds(cur), life=lvRec(cur).life;
-  for(const k in stars){ const s=stars[k]; if(!got.has(s.id)) continue;
-    s.got=s.kept=true; starGot++;
+  const gifts=giftIds(cur);
+  for(const k in stars){ const s=stars[k]; if(!(s.pal ? gifts.includes('S'+s.id) : got.has(s.id))) continue;
+    s.got=s.kept=true; if(!s.pal) starGot++;
     const c=s.id.slice(s.id.lastIndexOf(':')+1).slice(1);             // the cell key without a sublevel's prefix and 'L'/'D'
     if(s.loot && loot[c]) loot[c].done=true;                           // the stash was emptied — it gives nothing now
     if(s.dig) delete buried[c]; }                                      // dug out — no second pop
@@ -17385,8 +17401,10 @@ function defStars(def,pre=''){
   for(const k in (def.under||{})) if(def.under[k]==='x') sec.push(pre+k);
   digEach(def,(k,kind)=>{ if(kind==='x') sec.push(pre+'D'+k); });
   for(const k in (def.tob||{})) if(def.tob[k]==='x') sec.push(pre+'N'+k);   // a star in a tunnel niche
-  for(const s of subKeys(def)){ const d=defStars(SUBLEVELS[s],s+':'); sec.push(...d.open,...d.sec); }
-  return { open, sec };
+  const pz=palPrizeCells(def), own=k=>!pz.has(k.slice(pre.length).replace(/^[LDN]/,'').split(',').slice(0,2).join(','));   // a pal's secret (behind his help) is not the level's
+  const o=open.filter(own), c=sec.filter(own);
+  for(const s of subKeys(def)){ const d=defStars(SUBLEVELS[s],s+':'); c.push(...d.open,...d.sec); }
+  return { open:o, sec:c };
 }
 /* A level's stats for its card in the menu (the level isn't loaded): star totals come from its data */
 function lvStat(i){
@@ -17537,9 +17555,9 @@ function ghostStar(s){
   const m=s.mesh, y0=m.position.y; tween(.5, q=>{ m.position.y=y0+q*.8; m.scale.setScalar(1-q); }, ()=>drop(m));
 }
 function collectStar(k){
-  const s=stars[k]; if(s.got) return; s.got=true; starGot++; updateStars(); SND.star(); cubeStar(); sparkle(s.x,s.mesh.position.y,s.z,[0xffd84a,0xfff0a0],24);
+  const s=stars[k]; if(s.got) return; s.got=true; if(!s.pal) starGot++; updateStars(); SND.star(); cubeStar(); sparkle(s.x,s.mesh.position.y,s.z,[0xffd84a,0xfff0a0],24);
   const y0=s.mesh.position.y; tween(.6, q=>{ s.mesh.position.y=y0+q*1.5; s.mesh.scale.setScalar(1-q); }, ()=>drop(s.mesh));
-  toast(loc('Star!'),loc('Secret found'),true); artCheck();
+  if(s.pal) palGift('S'+s.id); else { toast(loc('Star!'),loc('Secret found'),true); artCheck(); }   // a pal's secret: a bonus star to the total, not the level's
 }
 function plateFire(k){                                              // a pressing plate in 'press' mode went down: one step of the switch pieces (all, or the ones with plate:k)
   for(const p of pieces){ if(p.trigger!=='switch' || p.moving || p.plate && !plateKeys(p).includes(k)) continue; pieceStep(p); }
@@ -18549,7 +18567,7 @@ Object.assign(L10N,{
 const fmtT=t=>{ const m=Math.floor(t/60), s=t-m*60; return (m?m+':'+String(Math.floor(s)).padStart(2,'0'):loc('{0} s',s.toFixed(1))); };
 let starsProg=null, statSeq=0, statBusy=false;                                          // starsProg — what the win added to the total (bankStars)
 function showStats(){
-  const all=Object.values(stars), open=all.filter(s=>!s.hidden), sec=all.filter(s=>s.hidden);
+  const all=Object.values(stars).filter(s=>!s.pal), open=all.filter(s=>!s.hidden), sec=all.filter(s=>s.hidden);
   const best=+LS.get(lvKey('best',cur),'0')||0, timed=runTimeOk(), rec=timed && (!best || STAT.t<best);
   if(rec) LS.set(lvKey('best',cur),STAT.t.toFixed(2));
   $('stLvl').textContent=lvNo(cur)+' / '+AREAS[areaOf(cur)].n;
@@ -21566,6 +21584,7 @@ Object.assign(L10N,{
     "눈 덮인 산 높은 곳에 수줍고 다정한 예티가 산다. 고드름에게 콧노래를 불러 주고, 길 잃은 나그네를 모닥불로 녹여 준다. 자기 동굴을 찾아낼 만큼 용감한 친구를 오래 기다려 왔다. 이제 그는 너의 탐험 곳곳을 누비며 별을 나누고 손을 빌려준다."],
   "Thank you for digging out my cave! Now I can take a stroll and stretch my legs.":["Спасибо, что откопал вход в мою пещеру! Теперь я смогу погулять и размяться.","¡Gracias por desenterrar la entrada de mi cueva! Ahora podré pasear y estirar las piernas.","Obrigado por desenterrar a entrada da minha caverna! Agora posso passear e esticar as pernas.","Danke, dass du den Eingang zu meiner Höhle freigegraben hast! Jetzt kann ich spazieren gehen und mir die Beine vertreten.","Merci d'avoir dégagé l'entrée de ma grotte ! Je vais enfin pouvoir me promener et me dégourdir les jambes.","谢谢你挖开了我洞穴的入口！现在我可以出去走走，活动活动筋骨了。","洞窟の入口を掘り出してくれてありがとう！これで散歩して体をのばせるよ。","내 동굴 입구를 파내 줘서 고마워! 이제 산책도 하고 몸도 풀 수 있겠어."],
   "I'll help you where one can't manage alone.":["Я помогу тебе там, где один не справится.","Te ayudaré allí donde uno solo no puede.","Vou te ajudar onde sozinho não se consegue.","Ich helfe dir dort, wo einer allein nicht weiterkommt.","Je t'aiderai là où l'on ne s'en sort pas seul.","在一个人办不到的地方，我会帮你。","ひとりではどうにもならない場所で、きみを手伝うよ。","혼자서는 해낼 수 없는 곳에서 내가 도와줄게."],
+  "The Yeti wants to tell you something":["Йети хочет тебе что-то сказать","El yeti quiere decirte algo","O yeti quer te dizer algo","Der Yeti möchte dir etwas sagen","Le yéti veut te dire quelque chose","雪人有话想对你说","イエティが何か言いたそうだ","예티가 너에게 할 말이 있다"],
   "Agree":["Согласиться","Aceptar","Aceitar","Zustimmen","Accepter","同意","ついていく","따라가기"],
   "Bonus star!":["Бонусная звезда!","¡Estrella extra!","Estrela bônus!","Bonusstern!","Étoile bonus !","奖励星星！","ボーナススター！","보너스 별!"],
   "A gift from the Yeti":["Подарок от йети","Un regalo del yeti","Um presente do yeti","Ein Geschenk vom Yeti","Un cadeau du yéti","雪人送的礼物","イエティからのプレゼント","예티의 선물"],
@@ -21671,8 +21690,16 @@ function palAward(id,done){                                            // done �
    level (subGo), where he now roams. The offer: there ('star'), with the gift star tossed, he offers to open a secret — "I'll help you where
    one can't manage alone": a panel (#palAsk) with "Agree" takes the cube to a level where he holds a plate ('hold'; palDest — an open one
    first). A tap beside it or Esc — not now: he asks again when the cube comes back to him, not before PAL_ASK_CD s of game time */
-const PAL_ASK_CD=6, PAL_THANKS=3.4; let palAskD=-1;
-const palHelp=id=>LEVELS.map((d,i)=>(d[id]||[]).some(e=>e.do==='hold') ? i : -1).filter(i=>i>=0 && i!==cur);
+const PAL_ASK_CD=6, PAL_THANKS=3.4, PAL_PET_CUBE=3; let palAskD=-1;
+const palHelp=id=>LEVELS.map((d,i)=>(d[id]||[]).some(e=>e.do==='hold' && !giftIds(i).includes('H'+e.at)) ? i : -1).filter(i=>i>=0 && i!==cur);   // his secret there emptied ('H'+at, palPrize) — that branch is closed
+/* A 'hold' entry's prize: prize:['x,z'…] — the loot or stars his plate opens the way to. All of it taken (a loot dropped, a star got) —
+   'H'+at goes to cube-gift-<id>: he no longer offers that secret (palHelp) */
+const palPrizeCells=def=>new Set((def.yeti||[]).filter(e=>e.do==='hold' && Array.isArray(e.prize)).flatMap(e=>e.prize));   // the cells behind his help (stars there are bonus stars, palGift)
+function palPrize(y){
+  if(!y.prize || y.prized) return; const ok=k=>loot[k] ? loot[k].done : stars[k] ? stars[k].got : stars['L'+k] ? stars['L'+k].got : true;
+  if(!y.prize.every(ok)) return; y.prized=true; const ids=giftIds(cur), id='H'+y.at;
+  if(!ids.includes(id)) LS.set(giftKey(cur),JSON.stringify(ids.concat(id)));
+}
 function palDest(id){ const L=palHelp(id); return L.find(i=>lvVis(i)) ?? L[0] ?? -1; }
 function palThanks(y){
   palGreet(y,2.4); toast(loc('Thank you for digging out my cave! Now I can take a stroll and stretch my legs.'),'',PAL_THANKS*1000);
@@ -21683,6 +21710,14 @@ function palAskOpen(id){
   palAskD=i; $('palAskH').textContent=loc(PALS[id].n); $('palAskT').textContent=loc("I'll help you where one can't manage alone.");
   SND.init(); SND.uiTap(.7); dropInput(); showOverlay('palAsk'); return true;
 }
+/* The speech cloud over a pal (#palBub): stays over his head until tapped (the cube may walk away); the tap opens the panel */
+const PAL_BUB_Y=2.45, _pbv=new V3(); let palBubY=null;
+function palBubShow(y){ palBubY=y; $('palBub').hidden=false; palBubPos(); }
+function palBubHide(){ palBubY=null; $('palBub').hidden=true; }
+function palBubPos(){ const y=palBubY; if(!y) return; cam.updateMatrixWorld();
+  _pbv.set(y.g.position.x,y.g.position.y+PAL_BUB_Y*YETI_K,y.g.position.z).project(cam);
+  $('palBub').style.transform=`translate(${(_pbv.x+1)/2*innerWidth}px,${(1-_pbv.y)/2*innerHeight}px) translate(-50%,-100%)`; }
+$('palBub').onclick=()=>{ const y=palBubY; if(!y || paused || inputOff()) return; palBubHide(); y.ask=true; y.askT=time+PAL_ASK_CD; palGreet(y,1.3); palAskOpen('yeti'); };
 function palAskGo(){ const i=palAskD; palAskD=-1; if(i<0) return; SND.uiTap(); closeOverlays(); goLevel(i); }
 $('palAskGo').onclick=palAskGo;
 $('palAsk').onclick=e=>{ if(!e.target.closest('.card')){ palAskD=-1; SND.uiTap(.8); closeOverlays(); } };   // a tap beside it — not now
@@ -21768,7 +21803,7 @@ let yetis=[], prints=null;
 function palsFree(){
   for(const y of yetis){ for(const k of y.cl) if(obst[k]===y.ob) delete obst[k];
     if(y.g.parent) y.g.parent.remove(y.g); y.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); y.own.forEach(x=>x.dispose()); }
-  yetis=[]; prints=null;                                              // the print pool lives in the world: disposed with it
+  yetis=[]; prints=null; palBubHide();                                              // the print pool lives in the world: disposed with it
 }
 function palsSpawn(){
   palsFree();
@@ -21781,8 +21816,8 @@ function palsSpawn(){
     g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
     g.position.set(x,h,z); g.rotation.y=Math.PI*.1; world.add(g);
     const y={ id:'Y'+e.at, mode:e.do, plate:e.plate, x, z, h, k, g, R:fig.userData.rig, own:A.own, ob:{ type:'Y', pal:null }, face:Math.PI*.1, w:0, waveT:0, seed:n*1.7+.4,
-      walk:null, wait:0, cl:new Set([k]), hx:x, hz:z, r:e.r||YETI_R, roam:!!T.snowy && e.do!=='meet', v:0, wa:0, t:rand(1,3), go2:false, side:1, gy:h, jh:0, jt:1, ph:0, st:0, hiT:0, scare:0, blk:0, laugh:0, laughT:0, lk:0, gk:0, pet:0, petCd:0, petC:null, hop:0 };
-    y.had=giftIds(cur).includes(y.id); y.ob.pal=y; obst[k]=y.ob; yetis.push(y); });
+      walk:null, wait:0, cl:new Set([k]), hx:x, hz:z, r:e.r||YETI_R, roam:!!T.snowy && e.do!=='meet', v:0, wa:0, t:rand(1,3), go2:false, side:1, gy:h, jh:0, jt:1, ph:0, st:0, hiT:0, scare:0, blk:0, laugh:0, laughT:0, lk:0, gk:0, pet:0, petCd:0, petC:null, hop:0, cs:0, pcx:null, pcz:null };
+    y.at=e.at; y.prize=e.do==='hold' && Array.isArray(e.prize) && e.prize.length ? e.prize : null; y.had=giftIds(cur).includes(y.id); y.ob.pal=y; obst[k]=y.ob; yetis.push(y); });
   if(yetis.some(y=>y.roam)){ const im=new THREE.InstancedMesh(PRINT_GEO,PRINT_MAT,PRINT_N);
     _s.set(0,0,0); _m4.compose(_p.set(0,-99,0),_q.identity(),_s); for(let i=0;i<PRINT_N;i++){ im.setMatrixAt(i,_m4); im.setColorAt(i,PRINT_C1); }
     im.frustumCulled=false; im.receiveShadow=true; world.add(im); prints={ im, i:0, a:[] }; }
@@ -21926,11 +21961,17 @@ function updatePals(){
       if(u>=1){ y.walk=null; p.set(y.x,y.h,y.z); } }
     else if(y.roam && !busy && !(y.pet>0) && !(y.scare>0)) palRoam(y,near,here);
     if(y.scare>0){ y.scare-=dt; y.waveT=Math.max(y.waveT,.2); y.gk=3; }
-    if(y.pet>0){ const c=y.petC, cp=c&&c.m.position; y.pet-=dt;                                 // petting: stays put, looks at the animal; stops when it leaves
-      if(!c || y.walk || y.waveT>0 || !critters.includes(c) || (c.anim&&c.anim.fly) || Math.hypot(cp.x-p.x,cp.z-p.z)>2.2) y.pet=Math.min(y.pet,0); else y.face=Math.atan2(cp.x-p.x,cp.z-p.z); }
+    if(here && state==='idle' && !anim && near<=1 && Math.hypot(dx,dz)<1.5 && P.x===y.pcx && P.z===y.pcz) y.cs+=dt; else { y.cs=0; y.pcx=P.x; y.pcz=P.z; }   // the cube stands next to him: how long
+    if(y.pet>0){ const c=y.petC; y.pet-=dt;
+      if(c==='cube'){ if(y.walk || y.waveT>0 || y.laugh || state!=='idle' || P.x!==y.pcx || P.z!==y.pcz) y.pet=Math.min(y.pet,0); else y.face=Math.atan2(P.x-p.x,P.z-p.z); }   // petting the cube: till it moves
+      else { const cp=c&&c.m.position;                                // petting: stays put, looks at the animal; stops when it leaves
+        if(!c || y.walk || y.waveT>0 || !critters.includes(c) || (c.anim&&c.anim.fly) || Math.hypot(cp.x-p.x,cp.z-p.z)>2.2) y.pet=Math.min(y.pet,0); else y.face=Math.atan2(cp.x-p.x,cp.z-p.z); } }
+    else if(y.cs>=PAL_PET_CUBE && !y.walk && !busy && y.waveT<=0 && !y.laugh && !(y.scare>0) && time>y.petCd){ y.pet=2.6; y.petC='cube'; y.pa=Math.random()<.5; y.petCd=time+PAL_PET_CUBE+4; y.cs=0; }   // the cube stood by him a while: he pets it, like the animals
     else if(!y.walk && !busy && y.waveT<=0 && y.v<.2 && time>y.petCd && !y.laugh && !(here && near<=YETI_NEAR)){
       const c=critters.find(q=>q.ground && !(q.anim&&q.anim.fly) && Math.hypot(q.m.position.x-p.x,q.m.position.z-p.z)<1.7 && Math.abs(q.m.position.y-y.h)<.8);
       if(c){ y.pet=2.6; y.petC=c; y.pa=Math.random()<.5; y.petCd=time+10; } }
+    if(palBubY===y) palBubPos();
+    if(y.mode==='hold' && !subLv) palPrize(y);
     if(!y.walk && !y.off && !(y.go2 && !y.go) && (here && near<=YETI_NEAR && Math.hypot(dx,dz)<YETI_NEAR+.5 || y.go && state!=='dead') && y.v<.2 || !y.walk && y.waveT>0 && state!=='dead') y.face=Math.atan2(P.x-p.x,P.z-p.z);   // he turns to the cube
     if(!y.walk){ y.jt=Math.min(1,y.jt+dt/.32); y.gy+=(y.h-y.gy)*(1-Math.exp(-dt*12)); p.y=y.gy+Math.sin(y.jt*Math.PI)*y.jh; }
     y.hop=y.gk===2 && y.waveT>0 ? Math.abs(Math.sin(time*9))*.28*y.w : 0; if(!y.walk) p.y+=y.hop;   // the hopping greeting
@@ -21941,7 +21982,7 @@ function updatePals(){
     if(y.mode==='star'){
       if(here && near<=2){ if(!y.gave && !y.had){ y.gave=true; y.askT=time+2.2; palGreet(y,1.5); after(.55,()=>{ if(yetis.includes(y)) palToss(y); }); }
         else if(!y.hi){ palGreet(y,1.1); } y.hi=true;
-        if(!y.ask && time>=(y.askT||0) && state==='idle' && !artOn && !inputOff() && palAskOpen('yeti')){ y.ask=true; y.askT=time+PAL_ASK_CD; palGreet(y,1.3); } }   // the star given: he offers to open a secret (again once the cube has been away, not before PAL_ASK_CD s)
+        if(!y.ask && palBubY!==y && time>=(y.askT||0) && (y.gave || y.had) && state==='idle' && !artOn && !inputOff() && palDest('yeti')>=0) palBubShow(y); }   // the star given: a speech cloud — he has a secret to offer (again once the cube has been away, not before PAL_ASK_CD s)
       else if(near>3){ y.hi=false; y.ask=false; }
     } else if(y.mode==='hold'){
       const [px,pz]=String(y.plate).split(',').map(Number);
@@ -23294,14 +23335,14 @@ function subStars(){
   if(subLv) for(const k in stars) stars[k].id=subLv+':'+stars[k].id;
   const have=new Set(Object.values(stars).map(s=>s.id));
   for(const [ids,hid] of [[fam.open,false],[fam.sec,true]]) for(const id of ids) if(!have.has(id)) stars['#'+id]={ x:NaN, z:NaN, got:false, hidden:hid, virt:true, id };
-  starTotal=Object.keys(stars).length;
+  starTotal=Object.values(stars).filter(s=>!s.pal).length;
 }
 /* After build(): what this run already did here is done again, silently */
 function subApply(){
   subBrk0=Object.keys(obst).filter(k=>breakable(obst[k]) && !obst[k].cover || obst[k].under);   // a rock buried in a mound counts too
   const R=subRun; if(!R) return;
   for(const k in stars){ const s=stars[k]; if(s.got || !R.got.has(s.id)) continue;
-    s.got=true; starGot++; if(s.mesh){ drop(s.mesh); s.mesh=null; }
+    s.got=true; if(!s.pal) starGot++; if(s.mesh){ drop(s.mesh); s.mesh=null; }
     if(s.dig) delete buried[K(s.x,s.z)]; if(s.loot && loot[K(s.x,s.z)]) loot[K(s.x,s.z)].done=true; }
   const L=R.lv[subLv||'']; if(!L) return;
   if(L.lamps && lamps && !lamps.open) lampsOpen(true);
