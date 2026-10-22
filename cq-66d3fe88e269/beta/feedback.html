@@ -1252,7 +1252,7 @@ app.addEventListener('click',e=>{
   else if(a==='rpick'){ $('repFile') && $('repFile').click(); return; }
   else if(a==='rshotx'){ const a2=S.sel && S.rshot[S.sel.n]; if(a2){ a2.splice(+el.dataset.i,1); if(!a2.length) delete S.rshot[S.sel.n]; } }
   else if(a==='tagadd'){ S.tagAdd=el.dataset.k+':'+el.dataset.id; S.focus='tagIn'; }
-  else if(a==='tagsug'){ const inp=$('tagIn'); if(inp){ S.tagAdd=''; setTag(inp.dataset.k,inp.dataset.id,el.dataset.t,true); } return; }
+  else if(a==='tagsug'){ const inp=$('tagIn'); tagHold=1; if(inp){ const k=inp.dataset.k, id=inp.dataset.id, t=el.dataset.t; inp.value=''; S.tagAdd=''; setTag(k,id,t,true); } setTimeout(()=>{ tagHold=0; },0); return; }
   else if(a==='rvoicex'){ const v=S.sel && S.rvoice[S.sel.n]; if(v){ URL.revokeObjectURL(v.url); delete S.rvoice[S.sel.n]; } }
   else if(a==='rrec'){ if(S.rec) recStop(); else recStart(S.sel); return; }
   else if(a==='untag'){ setTag(el.dataset.k,el.dataset.id,el.dataset.t,false); return; }
@@ -1290,9 +1290,11 @@ app.addEventListener('change',e=>{ if(e.target.id!=='repFile' || !S.sel) return;
 app.addEventListener('dragover',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(!box || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); box.classList.add('on'); });
 app.addEventListener('dragleave',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(box && !box.contains(e.relatedTarget)) box.classList.remove('on'); });
 app.addEventListener('drop',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(!box || !S.sel) return; e.preventDefault(); box.classList.remove('on'); addShots(S.sel,e.dataTransfer.files); });
-app.addEventListener('mousedown',e=>{ if(e.target.closest && e.target.closest('.tgsug')) e.preventDefault(); },true);
+let tagHold=0;   // choosing a suggestion: the letters in the field must not become their own tag
+app.addEventListener('mousedown',e=>{ if(e.target.closest && e.target.closest('.tgsug')){ e.preventDefault(); tagHold=1; } },true);
+app.addEventListener('mouseup',e=>{ if(tagHold && !(e.target.closest && e.target.closest('.tgsug'))) tagHold=0; },true);
 app.addEventListener('focusout',e=>{ if(e.target.id==='editText' && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-act]'))) leaveEdit();
-  if(e.target.id==='tagIn'){ if(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.tgsug')) return; const t=e.target, v=t.value.trim(); S.tagAdd=''; if(v) setTag(t.dataset.k,t.dataset.id,v,true); else render(); } });
+  if(e.target.id==='tagIn'){ if(tagHold || e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.tgsug')) return; const t=e.target, v=t.value.trim(); S.tagAdd=''; if(v) setTag(t.dataset.k,t.dataset.id,v,true); else render(); } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='tagIn' && e.key==='Enter'){ e.preventDefault(); const t=e.target; setTag(t.dataset.k,t.dataset.id,t.value,true); S.tagAdd=''; t.value=''; } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='keyIn' && e.key==='Enter') app.querySelector('[data-act=key]').click(); });
 /* Right click (and the system long press on touch) opens the same menu once: it takes over the pending long-press timer */
