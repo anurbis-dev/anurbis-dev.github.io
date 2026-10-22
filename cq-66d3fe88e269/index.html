@@ -198,7 +198,7 @@ body.mopen #hud .btns{ pointer-events:none; } body.mopen #btnMenu{ pointer-event
 #levels:not(.list) .lv.on{ outline:2px solid var(--cream); outline-offset:2px; animation:lvPulse 1.6s ease-in-out infinite alternate; }
 @keyframes lvPulse{ from{ outline-color:rgba(255,240,214,.95); outline-offset:2px; } to{ outline-color:rgba(255,240,214,.2); outline-offset:4px; } }
 .overlay.hidden #levels .lv.on, #levels.msec:not(.on) .lv.on, #levels .card:has(> .lvd.on) .lv.on{ animation-play-state:paused; }
-#levels:not(.list) .lv.on:focus-visible{ outline-color:var(--gold); animation:none; }   /* keyboard focus wins */
+body:not(.ptrnav) #levels:not(.list) .lv.on:focus-visible{ outline-color:var(--gold); animation:none; }   /* keyboard focus wins */
 @media (prefers-reduced-motion: reduce){ #levels:not(.list) .lv.on{ animation:none; } }
 /* Wide window (≈16:9 and wider): the grid plate widens and the thumbnails grow; the list keeps its narrow plate */
 @media (min-aspect-ratio:3/2) and (min-width:720px){
@@ -317,6 +317,7 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 @media (prefers-reduced-motion: reduce){ .mi,.msec,#mPause,.more{ transition:none !important; } #mPause{ animation:none !important; } }
 button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 body.padnav :is(button,input,select,a,[tabindex]):focus{ outline:3px solid var(--gold); outline-offset:2px; }   /* focus moved by a controller (gamepad.js) */
+body.ptrnav :is(:focus,:focus-visible):not(#levels .lv.on){ outline:none !important; }   /* the last input was a finger or a mouse: no focus frame anywhere (navSet) */
 #padRow .svmsg{ margin-top:4px; } #padRow[hidden]{ display:none; }
 body.lowq .btn, body.lowq #hint, body.lowq .card{ backdrop-filter:none; -webkit-backdrop-filter:none; }   /* adaptive quality: a slow device (qualityDown) */
 
@@ -479,7 +480,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .langrow{ grid-template-columns:repeat(3,1fr); }
 .mrow{ display:flex; gap:8px; }
 /* The restart button's pause: restart the location or end the expedition (back to the title) */
-#quit .qbox, #crash .qbox{ zoom:var(--ui); width:min(92vw,360px); } #quit .card, #crash .card{ width:auto; } #quit .mhead{ margin-bottom:2px; }
+#quit .qbox, #crash .qbox, #palAsk .qbox{ zoom:var(--ui); width:min(92vw,360px); } #quit .card, #crash .card, #palAsk .card{ width:auto; } #quit .mhead{ margin-bottom:2px; }
 .qsub{ text-align:center; font-size:15px; font-weight:800; letter-spacing:.04em; opacity:.75; margin:0 0 10px; text-shadow:0 2px 10px rgba(40,10,60,.45); }
 /* The restart pause: its two buttons side by side; a low screen tightens the rows, the title and the buttons by the height */
 .qbtn{ display:flex; gap:8px; margin-top:12px; } @media (orientation:portrait){ .qbtn{ flex-direction:column; gap:12px; } } .qbtn .cta{ flex:1; min-width:0; margin:0; height:auto; min-height:48px; padding:6px 10px; line-height:1.15; white-space:normal; }
@@ -488,7 +489,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   #quit .xpr{ padding:clamp(2px,.9vh,9px) 4px; font-size:14px; } #quit .xprows{ margin-bottom:0; } .qbtn{ margin-top:2vh; } .qbtn .cta, #stats .mrow .cta{ min-height:clamp(36px,10vh,48px); }
   #stats .card h2{ font-size:clamp(17px,5.4vh,22px); margin-bottom:1vh; } #stats .strow{ padding:clamp(2px,.9vh,7px) 2px; font-size:14px; }
   #stats .stbar{ padding:1.4vh 2px 0; font-size:clamp(13px,4.4vh,17px); } #stats .mrow .cta{ height:auto; margin-top:2vh; } }
-#qSlot, #crash small{ display:block; text-align:center; font-size:14px; font-weight:800; opacity:.7; } #quit .xprows{ margin-bottom:6px; } #qSlot + .cta, #crash small + .cta{ margin-top:10px; }
+#qSlot, #crash small, #palAskT{ display:block; text-align:center; font-size:14px; font-weight:800; opacity:.7; } #quit .xprows{ margin-bottom:6px; } #qSlot + .cta, #crash small + .cta, #palAskT + .cta{ margin-top:10px; } #palAskT{ font-size:16px; line-height:1.35; opacity:.85; }
 #statsH span:last-child{ float:right; opacity:.6; font-size:.8em; line-height:1.5; }
 .strow{ display:flex; justify-content:space-between; font-size:16px; font-weight:800; padding:7px 2px; border-bottom:1px solid rgba(255,255,255,.08); }
 .strow{ gap:0 10px; align-items:baseline; flex-wrap:wrap; } .strow b{ color:var(--gold); white-space:nowrap; }
@@ -505,6 +506,18 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 /* Its buttons: Revisit · Locations (the HUD #btnLv icon) · Move On; long labels wrap into two lines on a phone */
 #stats .mrow .cta{ min-width:0; padding:4px 8px; line-height:1.15; white-space:normal; } #stats .mrow .stloc{ flex:0 0 48px; padding:0; display:grid; place-items:center; }
 #stats .stloc svg{ width:24px; height:24px; }
+/* The fully explored report: a gold frame draws itself round the card (.gold — a conic sweep of --gfa), then stays lit with a soft glow (.gon) */
+@property --gfa{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+#stats .card{ position:relative; }
+#stats .card::after{ content:""; position:absolute; inset:0; border-radius:inherit; padding:3px; pointer-events:none; opacity:0;
+  background:conic-gradient(from -90deg,#ffe9a8,var(--gold) var(--gfa),transparent 0);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0); }
+#stats .card.gold::after{ opacity:1; animation:goldDraw 1.4s cubic-bezier(.45,0,.3,1) forwards; }
+#stats .card.gon{ box-shadow:0 0 0 1px rgba(255,214,120,.5),0 0 28px rgba(255,200,90,.45); transition:box-shadow .6s ease; }
+#stats .card.gon::after{ --gfa:360deg; animation:goldGlow 2.4s ease-in-out infinite alternate; }
+#stats.hidden .card.gon::after{ animation-play-state:paused; }
+@keyframes goldDraw{ from{ --gfa:0deg; } to{ --gfa:360deg; } }
+@keyframes goldGlow{ from{ filter:brightness(1); } to{ filter:brightness(1.35); } }
 @media (max-width:360px){ #stats .mrow .cta{ font-size:15px; hyphens:auto; overflow-wrap:anywhere; } }   /* 320 px: a long single word (Weiterziehen) */
 /* +1 life: everything behind dims a little (the game and the stats plate), a big life cube spins on top */
 .stlife{ position:fixed; inset:0; z-index:3; display:grid; place-items:center; pointer-events:none; text-align:center;
@@ -523,9 +536,9 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .stlife:not(.on) .lcube{ animation-play-state:paused; }   /* hidden, a running animation still restyles it every frame */
 @keyframes lspin{ from{ transform:rotateX(-24deg) rotateY(45deg); } to{ transform:rotateX(-24deg) rotateY(405deg); } }
 /* Artifact award: the relic spins in a slow ring of light over the paused game; the name in gold, its language and meaning under it.
-   A tap ("Learn more…") leaves the relic in place, dims it and fades its legend in over it;
-   a tap on the legend plays that backwards (.back: the legend fades out, the relic brightens, the name returns with "Tap to continue").
-   Only the text toggles the legend; a tap anywhere else sends the relic home — it flies into its HUD icon (.home, artFlyHome) */
+   A tap on the relic leaves it in place, dims it and fades its legend in over it;
+   a tap on the legend (or the relic under it) plays that backwards (.back: the legend fades out, the relic brightens, the name returns).
+   Only the relic and the legend toggle it; a tap anywhere else sends the relic home — it flies into its HUD icon (.home, artFlyHome) */
 #art{ --as:min(70vw,44vh); background:none; cursor:pointer; }
 .aback{ position:absolute; inset:0; background:radial-gradient(circle at 50% 45%,rgba(40,20,74,.3),rgba(12,6,28,.8) 72%); pointer-events:none; transition:opacity .6s ease; }
 .aback::after{ content:""; position:absolute; inset:0; background:rgba(12,6,28,.5); opacity:0; transition:opacity .6s ease; }
@@ -545,8 +558,6 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #artName, #artLName{ display:block; font-family:'Fredoka','Nunito',ui-rounded,sans-serif; font-weight:600; font-size:calc(40px*var(--ui)); line-height:1.1; letter-spacing:.03em;
   color:var(--gold); text-shadow:0 3px 18px rgba(255,200,90,.35),0 2px 10px rgba(40,10,60,.6); }
 #artSub, #artLSub{ display:block; margin-top:calc(4px*var(--ui)); font-size:calc(15px*var(--ui)); font-weight:800; opacity:.8; }
-#art .atap{ margin:calc(14px*var(--ui)) 0 0; font-size:calc(13px*var(--ui)); font-weight:800; opacity:.55; }
-#art:not(.haslore) .ainfo .learn, #art.back .ainfo .learn, #art.haslore:not(.back) .ainfo .cont{ display:none; }
 #art.back .abox{ transition-delay:.3s; } #art.back .ainfo{ transition-delay:.7s; } #art.back .aback::after{ transition-delay:.45s; }   /* the way in, time-reversed */
 #art.back .alore{ transition:opacity .6s ease, visibility 0s .6s; }
 /* The legend uses the whole overlay: centred over the dimmed relic (the veil and the shadow keep it readable); the prompt at the bottom */
@@ -554,7 +565,6 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   opacity:0; visibility:hidden; transition:opacity .45s ease, visibility 0s .45s; }
 #art.lore .alore{ opacity:1; visibility:visible; transition:opacity .6s ease .45s; } #art.lore .alore > div{ pointer-events:auto; }
 .alore > div{ margin:auto 0; max-width:min(100%,calc(600px*var(--ui))); text-align:center; color:var(--cream); }
-.alore > .atap{ flex:none; color:var(--cream); text-shadow:0 2px 8px rgba(20,8,40,.7); }
 #artLName{ font-size:calc(30px*var(--ui)); }
 #artLore{ margin:calc(14px*var(--ui)) 0 0; font-size:calc(17px*var(--ui)); font-weight:600; line-height:1.5; text-wrap:pretty; text-shadow:0 2px 10px rgba(20,8,40,.8),0 0 3px rgba(20,8,40,.6); }
 #artLName, #artLSub{ text-shadow:0 2px 10px rgba(20,8,40,.8); }
@@ -563,8 +573,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 #art.home .abox{ opacity:1; } #art.home *{ pointer-events:none !important; }
 #art:not(.hidden) .aglow, #art:not(.hidden) .ainfo > *{ animation:rowIn .55s ease both; }
 #art:not(.hidden) #artName{ animation-delay:.35s; } #art:not(.hidden) #artSub{ animation-delay:.5s; }
-#art:not(.hidden) .ainfo .atap{ animation:rowIn .5s ease 1.1s both; }
-@media (max-height:480px){ #art{ --as:min(60vw,50vh); } #artName{ font-size:calc(30px*var(--ui)); } #art .atap{ margin-top:4px; }
+@media (max-height:480px){ #art{ --as:min(60vw,50vh); } #artName{ font-size:calc(30px*var(--ui)); }
   #artLName{ font-size:calc(22px*var(--ui)); } #artLore{ margin-top:6px; font-size:calc(15px*var(--ui)); line-height:1.4; } .alore{ padding-top:10px; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); } }
 .flystar{ position:fixed; left:0; top:0; z-index:25; pointer-events:none; color:var(--gold); font-size:calc(22px*var(--ui)); line-height:1; text-shadow:0 0 10px rgba(255,214,107,.8); }
 .sl{ display:block; margin:14px 2px 6px; font-weight:800; font-size:16px; }
@@ -625,7 +634,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .xhead{ margin:0; font-size:15px; font-weight:900; text-align:center; opacity:.9; } .xhead:empty{ display:none; }
 .xbox .cta{ flex:none; margin:0; }
 #title.rep .xbox .cta{ display:none; }
-#xList{ padding:0; min-height:0; max-height:max(150px,calc(100vh - 100vh * .62 - 170px)); overflow:auto; scrollbar-width:none; overscroll-behavior:contain; display:flex; flex-direction:column; gap:8px; }
+#xList{ padding:6px; margin:-6px; min-height:0; max-height:max(150px,calc(100vh - 100vh * .62 - 170px)); overflow:auto; scrollbar-width:none; overscroll-behavior:contain; display:flex; flex-direction:column; gap:8px; }
 #xList:empty{ display:none; }
 #xList::-webkit-scrollbar{ display:none; }
 .xrow{ position:relative; display:flex; align-items:stretch; gap:6px; border-radius:16px; background:rgba(255,255,255,.1); flex:none; }
@@ -661,7 +670,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   .xgo{ min-height:0; gap:1px; padding-top:clamp(4px,1.2vh,8px); padding-bottom:clamp(4px,1.2vh,8px); } .xgo b{ font-size:15px; } .xgo small, .xgo span{ font-size:12px; }
   .xbox > .xin > .cta{ height:clamp(36px,10vh,48px); } }
 @media (prefers-reduced-motion: reduce){ .xbox,.xrow,.xask{ transition:none !important; animation:none !important; } }
-@media (prefers-reduced-motion: reduce){ .logo,.tbox .tap,#toast,#say,#hint,#sky i,.overlay,.overlay .card,.overlay .tbox,#title .tbox,#title::after,.btn,#stats .card > *,#stats .stbox > .mhead,.stlife,.stlife > div,.lcube,.stbar *,#hudL > *,.aglow::before,.aglow,.ainfo > *,.afly,.ainfo,.alore{ transition:none !important; animation:none !important; } }
+@media (prefers-reduced-motion: reduce){ .logo,.tbox .tap,#toast,#say,#hint,#sky i,.overlay,.overlay .card,.overlay .tbox,#title .tbox,#title::after,.btn,#stats .card > *,#stats .stbox > .mhead,.stlife,.stlife > div,.lcube,#stats .card::after,.stbar *,#hudL > *,.aglow::before,.aglow,.ainfo > *,.afly,.ainfo,.alore{ transition:none !important; animation:none !important; } }
 @media (max-height:460px){ #hint{ font-size:13px; padding:8px 12px; } .title b{ font-size:20px; } #toast{ top:18%; font-size:32px; } }
 
 /* Language on the title: a globe at the bottom centre unfolds a row of flags (the same choice as in the settings) */
@@ -877,14 +886,19 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   <i class="aback"></i>
   <div class="abox">
     <div class="afly"><div class="aglow"><canvas id="artCv" aria-hidden="true"></canvas></div></div>
-    <div class="ainfo"><b id="artName"></b><small id="artSub"></small><p class="atap learn" data-t>Learn more…</p><p class="atap cont" data-t>Tap to continue</p></div>
+    <div class="ainfo"><b id="artName"></b><small id="artSub"></small></div>
   </div>
-  <div class="alore" aria-live="polite"><div><b id="artLName"></b><small id="artLSub"></small><p id="artLore"></p></div><p class="atap" data-t>Tap to continue</p></div>
+  <div class="alore" aria-live="polite"><div><b id="artLName"></b><small id="artLSub"></small><p id="artLore"></p></div></div>
 </div>
 
 <div id="quit" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="quitH">
   <div class="qbox"><h2 class="mhead" id="quitH"></h2><div class="qsub" id="quitSub" data-t>Progression report</div>
     <div class="card"><div class="xprows" id="qRows"></div><div class="qbtn"><button class="cta" id="qRestart" data-t>Restart</button><button class="cta ghost" id="qEnd" data-t>End expedition</button></div></div></div>
+</div>
+
+<div id="palAsk" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="palAskH">
+  <div class="qbox"><h2 class="mhead" id="palAskH"></h2>
+    <div class="card"><small id="palAskT"></small><button class="cta" id="palAskGo" data-t>Agree</button></div></div>
 </div>
 
 <div id="crash" class="overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="crashH">
@@ -1007,7 +1021,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.14.0';
+const VERSION = '2.15.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1023,7 +1037,7 @@ if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).sli
    Device settings (volume, language, fullscreen, level list, ship) stay global. cube-x<k>-meta — { c: created, at: last played } (ms): a slot
    with meta is taken. A save from before the slots (progress, no meta) gets its meta on start (slotsInit)
    ===================================================================== */
-const SLOTS=5, PROG=/^cube-(level|lives|stars-total|map|(best|got|lv|art|gift|met)-[a-z0-9-]+|pal-[a-z]+|time)$/;
+const SLOTS=5, PROG=/^cube-(level|lives|stars-total|map|(best|got|lv|art|gift|met|bonus)-[a-z0-9-]+|pal-[a-z]+|time)$/;
 const XNAMES=['The Brave March','The Great Tumble','Beyond the Horizon','The Heroic Roll','The Fearless Stroll','The Mapless Trek',
   'The Legendary Detour','The Triumphant Wandering','The Grand Roll','Madness and Valor'];   // expedition names (see xNameGive)
 let lsWarned=false, persistAsked=false, verHook=null;   // verHook — the web build's check for a newer version on every progress save (js/start.js)
@@ -1547,6 +1561,9 @@ const L10N={
     "通关后的关卡会记住你的收获：已计入的星星显示为幽灵，不会重复计算",
     "クリアしたステージは見つけたものを覚えている：数え済みの星は幽霊として表示され、再び数えられない",
     "끝낸 레벨은 찾은 것을 기억한다: 이미 센 별은 유령으로 보이고 다시 세지 않는다"],
+  "Every location of {0} is fully explored!":["Все места области «{0}» исследованы полностью!","¡Todos los lugares de {0} están explorados por completo!","Todos os lugares de {0} foram explorados por completo!","Alle Orte in {0} sind vollständig erkundet!","Tous les lieux de {0} sont entièrement explorés !","{0}的所有地点都已完全探索！","{0}のすべての場所を探索しつくした！","{0}의 모든 장소를 완전히 탐사했다!"],
+  "A bonus location will open here soon":["Скоро здесь откроется бонусная локация","Pronto se abrirá aquí un lugar extra","Em breve um local bônus será aberto aqui","Bald öffnet sich hier ein Bonusort","Un lieu bonus ouvrira bientôt ici","这里很快会开放一个奖励地点","ここにはまもなくボーナスの場所が開く","곧 이곳에 보너스 장소가 열린다"],
+  "A bonus location is open":["Открыта бонусная локация","Se ha abierto un lugar extra","Um local bônus foi aberto","Ein Bonusort ist offen","Un lieu bonus est ouvert","奖励地点已开放","ボーナスの場所が開いた","보너스 장소가 열렸다"],
   "Location explore report":["Отчёт об исследовании местности","Informe de exploración","Relatório de exploração","Erkundungsbericht","Rapport d'exploration","地点探索报告","探索レポート","지역 탐사 보고서"],
   "Coming soon":["Скоро","Próximamente","Em breve","Demnächst","Bientôt","即将开放","近日公開","곧 공개"],
   "The expedition hasn't reached these parts yet":["Экспедиция ещё не добралась до этих мест","La expedición aún no ha llegado a estas tierras","A expedição ainda não chegou a estas terras","Die Expedition ist noch nicht bis hierher gekommen","L'expédition n'est pas encore arrivée jusqu'ici","探险队还没有到达这里","探検隊はまだここまで来ていない","탐험대가 아직 이곳에 닿지 못했다"],
@@ -2647,6 +2664,7 @@ const SND = (() => {
   function hold(reason,on){
     if(on) holds.add(reason); else holds.delete(reason);
     if(!ctx) return;
+    if(holds.size) cutWarm();   // the idle whistle is on the UI bus (past the master): a pause cuts it, not lets it play out
     const t=ctx.currentTime, g=master.gain; clearTimeout(suspT); clearTimeout(cutT);
     holdAt(g,t);
     // ctx.state stays 'running' until suspend() settles: resume unconditionally, and re-check once the suspend is done
@@ -2866,7 +2884,8 @@ const SND = (() => {
         ship:[[1800,1800,.05,.04],[1800,1800,.05,.04],[1800,1800,.12,.07],[1100,1500,.07,.02],[1500,2900,.18,0,90,24]] }[k]||[[1000,1800,.12]],v,r); }); },
     /* Idle warmup: the same R2 whistle, phrases timed to the body poses (breath is silent) */
     warmCut(){ cutWarm(); },
-    warm(k){ cutWarm(); const r=rand(.94,1.06), v=.045, p={
+    warm(k){ cutWarm(); if(holds.size) return;   // paused, the map, the title, a hidden tab: no whistle (it skips the master)
+      const r=rand(.94,1.06), v=.045, p={
       legs:{ when:.3, segs:[[740,1200,.08,0],[1200,860,.07,.52],[700,1160,.08,0],[1160,820,.07,.52],[780,1240,.08,0],[1240,880,.07,.52],[720,1180,.08,0],[1180,800,.07]] },
       stretch:{ when:.16, segs:[[1100,640,.16,.05],[640,420,.14,.04],[420,1480,.62,0,28,6],[1480,1720,.12,0,40,9],[1720,900,.28,0,18,5]] },
       twist:{ when:.2, segs:[[900,1500,.32,0,110,20],[1500,1000,.12,.7],[900,560,.32,0,110,20],[560,1200,.2,0,50,14]] },
@@ -3064,6 +3083,11 @@ const SND = (() => {
       L.forEach((x,i)=>{ tone({ f:mtof(62+x), d:1.6, v:.04, a:.01, when:i*.07, wet:.75 }); if(i%2) tone({ f:mtof(74+x), d:1, v:.014, a:.01, type:'triangle', when:i*.07+.01, wet:.8 }); });
       [38,45,50].forEach((m,i)=>tone({ f:mtof(m), d:3, v:.035, a:.6, when:i*.05, wet:.5 }));   // a warm swell under the run
       for(let i=0;i<10;i++) tone({ f:mtof(86+L[(i*5)%L.length]), d:.5, v:.01, a:.005, when:1.05+i*.12+Math.random()*.04, wet:.9 }); },
+    /* A fully explored level: a glittering run up while the gold frame draws round the report, a warm major chord as it closes */
+    goldFrame(){ const L=[0,4,7,11,12,16,19,23,24,28,31];
+      L.forEach((x,i)=>{ tone({ f:mtof(67+x), d:.9, v:.03, a:.008, when:i*.12, type:'triangle', wet:.8 }); if(i%3===2) tone({ f:mtof(79+x), d:.5, v:.01, a:.005, when:i*.12+.03, wet:.9 }); });
+      [55,62,67,71,74].forEach((m,i)=>tone({ f:mtof(m), d:2.6, v:.03, a:.25, when:1.3+i*.04, wet:.6 }));
+      for(let i=0;i<8;i++) tone({ f:mtof(91+L[(i*3)%L.length]), d:.4, v:.009, a:.004, when:1.4+i*.11+Math.random()*.04, wet:.95 }); },
     wallGrind(){ noise({ d:2.4, v:.16, f:320, f2:110, q:.9, type:'bandpass', a:.2, wet:.3 }); tone({ f:52, f2:38, d:2.3, v:.13, a:.3, type:'triangle', wet:.2 });   // stone blocks sinking: a long grinding rumble
       noise({ d:2.2, v:.05, f:2200, f2:900, q:2, type:'bandpass', a:.4, wet:.2 }); },
     wind(){ noise({ d:1, v:.07, f:500, f2:1600, q:.8, type:'bandpass', a:.2, wet:.3 }); },
@@ -3095,7 +3119,7 @@ const SND = (() => {
   /* Every sound in fx varies a little in pitch (±VARY) so repeats don't sound the same: one factor per call keeps a sound's layers
      in tune with each other (tone/noise/voice/warble/bub/taps/bushChirp multiply by rk). Only the sounds that must stay
      exactly in tune — the interface and the melodic jingles — are on the NO_VARY list; a new sound is varied by default */
-  const VARY=.05, NO_VARY=new Set('keyOn gateOpen pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic mapPop mapWave mapChime mapLift mapDrop click volCue win star relic life loot cave ship shipIn shipOut beam'.split(' '));
+  const VARY=.05, NO_VARY=new Set('keyOn gateOpen goldFrame pauseOn pauseOff uiTap uiSwipe uiTick uiToggle uiAlert uiAbil say uiLevel uiRelic mapPop mapWave mapChime mapLift mapDrop click volCue win star relic life loot cave ship shipIn shipOut beam'.split(' '));
   for(const n in fx){ const f=fx[n]; if(typeof f!=='function' || NO_VARY.has(n)) continue;
     fx[n]=(...a)=>{ const p=rk; rk=p*(1+rand(-VARY,VARY)); try{ return f(...a); } finally{ rk=p; } }; }
   /* Appearance sounds that often fire together (one slam unearths two stars, blows several covers, drops loot): the same sound started
@@ -18535,8 +18559,28 @@ function showStats(){
   const pr=starsProg||{ t0:lsNum('cube-stars-total',0), add:[], bonus:0 }; starsProg=null;
   statBar(pr.t0); $('stLife').classList.remove('on');
   $('btnNext').textContent=loc(cur===N-1?'Start over':'Move On');
+  const full=lvAllGot(cur); $('stats').querySelector('.card').classList.remove('gold','gon');
   showOverlay('stats');
-  statsFly(pr);
+  statsFly(pr).then(()=>{ if(full) statGold(); });
+}
+/* Everything on the level is collected (lvAllGot): a gold frame draws itself round the report (.gold — a conic sweep, then .gon — it stays lit)
+   with a magic chime (SND.goldFrame); once every level of the area is fully explored — the area's bonus level (areaBonus) */
+const GOLD_DRAW=1400;
+async function statGold(){
+  const c=$('stats').querySelector('.card'), seq=statSeq; if($('stats').classList.contains('hidden')) return;
+  c.classList.add('gold'); SND.goldFrame();
+  await sleep(reduced() ? 0 : GOLD_DRAW); if(seq!==statSeq) return; c.classList.add('gon');
+  areaBonus(areaOf(cur));
+}
+/* Bonus levels: AREA_BONUS[areaId] — the area's extra level, opened when every level of it is fully explored (cube-bonus-<areaId>, per slot).
+   None are made yet: the area only says so once (a toast over the report) */
+const AREA_BONUS={};
+const areaFull=a=>{ const A=AREAS[a]; for(let i=A.i0;i<A.i0+A.n;i++) if(!lvAllGot(i)) return false; return A.n>0; };
+function areaBonus(a){
+  const id=AREAS[a].id, k='cube-bonus-'+id; if(!areaFull(a) || LS.get(k,'')==='1') return false;
+  LS.set(k,'1'); const t=$('toast'); t.classList.add('top');
+  toast(loc('Every location of {0} is fully explored!',loc(AREAS[a].name)),loc(AREA_BONUS[id] ? 'A bonus location is open' : 'A bonus location will open here soon'),true);
+  setTimeout(()=>t.classList.remove('top'),6000); return true;
 }
 /* The total and its bar: t%STAR_LIFE slots lit; full — all lit and the life cube at the end glows */
 function statBar(t,full){
@@ -18549,7 +18593,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const STAR_FLY=240;
 async function statsFly({ t0, add, bonus }){
   const seq=++statSeq, live=()=>seq===statSeq && !$('stats').classList.contains('hidden'), still=reduced();
-  if(!add.length) return;
+  if(!add.length) return sleep(reduced() ? 0 : 700);
   if(still){ statBar(t0+add.length); if(bonus) await lifeUp(t0+add.length,true); return; }
   await sleep(800);                                                    // the rows slide in first
   let t=t0;
@@ -21348,8 +21392,8 @@ function artShow(then,k){                                             // k — a
   showOverlay('art'); artOn=true; artT0=artT1=performance.now(); artN=0; artSz=0; artA=0; artLt=0; artSpin0(); SND.relic(); SND.relicTune(relTune(i),true,2.4);
   artFree(artG); artG=null; if(artGL()){ artG=artBuild(i); artS.add(artG); }
 }
-/* A tap on the text (the name, "Learn more…"; the legend while it shows) toggles the legend: step 1 — the relic stays where it is, dims under
-   a veil and its legend fades in over it; step 2 — the same backwards: the legend goes, the relic brightens, its name returns with "Tap to continue". A tap anywhere else closes: the relic flies into its HUD icon (artFlyHome).
+/* A tap on the relic (the legend while it shows) toggles the legend: step 1 — the relic stays where it is, dims under
+   a veil and its legend fades in over it; step 2 — the same backwards: the legend goes, the relic brightens, its name returns. A tap anywhere else closes: the relic flies into its HUD icon (artFlyHome).
    Enter/Space step on 1 → 2 → close; no legend — the first closes */
 const artBusy=()=>!artOn || artHome || performance.now()-artT0<ART_LOCK || performance.now()-artT1<ART_LOCK2;
 function artLoreGo(on){
@@ -21363,7 +21407,7 @@ function artNext(){
 }
 function artTap(e){
   if(artBusy()) return;
-  const txt=e.target.closest && e.target.closest('#artName, #artSub, .ainfo .learn, .alore > div');
+  const txt=e.target.closest && e.target.closest('#art .aglow, .alore > div');
   if(txt && relLore(artI)) return artLoreGo(artStep!==1);
   artClose(true);
 }
@@ -21517,6 +21561,8 @@ Object.assign(L10N,{
     "雪山高处住着一只害羞又善良的雪人，他对着冰柱轻声哼唱，用火堆温暖迷路的旅人。他等了很久，等一位勇敢到能找到他洞穴的朋友。如今他跟着你的探险四处游走，分享星星，搭把手。",
     "雪山の高みに、はずかしがりでやさしいイエティが住んでいる。つららに鼻歌を聞かせ、道に迷った旅人をたき火で温めてくれる。洞窟を見つけてくれる勇敢な友だちを、ずっと待っていた。今では探検のあちこちに現れ、星を分けたり手を貸したりしてくれる。",
     "눈 덮인 산 높은 곳에 수줍고 다정한 예티가 산다. 고드름에게 콧노래를 불러 주고, 길 잃은 나그네를 모닥불로 녹여 준다. 자기 동굴을 찾아낼 만큼 용감한 친구를 오래 기다려 왔다. 이제 그는 너의 탐험 곳곳을 누비며 별을 나누고 손을 빌려준다."],
+  "{0} asks you to follow him to {1}: there he can thank you for your help.":["{0} зовёт тебя за собой — в локацию «{1}»: там он сможет отблагодарить тебя за помощь.","{0} te invita a seguirlo a {1}: allí podrá agradecerte tu ayuda.","{0} convida você a segui-lo até {1}: lá ele poderá agradecer sua ajuda.","{0} bittet dich, ihm nach {1} zu folgen: Dort kann er sich für deine Hilfe bedanken.","{0} t'invite à le suivre jusqu'à {1} : là-bas, il pourra te remercier de ton aide.","{0}请你跟他去{1}：在那里他可以报答你的帮助。","{0}が{1}までついてきてほしいと言っている。そこで助けてくれたお礼ができるそうだ。","{0}가 {1}(으)로 따라오라고 한다. 그곳에서 도와준 보답을 할 수 있다고."],
+  "Agree":["Согласиться","Aceptar","Aceitar","Zustimmen","Accepter","同意","ついていく","따라가기"],
   "Bonus star!":["Бонусная звезда!","¡Estrella extra!","Estrela bônus!","Bonusstern!","Étoile bonus !","奖励星星！","ボーナススター！","보너스 별!"],
   "A gift from the Yeti":["Подарок от йети","Un regalo del yeti","Um presente do yeti","Ein Geschenk vom Yeti","Un cadeau du yéti","雪人送的礼物","イエティからのプレゼント","예티의 선물"],
   "Hold plate":["Нажимная плита","Placa de presión","Placa de pressão","Druckplatte","Plaque de pression","压力板","感圧プレート","압력판"],
@@ -21617,6 +21663,31 @@ function palAward(id,done){                                            // done �
   if(!palHas(id)){ LS.set(palKey(id),lvId(cur)); artCache.delete(id); }   // cur — in a sublevel it is still its parent level
   palTry(id,done); return true;
 }
+/* The invitation: a found pal met again at home ('meet') asks the cube to follow him where he can thank it — a level with his help
+   ('star', 'hold'; palDest: the level this sublevel belongs to while his help there is unused, else the first open one with unused help).
+   A panel (#palAsk) with "Agree" (palAskGo: back to the parent level — subGo, or goLevel); a tap beside it or Esc — not now: he asks
+   again when the cube comes back to him, not before PAL_ASK_CD s of game time */
+const PAL_ASK_CD=6; let palAskD=-1;
+const palHelp=id=>LEVELS.map((d,i)=>(d[id]||[]).some(e=>e.do!=='meet') ? i : -1).filter(i=>i>=0);
+const palFresh=(id,i)=>(LEVELS[i][id]||[]).some(e=>e.do==='hold' || e.do==='star' && !giftIds(i).includes('Y'+e.at));
+function palDest(id){
+  const L=palHelp(id).filter(i=>lvVis(i)); if(!L.length) return -1;
+  if(L.includes(cur) && palFresh(id,cur)) return cur;
+  const o=L.filter(i=>i!==cur); return o.find(i=>palFresh(id,i)) ?? o[0] ?? cur;
+}
+function palAskOpen(id){
+  const i=palDest(id); if(i<0 || i===cur && !subLv || paused || wiping || state==='dead') return false;   // he helps right here — nothing to ask
+  palAskD=i; const n=loc(PALS[id].n);
+  $('palAskH').textContent=n; $('palAskT').textContent=loc('{0} asks you to follow him to {1}: there he can thank you for your help.',n,lvName(LEVELS[i]));
+  SND.init(); SND.uiTap(.7); dropInput(); showOverlay('palAsk'); return true;
+}
+function palAskGo(){
+  const i=palAskD; palAskD=-1; if(i<0) return; SND.uiTap(); closeOverlays();
+  if(i===cur){ if(subLv) subGo(null); } else goLevel(i);
+}
+$('palAskGo').onclick=palAskGo;
+$('palAsk').onclick=e=>{ if(!e.target.closest('.card')){ palAskD=-1; SND.uiTap(.8); closeOverlays(); } };   // a tap beside it — not now
+
 function palTry(id,done){
   if(artOn || paused || inputOff() || wiping || state==='dead' || state==='win'){ if(!goalLock && state!=='win') after(.4,()=>palTry(id,done)); return; }
   SND.init(); dropInput(); artShow(done||null,id);
@@ -21703,7 +21774,7 @@ function palsFree(){
 function palsSpawn(){
   palsFree();
   (curDef().yeti||[]).forEach((e,n)=>{ const [x,z]=String(e.at).split(',').map(Number), h=th(x,z), k=K(x,z);
-    if(e.do==='meet' ? palHas('yeti') : !palHas('yeti')) return;
+    if(e.do!=='meet' && !palHas('yeti')) return;                     // 'meet' — his home: he stays there when found (and asks the cube to follow him, palAskOpen)
     if(e.do!=='meet' && !T.snowy){ console.error('yeti: he lives on snow — not in '+curDef().name); return; }
     if(h===null || obst[k]){ console.error('yeti: '+e.at+' is not a free tile ('+curDef().name+')'); return; }
     if(e.do==='hold' && !plates[e.plate]){ console.error('yeti: '+e.at+' has no hold plate at '+e.plate+' ('+curDef().name+')'); return; }
@@ -21886,8 +21957,11 @@ function updatePals(){
           if((y.nf=(y.nf||0)+1)>=8){ y.nf=0; y.go=false; y.off=true; y.offT=time+5; y.t=1; y.wa=y.face+rand(-1,1); y.hi=false; } } }   // no way to the plate (taken, blocked) for ~3 s: back to roaming, he tries again later
       if(!y.walk && y.x===px && y.z===pz && here && near<=1){ if(!y.hi) palGreet(y,1.1); y.hi=true; } else if(near>2) y.hi=false;
     } else if(y.mode==='meet'){
-      if(here && dl<1.3 && near<=1){ if(!palHas('yeti') && !y.asked){ y.asked=true; palGreet(y,1.8); after(.8,()=>palAward('yeti',subLv ? ()=>after(.5,()=>subGo(null)) : null)); } else if(!y.hi) palGreet(y,1.1); y.hi=true; }
-      else if(near>2) y.hi=false;
+      if(here && dl<1.3 && near<=1){
+        if(!palHas('yeti')){ if(!y.asked){ y.asked=true; y.ask=true; y.askT=time+PAL_ASK_CD; palGreet(y,1.8); after(.8,()=>palAward('yeti',()=>after(.4,()=>palAskOpen('yeti')))); } }
+        else if(!y.ask && time>=(y.askT||0) && state==='idle' && !artOn && !inputOff()){ y.ask=true; y.askT=time+PAL_ASK_CD; palGreet(y,1.3); palAskOpen('yeti'); }   // found: he asks to follow him (again once the cube has been away, not before PAL_ASK_CD s)
+        if(!y.hi) palGreet(y,1.1); y.hi=true; }
+      else if(near>2){ y.hi=false; y.ask=false; }
     }
     y.waveT=Math.max(0,y.waveT-dt); y.w+=((y.waveT>0?1:0)-y.w)*(1-Math.exp(-dt*7));
     let a=y.face-y.g.rotation.y; a=((a+Math.PI)%TAU+TAU)%TAU-Math.PI; y.g.rotation.y+=a*(1-Math.exp(-dt*5.5));
@@ -22554,6 +22628,9 @@ let paused=false, mSec='', modalOv, modalRet=null, fbPaused=false, mapOn=false; 
 function showOverlay(id){ document.querySelectorAll('.overlay').forEach(o=>o.classList.toggle('hidden',o.id!==id)); updatePause(); }
 function closeOverlays(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden')); updatePause(); }
 let menuOn=false;
+let navPtr=true;   // the last input was a finger or a mouse (gamepad.js keeps it, navSet): no focus frame anywhere (body.ptrnav — a touch screen does not need it)
+function navSet(p){ navPtr=p; document.body.classList.toggle('ptrnav',p); }
+navSet(true);
 function updatePause(){
   const ov=document.querySelector('.overlay:not(.hidden)');
   paused=!!ov && ov?.id!=='title' || fbPaused || mapOn;
@@ -22665,11 +22742,11 @@ function tlBack(){
   if(s.k){ const r=$('xList').querySelector('.xrow[data-k="'+s.k+'"]'); b=r && (s.del ? r.querySelector('.xdel') : r.querySelector('.xgo')); }
   else if(s.id) b=$(s.id);
   if(!b) b=$('xList').querySelector('.xgo') || $('xNew');
-  if(b){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} }
+  if(b && !navPtr){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} }
 }
 function tlCur(){
   const b=[...$('tlRow').children].find(x=>x.lang===lang) || $('tlRow').firstElementChild;
-  if(b){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); }catch(e){} }
+  if(b && !navPtr){ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); }catch(e){} }
 }
 function tlOpen(on){
   if(on){ if(!$('tLang').classList.contains('open')) tlMark(); $('tLang').classList.add('open'); $('tlBtn').setAttribute('aria-expanded','true'); tlCur(); }
@@ -22821,7 +22898,7 @@ function xShow(m,kb){
   if(on){ xRows();
     const b=$('xList').querySelector('.xgo') || (m==='opt' ? $('xNew') : null);
     $('xList').scrollTop=0;
-    if(b) setTimeout(()=>{ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} },60); }
+    if(b && !navPtr) setTimeout(()=>{ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} },60); }
 }
 function xNewTxt(){ $('xNew').textContent=loc([...Array(SLOTS)].some((_,j)=>slotUsed(j+1)) ? 'New expedition' : 'Start expedition'); }   // none yet — just start (setLang calls it too)
 function titleTap(e){ const t=$('title'); if(xMode || ['hidden','boot','dead'].some(c=>t.classList.contains(c))) return;
@@ -24763,7 +24840,7 @@ function padSeen(el){
 }
 function padCands(root){ return [...root.querySelectorAll(PAD_SEL)].filter(el=>!el.closest('#mbar') && padSeen(el)); }
 function padFocus(el){
-  document.body.classList.add('padnav');
+  document.body.classList.add('padnav'); navSet(false);
   try{ el.focus({ preventScroll:true }); el.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){}
   SND.uiTick();
 }
@@ -24782,12 +24859,12 @@ function padMove(root,d){
 }
 function padOk(root){
   const a=document.activeElement;
-  if(a && root.contains(a) && a.matches(PAD_SEL) && padSeen(a)){ if(a.type!=='range'){ document.body.classList.add('padnav'); a.click(); } return; }
+  if(a && root.contains(a) && a.matches(PAD_SEL) && padSeen(a)){ if(a.type!=='range'){ document.body.classList.add('padnav'); navSet(false); a.click(); } return; }
   if(root.id==='art' || root.id==='title' && !xMode) return padKey('Enter');
   const c=padCands(root); if(c.length) padFocus(padFirst(c)); else padKey('Enter');
 }
-addEventListener('pointerdown', e=>{ if(e.isTrusted) document.body.classList.remove('padnav'); }, true);
-addEventListener('keydown', e=>{ if(e.isTrusted) document.body.classList.remove('padnav'); }, true);
+addEventListener('pointerdown', e=>{ if(e.isTrusted){ document.body.classList.remove('padnav'); navSet(true); } }, true);
+addEventListener('keydown', e=>{ navSet(false); if(e.isTrusted) document.body.classList.remove('padnav'); }, true);   // a key — real or sent by the pad (padKey)
 
 /* ==== connect / settings: the pad in use, "Set up buttons" (each action in turn: press its button; a button already taken skips the
    action; Esc or the button again — cancel), "Reset" — back to the default for this pad ==== */
@@ -25004,6 +25081,7 @@ function frame(now){
   try{
     padPoll(now);                                                         // the controller (gamepad.js) — in menus and on the map too
     if(paused || artLv || artLvTune) artLive(now);
+    if((mapOn || paused) && warmPose){ resetWarm(); needDraw=true; }   // an idle fidget stops with its whistle (a pause, the map), not plays on silently afterwards
     if(mapOn){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); SND.cascade(0); MAP.frame(now); frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }   // the level map draws itself
     if(paused){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); SND.cascade(0);   // the game's loops fade out (stats, award and settings don't hold the master)
       if(artOn) artFrame(now); if(needDraw && !glLost){ needDraw=false; renderer.render(scene,cam); } frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }      // menu open — the world stands still
@@ -25238,7 +25316,7 @@ Object.assign(window.__cube,{ slots:()=>[...Array(SLOTS)].map((_,j)=>slotInfo(j+
 Object.defineProperties(window.__cube,{ subs:{ value:SUBLEVELS }, sub:{ get:()=>subLv },   // hidden sublevels: subGo(key) — through its door here, subGo(null) — back
   subGo:{ value:k=>subGo(k,k ? Object.keys(teles).find(t=>teles[t].sub===k) : undefined) },
   subRun:{ get:()=>subRun && { i:subRun.i, got:[...subRun.got], door:subRun.door } } });
-Object.assign(window.__cube,{ pals:PALS, palHas, palGive:(id,i=cur)=>{ LS.set(palKey(id),lvId(i)); artCache.delete(id); }, palAward, palsAt,   // pals (companions)
+Object.assign(window.__cube,{ pals:PALS, palHas, palDest, palAskOpen, palAskGo, palAskI:()=>palAskD, palGive:(id,i=cur)=>{ LS.set(palKey(id),lvId(i)); artCache.delete(id); }, palAward, palsAt,   // pals (companions)
   cardPal:id=>{ if(id!==undefined) lvdArtSet(!!id,false,false,id||undefined); return lvdArtOn && typeof lvdAk==='string' ? lvdAk : null; },
   gifts:i=>giftIds(i===undefined ? cur : i), scare:()=>yetis[0]&&palScare(yetis[0]), simPals:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++){ time+=dt; updatePals(); } dt=d0; } });
 Object.defineProperties(window.__cube,{ plates:{ get:()=>Object.values(plates).map(p=>({ x:p.x, z:p.z, on:p.on })) },
