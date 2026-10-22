@@ -331,11 +331,10 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .days i{flex:1;background:var(--gold);border-radius:1px 1px 0 0;min-height:1px;transform-origin:bottom}
 .days i.z{background:rgba(255,255,255,.06);height:2px!important}
 .prog{display:grid;gap:4px}
-.prog .ar{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dim)}
-.prog .ar>span:first-child{width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prog .ar{align-items:flex-start}
-.cells{display:flex;flex-wrap:wrap;gap:3px;flex:1;min-width:0}
-.cells > i{width:28px;height:28px;border-radius:4px;background:#140e22;cursor:pointer;transition:transform .12s;display:grid;place-items:center;overflow:hidden;padding:2px}
+.prog .ar{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:start;gap:6px;font-size:11.5px;color:var(--dim)}
+.prog .ar>span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cells{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+.cells > i{width:28px;height:28px;min-width:28px;max-width:28px;flex:0 0 28px;border-radius:4px;background:#140e22;cursor:pointer;transition:transform .12s;display:grid;place-items:center;overflow:hidden;padding:2px}
 .cells > i:hover{transform:scale(1.35);box-shadow:0 0 0 1px var(--gold);z-index:2}
 .cells > i .hmap{width:100%;gap:0;--mh:24px;margin:0}
 .cells > i .hmap i{width:auto;height:auto;border-radius:0;outline:none;box-shadow:none;animation:none;cursor:inherit;padding:0}
@@ -780,7 +779,7 @@ function plBody(t){
       return `<div class="ar"><span>${esc(a.icon||'')} ${esc(a.name)}</span><span class="cells">${ls.map(l=>{ const v=lv[l.id]||{}, d=v.n>0, c=l.id===e.cur, inf=LI[l.id], tot=inf ? (inf.st||0)+(inf.sc||0) : 0, g=v.got||0;
         const w=t.wins[l.id], avg=w && w.t>0 ? mmss(w.t) : '';
         const h=lvH(l.id), icon=h ? hGrid(h,()=>null,{ cls:' mini' }) : '';
-        const tip=`<b>${esc(l.name)}</b>\n${d ? 'пройден '+v.n+' '+nf(v.n,'раз','раза','раз') : c ? 'сейчас здесь, не пройден' : 'не пройден'}\n★ ${g}${tot ? ' из '+tot : ''}${avg ? '\nсреднее время '+avg : v.best ? '\nлучшее время '+mmss(v.best) : ''}${icon ? '\n'+icon : ''}`;
+        const tip=`<b>${esc(l.name)}</b> <span style="color:var(--dim)">${l.no}</span>\n${d ? 'пройден '+v.n+' '+nf(v.n,'раз','раза','раз') : c ? 'сейчас здесь, не пройден' : 'не пройден'}\n★ ${g}${tot ? ' из '+tot : ''}${avg ? '\nсреднее время '+avg : v.best ? '\nлучшее время '+mmss(v.best) : ''}${icon ? '\n'+icon : ''}`;
         return `<i class="${d ? 'd' : c ? 'c' : ''}${tot && g>=tot ? ' f' : ''}" style="--a:${d ? Math.min(1,.35+(tot ? g/tot*.65 : g/10)).toFixed(2) : 0}" data-tip="${esc(tip)}" data-act="pmap" data-id="${esc(l.id)}" data-t="${esc(t.id)}" data-x="${xi}">${icon}</i>`; }).join('')}</span></div>`; }).join('') || '<span class="note">Ни одного уровня не пройдено</span>')
       : dn.length ? `<span class="note">Пройдены: ${dn.map(esc).join(', ')}</span>` : '<span class="note">Ни одного уровня не пройдено</span>';
     return `<div class="xp"><button class="xh${op ? '' : ' shut'}" data-act="xp" data-k="${esc(k)}"><span class="ar">▾</span><b>${esc(xName(e))}</b><span class="sp"></span><span>ур. <b>${dn.length}</b></span><span>★ ${e.stars||0}</span>${e.time ? `<span>⏱ ${hm(e.time*1e3)}</span>` : ''}<span title="${e.at ? full(e.at) : ''}">${e.at ? ago(e.at) : '—'}</span></button>${op ? `<div class="xb prog">${body}</div>` : ''}</div>`; }).join('');
@@ -1528,7 +1527,7 @@ function starMap(id,t,e){
   const at={}; let sub=0, subG=0;
   for(const s of ids){ const k=cellOf(s); if(!k){ sub++; if(got.has(s)) subG++; continue; } (at[k]||(at[k]=[])).push(s); }
   const tot=(inf.st||0)+(inf.sc||0)||ids.length, g=v.got||got.size;
-  const head=`<div class="lbh">${esc(L ? L.name : inf.n||id)} · ${esc(t.nick)}<small>${esc(xName(e))} · ★ ${g}${tot ? ' из '+tot : ''}${v.n>0 ? ' · пройден'+(v.n>1 ? ' ×'+v.n : '') : ' · не пройден'}${sub ? ` · в подуровнях ${subG} из ${sub}` : ''}${all.length ? ' · ● собрана, ○ осталась' : ' · позиции звёзд придут с новой сборкой игры'}</small></div>`;
+  const head=`<div class="lbh">${esc(L ? L.name : inf.n||id)}${L ? ' <span style="color:var(--dim);font:700 13px var(--f-body)">'+L.no+'</span>' : ''} · ${esc(t.nick)}<small>${esc(xName(e))} · ★ ${g}${tot ? ' из '+tot : ''}${v.n>0 ? ' · пройден'+(v.n>1 ? ' ×'+v.n : '') : ' · не пройден'}${sub ? ` · в подуровнях ${subG} из ${sub}` : ''}${all.length ? ' · ● собрана, ○ осталась' : ' · позиции звёзд придут с новой сборкой игры'}</small></div>`;
   if(!inf.h || !inf.h.length) return head+'<div class="note">Карты уровня ещё нет (её присылает игра)</div>';
   return head+hGrid(inf.h,(x,z)=>{ const a=at[x+','+z]; if(!a) return null; const gn=a.filter(s=>got.has(s)).length, all1=gn===a.length;
     const tip=a.map(s=>(got.has(s) ? '★ собрана' : '☆ не собрана')+(sec.has(s) ? ' (секрет)' : '')+(s[0]==='L' ? ' — тайник' : s[0]==='D' ? ' — закопана' : s[0]==='N' ? ' — в нише' : '')).join('\n');
