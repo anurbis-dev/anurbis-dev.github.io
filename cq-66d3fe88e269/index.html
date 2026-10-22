@@ -1007,7 +1007,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.13.0';
+const VERSION = '2.13.1';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -9678,6 +9678,19 @@ function bevelFloat(geo,fo){
     (bvqF[k]||(bvqF[k]=[])).push({ b, solid, gaps:null }); }
   bevels.push(b);
 }
+/* Land painted above the water into the cut of a water bevel: that land is the shore of the same face — the complement bevel
+   (the opposite corner and dir; a rounded edge ↔ a cove, a diagonal stays), which is a land bevel with the water in its cut */
+const BV_OPP={ N:'S', S:'N', E:'W', W:'E' };
+function bvShore(d){
+  const A=DIRV[d.dir&&d.dir[0]], B=DIRV[d.dir&&d.dir[1]]; if(!A || !B || A[0]*B[0]+A[1]*B[1] || d.float) return null;
+  const g=bvGeom(d), [xc,zc]=d.at, R=g.R, sq=[];
+  for(let i=0;i<R;i++) for(let j=0;j<R;j++){ const x=xc-i*A[0]-j*B[0], z=zc-i*A[1]-j*B[1]; if(x<0||z<0||x>=W||z>=D) return null; sq.push({ k:K(x,z), x, z, solid:g.solid(R-.5-i,R-.5-j) }); }
+  const wS=sq.find(c=>c.solid && water[c.k]); if(!wS || sq.some(c=>c.solid && !water[c.k] && th(c.x,c.z)!==null)) return null;
+  const Y=wlk(wS.k)+WATER_Y; if(!sq.some(c=>!c.solid && !water[c.k] && th(c.x,c.z)!==null && th(c.x,c.z)>Y)) return null;
+  const o=Object.assign({}, d, { at:[xc-(R-1)*(A[0]+B[0]), zc-(R-1)*(A[1]+B[1])], dir:BV_OPP[d.dir[0]]+BV_OPP[d.dir[1]] });
+  if(g.inner) delete o.inner; else if(g.arc) o.inner=true;
+  return o;
+}
 /* Horizontal bevel: a wall corner cut diagonally or rounded with radius R. Local coordinates (u,v): u along A,
    v along B, origin — the inner corner of the R×R square; the block's straight faces are u=R (normal A) and v=R (normal B).
    Stations st[0..S] — where a stuck cube stands: 0 and S are ordinary cells at the straight faces, in between — flush with the bevel
@@ -9685,7 +9698,7 @@ function bevelFloat(geo,fo){
    a normal turn: psi = normal angle + k·π/2 — the cube's full rotation around the vertical at station k */
 function parseBevels(def){
   bevels=[]; bvq={}; bvqF={}; wsBv={};
-  (def.bevels||[]).forEach(d=>{
+  (def.bevels||[]).forEach(d0=>{ const d=bvShore(d0)||d0;
     const A0=DIRV[d.dir[0]], B0=DIRV[d.dir[1]], geo=A0 && B0 && !(A0[0]*B0[0]+A0[1]*B0[1]) ? bvGeom(d) : null;   // the shape — only from bevel-shape.js
     const {A,B,R,arc,inner,W2}=geo||{}, [xc,zc]=d.at, out=(x,z)=>!(x>=0 && x<W && z>=0 && z<D);
     if(!geo || [[0,0],[R-1,0],[0,R-1],[R-1,R-1]].some(([i,j])=>out(xc-i*A[0]-j*B[0], zc-i*A[1]-j*B[1]))){
@@ -9694,7 +9707,10 @@ function parseBevels(def){
     const fo=d.float || th(xc,zc)===null ? ovhsOf(K(xc,zc)).filter(bvFloatOk).sort((a,c)=>c.t-a.t)[0] : null;   // float — the floating block's bevel even with a column under it
     if(d.float && !fo){ console.error('bevel: '+d.at+' float — no floating block at the corner ('+def.name+')'); return; }
     if(fo) return bevelFloat(geo,fo);                      // a floating block (def.over) at the corner: the cut runs from its bottom to its top
-    let top=bvColTop(xc,zc), g=null, back=false;
+    const sqC=[]; for(let i=0;i<R;i++) for(let j=0;j<R;j++){ const x=xc-i*A[0]-j*B[0], z=zc-i*A[1]-j*B[1]; sqC.push({ x, z, k:K(x,z), solid:geo.solid(R-.5-i,R-.5-j) }); }
+    const landS=sqC.filter(c=>c.solid && !water[c.k] && bvColTop(c.x,c.z)!==null);   // the kept cells on land: a land bevel, even with water painted into its cut corner
+    const wS=sqC.find(c=>water[c.k] && (c.solid || c.k===K(xc,zc))), wc=!!wS && !landS.length;   // a water bevel: water at the corner or a kept cell, no kept cell on land (land painted into its cut corner stays a cut cell)
+    let top=wc ? bvColTop(wS.x,wS.z) : water[K(xc,zc)] ? Math.max(...landS.map(c=>bvColTop(c.x,c.z))) : bvColTop(xc,zc), g=null, back=false;
     if(top!==null){                                                  // the corner cell is the cut block: its own height (quarters too, the floor slab 0) is the wall, whatever stands behind;
       const ga=th(xc+A[0],zc+A[1]), gb=th(xc+B[0],zc+B[1]);           // under the cut — the lower of the two outside neighbours, or void
       g=ga===null||gb===null ? null : Math.min(ga,gb);
@@ -9714,7 +9730,10 @@ function parseBevels(def){
       const solid=geo.solid(u,v);
       const k=K(x,z), gaps=bvGaps(x,z,top);                               // a cut cell keeps them too: the arc through it gets the hole
       if(ovh[k] && ovhsOf(k).every(o=>o.kind==='rock')){ if(solid && gaps) ovhsOf(k).forEach(o=>o.bv=true); else delete ovh[k]; }   // tunnel rock: drawn by the bevel (cut away outside it)
-      bvq[k]={ b, solid, gaps }; terr[z][x]=solid ? (gaps ? gaps[0][0] : top) : g; }
+      bvq[k]={ b, solid, gaps };
+      if(!wc && solid && water[k]){ delete water[k]; delete wl[k]; delete wbed[k]; delete deep[k]; delete whang[k]; }   // a land bevel's kept cell is land
+      if(!solid && (wc ? !water[k] && th(x,z)!==null : water[k])) continue;   // a cut cell painted otherwise keeps its own floor: land past a water bevel, water by a land one
+      terr[z][x]=solid ? (gaps ? gaps[0][0] : top) : g; }
     const pts=[[R+.5,-.5,0]], h=Math.SQRT1_2;                          // [u,v,normal angle] of the cube centre
     if(inner){ const M=Math.max(1,Math.round(R*Math.PI/2)), rc=Math.max(0,Math.sqrt(R*R-.25)-.5-.004);   // a cove: the face touches the arc with both edges inside it; an outer edge at each end of the cut
       for(let j=1;j<=M;j++){ const p=(j-.5)/M*Math.PI/2; pts.push([R-rc*Math.sin(p),R-rc*Math.cos(p),Math.PI/2-p]); } }   // the normal points at the arc's centre (R,R)
@@ -9728,8 +9747,9 @@ function parseBevels(def){
       if(!end){ let best=9; for(let ix=cell[0]-1;ix<=cell[0]+1;ix++) for(let iz=cell[1]-1;iz<=cell[1]+1;iz++){   // the nearest cell outside the square and not a wall (a cove: its own cut cells too — the air the cube hangs in)
         const hh=th(ix,iz), dd=Math.hypot(ix-x,iz-z), bq=bvq[K(ix,iz)]; if(bq && !(inner && bq.b===b && !bq.solid) || (hh!==null && hh>top-1.01) || dd>=best) continue; best=dd; cell=[ix,iz]; } }
       b.st.push({ x:end?Math.round(x):x, z:end?Math.round(z):z, n, t, psi:f+k*Math.PI/2, cell }); });
-    if(water[K(xc,zc)]) wsBvParse(b);                                 // a water corner: the bed is cut like a block, the water by the same face (water-shell.js)
-    else if(back && wsBvInv(xc,zc,A,B,top)) wsBvParse(b,true);       // a land corner by the water: its cut part is that water — one bevel shapes the shore
+    const wIn=!wc && sqC.find(c=>!c.solid && water[c.k] && wlk(c.k)+WATER_Y<top);   // water painted into a land bevel's cut
+    if(wc) wsBvParse(b,false,wS.k);                                   // a water corner: the bed is cut like a block, the water by the same face (water-shell.js)
+    else if(back && (wIn || wsBvInv(xc,zc,A,B,top))) wsBvParse(b,true,wIn&&wIn.k);   // a land corner by the water: its cut part is that water — one bevel shapes the shore
     bevels.push(b);
   });
 }
@@ -10693,9 +10713,13 @@ function wsEdges(B){
       const np=Math.max(1,Math.ceil(Math.hypot(p1[0]-p0[0],p1[1]-p0[1])*WS_R-.01));
       for(let j=0;j<np;j++){ const a=[lerp(p0[0],p1[0],j/np),lerp(p0[1],p1[1],j/np)], c=[lerp(p0[0],p1[0],(j+1)/np),lerp(p0[1],p1[1],(j+1)/np)];
         const cx=Math.round((a[0]+c[0])/2-nx*.05), cz=Math.round((a[1]+c[1])/2-nz*.05), o={ x:cx, z:cz, face:b };
-        side.push(Object.assign({ x:cx, z:cz, dx:nx, dz:nz, lip:!!kind, a, b:c, face:b }));
-        if(kind) lip.push(seg(a,c,[nx,nz],Object.assign(o,kind,{ prof:wsProf(kind.H) })));
-        else shore.push(seg(a,c,[nx,nz],Object.assign(o,{ bank:(b.wInv?b.top:b.g)-Y }))); } } }
+        const pk=K(Math.round((a[0]+c[0])/2+nx*.05),Math.round((a[1]+c[1])/2+nz*.05)), pq=!b.wInv && bvq[pk];   // past the face: a cut cell painted land keeps its own floor
+        const hp=pq && pq.b===b && !pq.solid && !water[pk] ? th(...pk.split(',').map(Number)) : undefined;
+        const kd=hp===undefined || hp===b.g ? kind : hp===null ? { H:6, vd:1, to:null } : hp<Y-.05 ? { H:Y-hp, vd:0, to:null } : null;
+        const wk=K(cx,cz); if(!(wsBv[wk] && wsBv[wk].b===b || water[wk] && wlk(wk)===B)) continue;   // a piece over a square cell that holds no water of this bevel (void, land)
+        side.push(Object.assign({ x:cx, z:cz, dx:nx, dz:nz, lip:!!kd, a, b:c, face:b }));
+        if(kd) lip.push(seg(a,c,[nx,nz],Object.assign(o,kd,{ prof:wsProf(kd.H) })));
+        else shore.push(seg(a,c,[nx,nz],Object.assign(o,{ bank:(b.wInv?b.top:hp!==undefined?hp:b.g)-Y }))); } } }
   return { B, Y, wet, shore, lip, side };
 }
 function wsSegD(px,pz,s){ const ax=s.a[0], az=s.a[1], bx=s.b[0]-ax, bz=s.b[1]-az; const u=clamp(((px-ax)*bx+(pz-az)*bz)/(bx*bx+bz*bz),0,1);
@@ -10713,7 +10737,7 @@ function wsChainCols(ch,LI){ const m=ch.length, cols=[]; let sg=0;
   const jn=(s1,s2)=>{ const d1=s1.d, d2=s2.d, dt=d1[0]*d2[0]+d1[1]*d2[1]; if(dt>.9999) return { t:'s' };
     const ph=Math.acos(clamp(dt,-1,1));
     if(ph>.5 && s1.t[0]*s2.t[1]-s1.t[1]*s2.t[0]>0) return { t:'f', ph };              // a sharp convex turn — a fan; concave — a mitre
-    return { t:'m', r:[(d1[0]+d2[0])/(1+dt),(d1[1]+d2[1])/(1+dt)] }; };
+    const mk=Math.min(1/(1+dt),2); return { t:'m', r:[(d1[0]+d2[0])*mk,(d1[1]+d2[1])*mk] }; };   // capped: a turn back on itself (a face meeting a cell side) must not throw the column away
   const J=ch.map((s,i)=>i?jn(ch[i-1],s):null);
   const put=(q,r,ds)=>{ if(cols.length) sg+=ds; cols.push({ q, r, sg, idx:LI(q[0],q[1]) }); };
   for(let i=0;i<m;i++){ const s=ch[i], j0=J[i], j1=J[i+1], len=Math.hypot(s.b[0]-s.a[0],s.b[1]-s.a[1]);
@@ -10853,8 +10877,8 @@ function wsLevel(ed,E,out){
    wsBv['x,z'] = { b, cut } — the cells of its square the face runs through or past: cut — the centre is cut away (not water any more,
    the cell is what lies beyond the corner); the rest stay water but wash a cube over the face (wsBvWash in water.js) ---- */
 let wsBv={};
-function wsBvParse(b,inv){                                            // inv — a land corner by the water: its cut part is that water (a shore cut by the same bevel)
-  const g=b.geo, [xc,zc]=g.at, ck=K(xc,zc), out=K(xc+g.A[0],zc+g.A[1]), B=wlk(inv?out:ck), face=bvFace(g), reg=[[0,0],...face.map(p=>[p[0],p[1]])];
+function wsBvParse(b,inv,src){                                        // inv — a land corner by the water: its cut part is that water (a shore cut by the same bevel); src — the water cell it takes its level from
+  const g=b.geo, [xc,zc]=g.at, ck=src&&!inv ? src : K(xc,zc), out=inv&&src||K(xc+g.A[0],zc+g.A[1]), B=wlk(inv?out:ck), face=bvFace(g), reg=[[0,0],...face.map(p=>[p[0],p[1]])];
   const inReg=(u,v)=>{ let c=false; for(let i=0,j=reg.length-1;i<reg.length;j=i++){ const [a,q]=reg[i], [e,h]=reg[j]; if((q>v)!==(h>v) && u<(e-a)*(v-q)/(h-q)+a) c=!c; } return c; };
   const fo=(px,pz)=>{ const [u,v]=g.loc(px,pz); let dm=9;             // signed distance to the face: < 0 — the block keeps it, > 0 — cut away
     for(let i=0;i<face.length-1;i++){ const [a,q]=face[i], [e,h]=face[i+1], ex=e-a, ez=h-q, t=clamp(((u-a)*ex+(v-q)*ez)/(ex*ex+ez*ez||1),0,1);
@@ -10864,12 +10888,12 @@ function wsBvParse(b,inv){                                            // inv —
   Object.assign(b,{ wB:B, wInv:!!inv, wFace:face, wTo:!inv && water[out] && wlk(out)<B-.01 ? wlk(out) : null,
     wFloor:inv ? wbedK(out) : deep[ck] && !B && !whang[ck] ? BOT : wbedK(ck) });
   for(let i=0;i<g.R;i++) for(let j=0;j<g.R;j++){ const x=xc-i*g.A[0]-j*g.B[0], z=zc-i*g.A[1]-j*g.B[1], k=K(x,z);
-    if(inv ? water[k] : !water[k] || wlk(k)!==B) continue;
+    if(inv ? water[k] && wlk(k)!==B : !water[k] || wlk(k)!==B) continue;   // a shore: water painted into its cut stays, clipped by the face
     let wet=false, dry=false; for(let a=0;a<=4;a++) for(let c=0;c<=4;c++){ const f=b.wf(x-.5+a/4,z-.5+c/4); if(f<-1e-6) wet=true; else if(f>1e-6) dry=true; }
     if(inv ? !wet : !dry) continue;
     const cut=b.wf(x,z)>1e-9; wsBv[k]={ b, cut };
     if(cut){ if(!inv){ delete water[k]; delete wl[k]; delete wbed[k]; delete deep[k]; delete whang[k]; } }
-    else if(inv){ water[k]=true; if(B) wl[k]=B; if(wbed[out]!==undefined) wbed[k]=wbed[out]; } }
+    else if(inv && !water[k]){ water[k]=true; if(B) wl[k]=B; if(wbed[out]!==undefined) wbed[k]=wbed[out]; } }
 }
 const wsBvInv=(xc,zc,A,B,top)=>{ const ck=K(xc,zc), a=K(xc+A[0],zc+A[1]), c=K(xc+B[0],zc+B[1]);
   return th(xc,zc)!==null && !water[ck] && [a,c].every(n=>water[n] && !deep[n] && !whang[n] && wlk(n)===wlk(a)) && top>wlk(a)+WATER_Y; };

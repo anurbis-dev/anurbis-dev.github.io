@@ -402,7 +402,7 @@ function inRender(){
   for(const m of inMsgs){ const it=document.createElement('div'); it.className='it';
     if(m.t!=='news'){ const h=document.createElement('b'); h.textContent=t(m.t==='fixed' ? 'The bug from your feedback has been fixed. Thank you for taking part!' : 'Reply to your feedback'); it.append(h); }
     if(m.t!=='fixed' && m.text){ const x=document.createElement('div'); x.className='tx'; x.textContent=m.text; it.append(x); }
-    if(m.shot){ const im=document.createElement('img'); im.alt=''; im.src=m.shot; it.append(im); }
+    for(const src of (Array.isArray(m.shots) && m.shots.length ? m.shots : (m.shot ? [m.shot] : []))){ const im=document.createElement('img'); im.alt=''; im.src=src; it.append(im); }
     if(m.voice){ const au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.voice; it.append(au); }
     if(m.q){ const q=document.createElement('div'); q.className='q'; q.textContent=t('Your feedback')+': «'+m.q+(m.q.length>=160 ? '…' : '')+'»'; it.append(q); }
     L.append(it); }

@@ -296,13 +296,27 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-height:56px;resize:vertical;width:100%;transition:border-color .2s}
 .rep textarea:focus{border-color:var(--gold);outline:0}
 .tgs,.tbar{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tgs .tlbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800;margin-right:2px}
 .tbar{padding:0 2px 6px}
 .tbar .chip{cursor:pointer;border-color:var(--line);color:var(--dim);background:transparent;padding:2px 9px}
 .tbar .chip.on{border-color:var(--gold);color:var(--gold);background:rgba(255,214,107,.12)}
 .tgin{width:7.5em;background:transparent;border:1px dashed var(--line);border-radius:99px;padding:2px 9px;font:700 12px var(--f-body);color:var(--txt)}
 .tgin:focus{outline:0;border-color:var(--gold)}
-.rshot{max-width:220px;max-height:140px;border-radius:8px;border:1px solid var(--line)}
-.rfile{font-size:12px;color:var(--dim)}
+.qbox{position:relative}
+.qbox textarea{width:100%;min-height:88px;resize:vertical;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;font-size:15px}
+.qbox .pen{position:absolute;top:6px;right:6px;background:var(--bg2)}
+.qbox blockquote{padding-right:40px}
+.qbox .sav{position:absolute;inset:0;display:grid;place-items:center;background:rgba(13,8,25,.72);border-radius:10px;font-weight:800;color:var(--gold)}
+.rbox{display:grid;gap:8px;border-radius:10px;padding:2px;transition:box-shadow .15s,background .15s}
+.rbox.on{background:rgba(255,214,107,.08);box-shadow:inset 0 0 0 2px var(--gold)}
+.rtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rtools .sp{flex:1}
+.rthumbs{display:flex;flex-wrap:wrap;gap:8px}
+.rth{position:relative;display:inline-block}
+.rshot{display:block;max-width:220px;max-height:140px;border-radius:8px;border:1px solid var(--line)}
+.rth .rx{position:absolute;top:4px;right:4px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(13,8,25,.82);color:#fff;font-weight:800;line-height:22px;opacity:0;cursor:pointer}
+.rth:hover .rx,.rth:focus-within .rx{opacity:1}
+.tgs .add{cursor:pointer;border-style:dashed}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px 11px;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;white-space:nowrap;text-decoration:none;color:var(--txt);transition:background .15s,transform .15s}
 .btn:hover{background:var(--card2)}
 .btn:active{transform:scale(.96)}
@@ -619,7 +633,7 @@ const S={ frame:LSg('cube-fb2-f','wide'), wd:wdLoad(), tab:{ '#testers':'pl', '#
   F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
   toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, A:new Set(),
-  lsort:'ord', lq:'', ltag:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, pstuck:'', ptag:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, rshot:{}, rvoice:{}, rec:false };
+  lsort:'ord', lq:'', ltag:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, etag:'', pstuck:'', ptag:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, saving:false, tagAdd:'', rshot:{}, rvoice:{}, rec:false, rdrop:false };
 const anim=(...a)=>a.forEach(x=>S.A.add(x));
 const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab:['rep','pl','lv','err'] };   // swipeable tab sets: S[key] holds the current one
 const slide=k=>S.A.has('sl:'+k+':l') ? ' sl-l' : S.A.has('sl:'+k+':r') ? ' sl-r' : '';   // entrance animations for the next render only
@@ -639,14 +653,22 @@ const DIMS={
 let TAGS={ u:{}, l:{}, r:{} };
 const tagsOf=(k,id)=>{ const a=TAGS[k] && TAGS[k][String(id)]; return Array.isArray(a) ? a : []; };
 const tagBits=a=>a.length ? a.map(t=>`<span class="tag chg">${esc(t)}</span>`).join('') : '';
-function tagEdit(kind,id){ const a=tagsOf(kind,id);
-  return `<div class="tgs">${a.map(t=>`<span class="chip"><span>${esc(t)}</span><button data-act="untag" data-k="${kind}" data-id="${esc(id)}" data-t="${esc(t)}" aria-label="Убрать тег">×</button></span>`).join('')}<input class="tgin" id="tagIn" data-k="${kind}" data-id="${esc(String(id))}" placeholder="+ тег" maxlength="24"></div>`; }
-function tagBar(kind,cur){ const set=new Set(Object.values(TAGS[kind]||{}).flat()); if(!set.size) return '';
+const tagHas=(a,q)=>a.some(t=>t.includes(q));
+/* A report carries its own tags and the tags of its tester and level. A player carries theirs, their level's and their reports'. A level carries its own and its reports'. A crash carries the tags of the levels it happened on. */
+const repTags=r=>[...tagsOf('r',r.n), ...(r.tester ? tagsOf('u',r.tester) : []), ...(r.lvId ? tagsOf('l',r.lvId) : [])];
+const plTags=t=>[...tagsOf('u',t.id), ...(t.cur ? tagsOf('l',t.cur) : []), ...REPS.filter(r=>r.tester===t.id).flatMap(r=>tagsOf('r',r.n))];
+const lvTags=l=>[...tagsOf('l',l.id), ...(l.rp||[]).flatMap(r=>tagsOf('r',r.n).concat(r.tester ? tagsOf('u',r.tester) : []))];
+const errTags=e=>Object.keys(e.lv||{}).flatMap(id=>tagsOf('l',id));
+function tagEdit(kind,id){ const a=tagsOf(kind,id), on=S.tagAdd===kind+':'+id;
+  return `<div class="tgs"><span class="tlbl">Теги</span>${a.map(t=>`<span class="chip"><span>${esc(t)}</span><button data-act="untag" data-k="${kind}" data-id="${esc(id)}" data-t="${esc(t)}" aria-label="Убрать тег">×</button></span>`).join('')}${on ? `<input class="tgin" id="tagIn" data-k="${kind}" data-id="${esc(String(id))}" placeholder="тег и Enter" maxlength="24">` : `<button class="chip add" data-act="tagadd" data-k="${kind}" data-id="${esc(String(id))}">+ тег</button>`}</div>`; }
+function tagBar(kind,cur){ const set=kind==='r' ? new Set(REPS.flatMap(repTags)) : kind==='u' ? new Set(TS.flatMap(plTags)) : kind==='l' ? new Set(LVM.flatMap(lvTags)) : kind==='e' ? new Set((ERR||[]).flatMap(errTags)) : new Set(Object.values(TAGS[kind]||{}).flat());
+  if(!set.size) return '';
   return `<div class="tbar">${[...set].sort((a,b)=>a.localeCompare(b,'ru')).map(t=>`<button class="chip${cur===t ? ' on' : ''}" data-act="tfil" data-k="${kind}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`; }
 const FLAGS={ err:['ошибки консоли',r=>r.errs.length>0], fps:['FPS ниже 35',r=>r.fps && r.fps<35], voice:['с голосом',r=>!!r.m.voice] };
 const match=(r,...sk)=>{ const F=S.F, q=F.q.trim().toLowerCase(), s=k=>sk.includes(k);
-  if(q && !r.hay.includes(q) && !tagsOf('r',r.n).some(t=>t.includes(q))) return false;
-  if(F.tag && !tagsOf('r',r.n).includes(F.tag)) return false;
+  const tg=repTags(r);
+  if(q && !r.hay.includes(q) && !tagHas(tg,q)) return false;
+  if(F.tag && !tg.includes(F.tag)) return false;
   if(!s('kind') && F.kind && r.kind!==F.kind || !s('state') && F.state && !stOk(r,F.state) || F.flag && !FLAGS[F.flag][1](r)) return false;
   if(!s('day') && F.day!=null && r.day!==F.day) return false;
   for(const d of ['lv','ver','dev','who']){ if(s(d)) continue; const k=DIMS[d].k(r); if(F.not[d].includes(k) || F[d] && k!==F[d]) return false; }
@@ -680,8 +702,8 @@ function detail(r,sheet){
   if(!r) return `<div class="empty">${REPS.length ? 'Выберите отзыв в списке' : ''}</div>`;
   const s=r.s, m=r.m, qq=s.q||{}, f=(a,b,c)=>b ? `<div><span>${a}</span><b>${b}</b>${c ? `<small>${c}</small>` : ''}</div>` : '';
   const replay=m.snap && m.id && !DEMO ? `fb.html?id=${m.id}&k=${encodeURIComponent(KEY)}` : null;
-  const reps=r.reps ? r.reps.map(p=>{ const shot=p.shot && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-shot.jpg') : '', voice=p.voice && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-voice.'+p.voice) : '';
-    return `<div class="r">${p.text ? esc(p.text) : ''}${shot ? `<img class="rshot" data-act="zoom" src="${shot}" alt="">` : ''}${voice ? `<audio controls preload="none" src="${voice}"></audio>` : ''}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`; }).join('')
+  const reps=r.reps ? r.reps.map(p=>{ const nsh=p.shots||(p.shot ? 1 : 0), shots=!DEMO && r.m.id ? Array.from({ length:nsh },(_,i)=>media(r.m.id,i ? 'r'+p.id+'-shot-'+(i+1)+'.jpg' : 'r'+p.id+'-shot.jpg')) : [], voice=p.voice && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-voice.'+p.voice) : '';
+    return `<div class="r">${p.text ? esc(p.text) : ''}${shots.map(s=>`<img class="rshot" data-act="zoom" src="${s}" alt="">`).join('')}${voice ? `<audio controls preload="none" src="${voice}"></audio>` : ''}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`; }).join('')
     +(r.fixed ? `<span class="note">🔔 «Баг исправлен» — ${r.fixed.wait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : '') : '';
   const where=r.lv ? esc(r.lv)+(s.sub ? ' → '+esc(s.sub) : '') : '', wSub=[(r.icon||'')+' '+esc(r.area||''),r.ano ? '№'+r.ano : '',r.lvId ? `<code>${esc(r.lvId)}</code>` : ''].filter(x=>x.trim()).join(' · ');
   const acts=(replay ? `<a class="btn sm pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : DEMO && m.snap ? '<button class="btn sm pri" data-act="noop">▶ Открыть в игре</button>' : '')
@@ -694,7 +716,7 @@ function detail(r,sheet){
     <div class="who"><h2>${esc(r.who)}</h2>${r.cc ? flag(r.cc) : ''}<span class="dte" title="${full(r.at)}">${short(r.at)} · ${ago(r.at)}</span></div>${tagEdit('r',r.n)}</div>
     <div class="dtm"><div class="dtl">
       ${m.shot ? (DEMO ? `<div class="shot ph" style="--h:${r.hue}">${CUBE}</div>` : `<img class="shot" data-act="zoom" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">`) : ''}
-      ${S.edit===r.n ? `<textarea id="editText" maxlength="4000">${esc(S.editText!=null ? S.editText : r.text||'')}</textarea><div class="pa"><button class="btn sm" data-act="editno">Отмена</button><span class="sp"></span><button class="btn sm pri" data-act="editsave">Сохранить текст</button></div>` : `<blockquote>${esc(r.text||'(без текста)')}</blockquote><div class="pa"><button class="btn sm" data-act="edit">Исправить текст</button></div>`}
+      <div class="qbox${S.saving ? ' saving' : ''}">${S.edit===r.n ? `<textarea id="editText" maxlength="4000">${esc(S.editText!=null ? S.editText : r.text||'')}</textarea>` : `<blockquote>${esc(r.text||'(без текста)')}</blockquote><button class="ib pen" data-act="edit" title="Исправить текст" aria-label="Исправить текст"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M12.2 3.4l4.4 4.4-9.2 9.2H3v-4.4l9.2-9.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10.6 5l4.4 4.4" stroke="currentColor" stroke-width="1.6"/></svg></button>`}${S.saving ? '<div class="sav">Сохранение изменений</div>' : ''}</div>
       ${m.voice ? (DEMO ? '<div class="note">🎤 голосовая заметка '+mmss(m.dur||0)+' (в демо без звука)</div>' : `<audio controls preload="none" data-n="${r.n}" src="${media(m.id,'voice.'+m.voice)}"></audio>`) : ''}</div>
     <div class="dtr"><div class="facts">
       ${f('Где',where,wSub)}
@@ -707,10 +729,12 @@ function detail(r,sheet){
     </div>
     ${r.errs.length ? `<details class="box e" open><summary>⚠ Ошибки консоли (${r.errs.length})</summary><pre>${esc(r.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}</div></div>
     ${r.tester ? `<div class="rep"><h3>↩ Ответы игроку</h3>${r.reps ? reps || '<span class="note">Ответов пока нет</span>' : r.repErr ? `<span class="note err">Не удалось загрузить: ${esc(r.repErr)}</span>` : '<span class="note">Загрузка…</span>'}
-      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — текст, снимок или голос, придёт в игре (Ctrl+Enter)">${esc(S.draft[r.n]||'')}</textarea>
-      ${S.rshot[r.n] ? `<img class="rshot" src="${S.rshot[r.n]}" alt=""><button class="btn sm" data-act="rshotx">Убрать снимок</button>` : `<label class="rfile">Снимок <input id="repFile" type="file" accept="image/*"></label>`}
+      <div class="rbox${S.rdrop ? ' on' : ''}" id="rbox">
+      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter). Снимки можно перетащить сюда.">${esc(S.draft[r.n]||'')}</textarea>
+      ${(S.rshot[r.n]||[]).length ? `<div class="rthumbs">${(S.rshot[r.n]||[]).map((u,i)=>`<span class="rth"><img class="rshot" src="${u}" alt=""><button class="rx" data-act="rshotx" data-i="${i}" title="Убрать" aria-label="Убрать снимок">×</button></span>`).join('')}</div>` : ''}
+      <div class="rtools"><button class="ib" data-act="rpick" title="Снимки" aria-label="Снимки"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="8.2" r="1.3" fill="currentColor"/><path d="M3.5 14l4-3.4 2.4 2 2.2-1.8 4.4 3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button><input id="repFile" type="file" accept="image/*" multiple hidden>
       ${S.rvoice[r.n] ? `<audio controls src="${S.rvoice[r.n].url}"></audio><button class="btn sm" data-act="rvoicex">Убрать голос</button>` : `<button class="btn sm" data-act="rrec">${S.rec ? '■ Стоп' : '🎤 Голос'}</button>`}
-      <div class="pa"><span class="sp"></span><button class="btn sm pri" data-act="reply">Ответить</button></div></div>` : ''}
+      <span class="sp"></span><button class="btn sm pri" data-act="reply">Ответить</button></div></div></div>` : ''}
   </div>`;
 }
 const chipsF=()=>{ const F=S.F, c=[];
@@ -718,8 +742,8 @@ const chipsF=()=>{ const F=S.F, c=[];
   for(const d of ['lv','ver','dev','who']){ if(F[d]) c.push([d,(d==='lv' ? '📍 ' : d==='who' ? '👤 ' : d==='ver' ? 'v' : '')+F[d]]); F.not[d].forEach(k=>c.push([d,'≠ '+(d==='ver' ? 'v' : '')+k,k])); }
   return `<span class="chips">${c.map(([d,t,k])=>`<span class="chip${k!=null ? ' not' : ''}"><span>${esc(t)}</span><button data-act="unf" data-d="${d}"${k!=null ? ` data-k="${esc(k)}"` : ''} aria-label="Убрать фильтр">×</button></span>`).join('')}${c.length>1 ? '<button class="clr" data-act="unall">сбросить всё</button>' : ''}</span>`; };
 const segH=(act,cur,list)=>`<div class="seg sm">${list.map(([v,t])=>`<button data-act="${act}" data-v="${v}" aria-pressed="${cur===v}">${t}</button>`).join('')}</div>`;
-const plMatch=t=>{ const q=S.pq.trim().toLowerCase(); if(S.ptag && !tagsOf('u',t.id).includes(S.ptag)) return false;
-  return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...tagsOf('u',t.id),...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
+const plMatch=t=>{ const q=S.pq.trim().toLowerCase(), tg=plTags(t); if(S.ptag && !tg.includes(S.ptag)) return false;
+  return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...tg,...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
 function plSorted(){ const s=S.psort, day=S.pday==null ? null : DAYS-1-S.pday;
   return TS.filter(t=>plMatch(t) && (day==null || t.ss.some(x=>dayOf(x.s)===day)) && (!S.pstuck || t.cur===S.pstuck && !t.done.has(t.cur) && Date.now()-t.last>STUCK_D*DAY)).sort(s==='time' ? (a,b)=>b.tot-a.tot : s==='lv' ? (a,b)=>b.lvN-a.lvN || b.stars-a.stars : s==='at' ? (a,b)=>b.at-a.at
     : s==='nick' ? (a,b)=>a.nick.localeCompare(b.nick,'ru') : (a,b)=>b.last-a.last || b.at-a.at); }
@@ -837,7 +861,7 @@ function repView(){
     <button class="st" data-act="quick" data-v="opinion" aria-pressed="${qa('opinion')}"><b style="color:var(--op)" data-n="${oo}">${oo}</b><span>впечатлений</span>${spark(perDay(REPS.filter(r=>r.kind==='opinion'),14,()=>1,r=>r.at),'#8fb8ff')}</button>
     <button class="st" ${fl('err')}><b data-n="${open.filter(FLAGS.err[1]).length}">${open.filter(FLAGS.err[1]).length}</b><span>с ошибками консоли</span><span>открытых</span></button>
     <button class="st" ${fl('fps')}><b data-n="${open.filter(FLAGS.fps[1]).length}">${open.filter(FLAGS.fps[1]).length}</b><span>FPS ниже 35</span><span>открытых</span></button></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень…" value="${esc(F.q)}">
+  const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень, тег…" value="${esc(F.q)}">
     <select class="sel" id="grp" aria-label="Группировать">${[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']].map(([v,t])=>`<option value="${v}"${S.G===v ? ' selected' : ''}>${t}</option>`).join('')}</select>
     ${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : ''}</div>
     <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${tagBar('r',F.tag)}${chipsF()}</div>`;
@@ -860,7 +884,7 @@ function plView(){
     <div class="st"><b>${hmS(N.ms)}</b><span>наиграно</span>${spark(perDay(N.ss,14,s=>(s.e-s.s)/MIN,s=>s.s),'#ffd66b')}</div>
     <div class="st"><b data-n="${N.n}">${N.n}</b><span>${nf(N.n,'сессия','сессии','сессий')}</span><span>ср. ${hm(N.avg)}</span></div>
     <div class="st"><b data-n="${N.devs}">${N.devs}</b><span>устройств</span><span>${N.cc} ${nf(N.cc,'страна','страны','стран')}</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="pq" type="search" placeholder="Ник, устройство, страна…" value="${esc(S.pq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div><div class="f2">${segH('psort',S.psort,[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']])}
+  const tool=`<div class="flt"><div class="f1"><input class="srch" id="pq" type="search" placeholder="Ник, устройство, страна, тег…" value="${esc(S.pq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div><div class="f2">${segH('psort',S.psort,[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']])}
 </div>
     ${tagBar('u',S.ptag)}<span class="chips">${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}${S.ptag ? `<span class="chip"><span>#${esc(S.ptag)}</span><button data-act="tfil" data-k="u" data-t="${esc(S.ptag)}" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
   rowI=0;
@@ -925,8 +949,8 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li><b>Сбои</b> — ошибки, которые игра отправила сама, сгруппированные по тексту: сколько раз, у скольких игроков, в каких версиях и на каких уровнях.</li></ul>
   <h5>Панели</h5><ul><li>Границы между панелями тянутся мышью — ширина запоминается, двойной клик возвращает. Стрелки у края панели — там есть ещё, тап прокручивает.</li>
     <li>Колесо мыши плавно прокручивает панель под курсором; <b>средняя кнопка</b> — тянуть содержимое, как пальцем (отпустил в движении — докатывается).</li></ul>
-  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип, 🗑 — удалить отзыв. «Исправить текст» меняет формулировку. К ответу можно приложить снимок и голос — игрок увидит их в игре.</li>
-    <li>Поле «+ тег» и Enter ставит тег игроку, уровню или отзыву. Ряд тегов над списком фильтрует, повторный тап снимает.</li>
+  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип, 🗑 — удалить отзыв. Карандаш в углу текста включает правку: клик снаружи сохраняет, если текст изменился. К ответу — иконка снимков (несколько или перетаскивание) и голос.</li>
+    <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). Ряд тегов над каждым списком, включая сбои, фильтрует; поиск тоже ищет по тегам.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
     <li>Кубик в левом верхнем углу — сводка: версия беты и что происходит.</li></ul>
@@ -1095,10 +1119,10 @@ function delRep(r){
     catch(e){ toast('Не удалось: '+e.message); } })(); });
 }
 async function replySend(r){
-  const text=(S.draft[r.n]||'').trim(), shot=S.rshot[r.n]||null, voice=S.rvoice[r.n]||null;
-  if(!text && !shot && !voice){ $('repText') && $('repText').focus(); return; }
-  if(DEMO && (shot || voice)){ toast('В демо снимок и голос не уходят'); return; }
-  try{ await api(`/issue/${r.n}/reply`,{ text, shot, audio:voice ? { data:voice.data, dur:voice.dur } : null }); r.comments++; delete S.draft[r.n]; delete S.rshot[r.n];
+  const text=(S.draft[r.n]||'').trim(), shots=S.rshot[r.n]||[], voice=S.rvoice[r.n]||null;
+  if(!text && !shots.length && !voice){ $('repText') && $('repText').focus(); return; }
+  if(DEMO && (shots.length || voice)){ toast('В демо снимок и голос не уходят'); return; }
+  try{ await api(`/issue/${r.n}/reply`,{ text, shots, shot:shots[0]||null, audio:voice ? { data:voice.data, dur:voice.dur } : null }); r.comments++; delete S.draft[r.n]; delete S.rshot[r.n];
     if(voice) URL.revokeObjectURL(voice.url); delete S.rvoice[r.n]; toast('Отправлено — '+r.who+' увидит в игре'); repLoad(r); }
   catch(e){ toast('Не удалось: '+e.message); }
 }
@@ -1119,11 +1143,18 @@ async function recStart(r){
 function jpegFile(file){ return new Promise((ok,no)=>{ const im=new Image(); im.onload=()=>{ const s=Math.min(1,1280/Math.max(im.width,im.height)), c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(im.width*s)); c.height=Math.max(1,Math.round(im.height*s)); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(im.src); ok(c.toDataURL('image/jpeg',.72)); };
   im.onerror=()=>no(new Error('image')); im.src=URL.createObjectURL(file); }); }
+const SHOT_N=6;
+function addShots(r,files){ const imgs=[...files].filter(f=>/^image\//.test(f.type)); if(!imgs.length) return;
+  const n=r.n, cur=(S.rshot[n]||[]).slice();
+  Promise.all(imgs.slice(0,SHOT_N-cur.length).map(jpegFile)).then(us=>{ S.rshot[n]=cur.concat(us).slice(0,SHOT_N); if(imgs.length>SHOT_N-cur.length) toast('Не больше '+SHOT_N+' снимков'); render(); }).catch(()=>toast('Не удалось прочитать снимок')); }
+const editChanged=()=>{ const r=S.sel; return !!(r && S.edit===r.n && (S.editText!=null ? S.editText : r.text||'')!==(r.text||'')); };
+function leaveEdit(){ if(!S.edit || S.saving || !S.sel) return; if(!editChanged()){ S.edit=0; S.editText=null; render(); return; } saveText(S.sel); }
 async function saveText(r){
   const text=(S.editText!=null ? S.editText : r.text||'');
+  S.saving=true; render();
   try{ await api(`/issue/${r.n}/text`,{ text }); const i=RAW.find(x=>x.n===r.n); if(i){ i.meta=i.meta||{}; i.meta.text=text; if(i.title) i.title=i.title.replace(/ — [^\n]*$/,'')+' — '+(text||'голосовое').replace(/\s+/g,' ').slice(0,70); }
-    S.edit=0; S.editText=null; model(); toast('Текст отзыва исправлен'); }
-  catch(e){ toast('Не удалось: '+e.message); }
+    S.edit=0; S.editText=null; S.saving=false; model(); toast('Текст отзыва исправлен'); }
+  catch(e){ S.saving=false; render(); toast('Не удалось: '+e.message); }
 }
 async function setTag(kind,id,tag,on){
   tag=String(tag||'').trim().toLowerCase().replace(/\s+/g,' '); if(!/^[\p{L}\p{N}][\p{L}\p{N} _.\-]{0,22}[\p{L}\p{N}]$/u.test(tag)){ toast('Тег: 2–24 буквы или цифры'); return; }
@@ -1156,9 +1187,12 @@ const toggleAna=()=>{ const f=$('fold'); LSs('cube-fb2-ana',S.ana ? '0' : '1');
 
 /* ==================== Events ==================== */
 let eatClick=0, lpUp=false;   // lpUp: the finger that long-pressed is still down — its release is not a tap on the menu
+let editAway=false;
+app.addEventListener('pointerdown',e=>{ editAway=!!(S.edit && !S.saving && !e.target.closest('#editText') && !e.target.closest('[data-act=edit]')); },true);
 app.addEventListener('click',e=>{
   if(lpUp || Date.now()-eatClick<450){ lpUp=false; e.preventDefault(); e.stopPropagation(); return; }
-  const el=e.target.closest('[data-act]'); if(!el) return; const a=el.dataset.act, F=S.F;
+  if(editAway){ editAway=false; leaveEdit(); }
+  const el=e.target.closest('[data-act]'); if(!el){ if(S.edit && !S.saving && !editChanged()) render(); return; } const a=el.dataset.act, F=S.F;
   if(a==='bg'){ if(e.target===el) closeSheet(); return; }
   if(a==='mnbg'){ if(e.target===el){ S.menu=null; render(); } return; }
   if(a==='askbg'){ if(e.target===el){ S.ask=null; render(); } return; }
@@ -1201,14 +1235,14 @@ app.addEventListener('click',e=>{
   else if(a==='xp'){ const k=el.dataset.k; S.xo.has(k) ? S.xo.delete(k) : S.xo.add(k); }
   else if(a==='pmap'){ const t=TSI[el.dataset.t], e=t && t.prog[+el.dataset.x]; if(!e) return; $('lb').querySelector('img').hidden=true; $('lb').querySelector('.lbm').innerHTML=starMap(el.dataset.id,t,e); $('lb').hidden=false; tipHide(); return; }
   else if(a==='reply'){ replySend(S.sel); return; }
-  else if(a==='edit'){ S.edit=S.sel.n; S.editText=S.sel.text||''; S.focus='editText'; }
-  else if(a==='editno'){ S.edit=0; S.editText=null; }
-  else if(a==='editsave'){ saveText(S.sel); return; }
-  else if(a==='rshotx'){ if(S.sel) delete S.rshot[S.sel.n]; }
+  else if(a==='edit'){ if(S.sel && !S.saving){ S.edit=S.sel.n; S.editText=S.sel.text||''; S.focus='editText'; } }
+  else if(a==='rpick'){ $('repFile') && $('repFile').click(); return; }
+  else if(a==='rshotx'){ const a2=S.sel && S.rshot[S.sel.n]; if(a2){ a2.splice(+el.dataset.i,1); if(!a2.length) delete S.rshot[S.sel.n]; } }
+  else if(a==='tagadd'){ S.tagAdd=el.dataset.k+':'+el.dataset.id; S.focus='tagIn'; }
   else if(a==='rvoicex'){ const v=S.sel && S.rvoice[S.sel.n]; if(v){ URL.revokeObjectURL(v.url); delete S.rvoice[S.sel.n]; } }
   else if(a==='rrec'){ if(S.rec) recStop(); else recStart(S.sel); return; }
   else if(a==='untag'){ setTag(el.dataset.k,el.dataset.id,el.dataset.t,false); return; }
-  else if(a==='tfil'){ const k=el.dataset.k, t=el.dataset.t, cur=k==='u' ? 'ptag' : k==='l' ? 'ltag' : null;
+  else if(a==='tfil'){ const k=el.dataset.k, t=el.dataset.t, cur=k==='u' ? 'ptag' : k==='l' ? 'ltag' : k==='e' ? 'etag' : null;
     if(cur) S[cur]=S[cur]===t ? '' : t; else F.tag=F.tag===t ? '' : t; anim('list'); }
   else if(a==='noop'){ toast('В демо не работает'); return; }
   else if(a==='ana'){ toggleAna(); return; }
@@ -1238,9 +1272,13 @@ app.addEventListener('click',e=>{
 app.addEventListener('input',e=>{ const id=e.target.id;
   if(id==='q'){ S.F.q=e.target.value; render(); } else if(id==='pq'){ S.pq=e.target.value; render(); } else if(id==='lq'){ S.lq=e.target.value; render(); } else if(id==='eq'){ S.eq=e.target.value; render(); }
   else if(id==='repText' && S.sel) S.draft[S.sel.n]=e.target.value; else if(id==='editText') S.editText=e.target.value; });
-app.addEventListener('change',e=>{ if(e.target.id!=='repFile' || !S.sel || !e.target.files[0]) return; const n=S.sel.n, f=e.target.files[0];
-  jpegFile(f).then(u=>{ S.rshot[n]=u; render(); }).catch(()=>toast('Не удалось прочитать снимок')); });
-app.addEventListener('keydown',e=>{ if(e.target.id==='tagIn' && e.key==='Enter'){ e.preventDefault(); const t=e.target; setTag(t.dataset.k,t.dataset.id,t.value,true); t.value=''; } });
+app.addEventListener('change',e=>{ if(e.target.id!=='repFile' || !S.sel) return; addShots(S.sel,e.target.files); e.target.value=''; });
+app.addEventListener('dragover',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(!box || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); box.classList.add('on'); });
+app.addEventListener('dragleave',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(box && !box.contains(e.relatedTarget)) box.classList.remove('on'); });
+app.addEventListener('drop',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(!box || !S.sel) return; e.preventDefault(); box.classList.remove('on'); addShots(S.sel,e.dataTransfer.files); });
+app.addEventListener('focusout',e=>{ if(e.target.id==='editText' && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-act]'))) leaveEdit();
+  if(e.target.id==='tagIn'){ const t=e.target, v=t.value.trim(); S.tagAdd=''; if(v) setTag(t.dataset.k,t.dataset.id,v,true); else render(); } });
+app.addEventListener('keydown',e=>{ if(e.target.id==='tagIn' && e.key==='Enter'){ e.preventDefault(); const t=e.target; setTag(t.dataset.k,t.dataset.id,t.value,true); S.tagAdd=''; t.value=''; } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='keyIn' && e.key==='Enter') app.querySelector('[data-act=key]').click(); });
 /* Right click (and the system long press on touch) opens the same menu once: it takes over the pending long-press timer */
 app.addEventListener('contextmenu',e=>{ const lp=e.target.closest('[data-lp]'); if(!lp) return; e.preventDefault(); if(S.menu || G0 && G0.mode) return;
@@ -1381,7 +1419,7 @@ const tEnd=()=>{ if(T && T.on){ eatClick=Date.now(); pvEnd(T.sh,T.dy||0,T.v); } 
 app.addEventListener('touchend',tEnd); app.addEventListener('touchcancel',tEnd);
 
 addEventListener('keydown',e=>{
-  if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); else if(e.target.id==='editText' && S.sel) saveText(S.sel); return; }
+  if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); else if(e.target.id==='editText' && S.sel) leaveEdit(); return; }
   if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
   if(e.target.matches('input,textarea,select')){ if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape'){ if(S.sheet) closeSheet(); }
@@ -1430,7 +1468,7 @@ function lvModel(){
   if(S.lsel) S.lsel=LVMI[S.lsel.id]||null;
 }
 const LSORT={ ord:(a,b)=>a.gi-b.gi, die:(a,b)=>b.dpp-a.dpp, quit:(a,b)=>b.quitRate-a.quitRate, bug:(a,b)=>b.bugRate-a.bugRate || b.bugs-a.bugs, fps:(a,b)=>(a.fps??999)-(b.fps??999) };
-const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>(!S.ltag || tagsOf('l',l.id).includes(S.ltag)) && (!q || l.hay.includes(q) || tagsOf('l',l.id).some(t=>t.includes(q))) && (!S.lcause || l.t && l.t.causes[S.lcause])).sort(LSORT[S.lsort]||LSORT.ord); };
+const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>{ const tg=lvTags(l); return (!S.ltag || tg.includes(S.ltag)) && (!q || l.hay.includes(q) || tagHas(tg,q)) && (!S.lcause || l.t && l.t.causes[S.lcause]); }).sort(LSORT[S.lsort]||LSORT.ord); };
 let VISL=[], VISE=[];
 const fpsCol=v=>v==null ? 'inherit' : v<30 ? 'var(--bug)' : v<45 ? 'var(--warn)' : 'var(--ok)';
 function lvRow(l){
@@ -1518,7 +1556,7 @@ function lvView(){
     <div class="st"><b data-n="${dt}">${dt}</b><span>${nf(dt,'гибель','гибели','гибелей')}</span><span>${qt} ${nf(qt,'раз','раза','раз')} бросили</span></div>
     <div class="st"><b data-n="${stuck}" style="color:${stuck ? 'var(--warn)' : 'inherit'}">${stuck}</b><span>застряли</span><span>не играют ${STUCK_D}+ дня</span></div>
     <div class="st"><b data-n="${slow}" style="color:${slow ? 'var(--bug)' : 'inherit'}">${slow}</b><span>${nf(slow,'уровень','уровня','уровней')}</span><span>FPS ниже 35</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="lq" type="search" placeholder="Уровень…" value="${esc(S.lq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div>
+  const tool=`<div class="flt"><div class="f1"><input class="srch" id="lq" type="search" placeholder="Уровень или тег…" value="${esc(S.lq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div>
     <div class="f2">${segH('lsort',S.lsort,[['ord','По порядку'],['die','Гибели'],['quit','Бросают'],['bug','Ошибки'],['fps','FPS']])}</div>
     ${tagBar('l',S.ltag)}<span class="chips">${S.lcause ? `<span class="chip"><span>💀 ${esc(dcName(S.lcause))}</span><button data-act="unlcause" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
   rowI=0; VISL=[];
@@ -1535,7 +1573,7 @@ function lvView(){
 /* Crashes: errors the game sent by itself, grouped by message */
 const ESORT={ new:(a,b)=>b.last-a.last, n:(a,b)=>b.n-a.n, pl:(a,b)=>b.players-a.players || b.n-a.n };
 const eNewest=()=>{ const v=(ERR||[]).flatMap(e=>e.vers); return v.sort((a,b)=>b.localeCompare(a,undefined,{ numeric:true }))[0]||''; };
-const errShown=()=>{ const q=S.eq.trim().toLowerCase(), nv=eNewest(); return (ERR||[]).filter(e=>(!q || (e.m+' '+e.s).toLowerCase().includes(q)) && (!S.enew || e.vers.includes(nv))).sort(ESORT[S.esort]||ESORT.new); };
+const errShown=()=>{ const q=S.eq.trim().toLowerCase(), nv=eNewest(); return (ERR||[]).filter(e=>{ const tg=errTags(e); return (!q || (e.m+' '+e.s).toLowerCase().includes(q) || tagHas(tg,q) || Object.keys(e.lv||{}).some(id=>((LVMI[id]||{}).name||id).toLowerCase().includes(q))) && (!S.etag || tg.includes(S.etag)) && (!S.enew || e.vers.includes(nv)); }).sort(ESORT[S.esort]||ESORT.new); };
 function errRow(e){
   const nv=eNewest(), lv=Object.entries(e.lv||{}).sort((a,b)=>b[1]-a[1])[0];
   return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.esel===e ? ' on' : ''}" data-act="ero" data-k="${esc(e.key)}">
@@ -1562,8 +1600,8 @@ function errView(){
     <button class="st" data-act="enew" aria-pressed="${S.enew}"><b data-n="${inNew}" style="color:${inNew ? 'var(--bug)' : 'inherit'}">${inNew}</b><span>в v${esc(nv||'—')}</span><span>новая версия</span></button>
     <div class="st"><b data-n="${day}">${day}</b><span>за сутки</span><span>видов</span></div>
     <div class="st"><b data-n="${pl}">${pl}</b><span>${nf(pl,'игрок','игрока','игроков')}</span><span>столкнулись (макс.)</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="eq" type="search" placeholder="Текст ошибки, файл…" value="${esc(S.eq)}"></div>
-    <div class="f2">${segH('esort',S.esort,[['new','Свежие'],['n','Частые'],['pl','Игроков']])}</div></div>`;
+  const tool=`<div class="flt"><div class="f1"><input class="srch" id="eq" type="search" placeholder="Текст ошибки, файл, тег уровня…" value="${esc(S.eq)}"></div>
+    <div class="f2">${segH('esort',S.esort,[['new','Свежие'],['n','Частые'],['pl','Игроков']])}</div>${tagBar('e',S.etag)}</div>`;
   rowI=0; VISE=L;
   const none=!ERR ? `<div class="empty">${DEMO || tpAt ? 'Сбоев пока нет данных: они появятся, когда воркер подключён к D1.' : 'Загрузка…'}</div>` : `<div class="empty">${all.length ? 'Ничего не найдено' : 'Сбоев нет 🎉'}</div>`;
   return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="list scr" id="lst">${L.length ? L.map(errRow).join('') : none}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? errDetail(S.esel) : ''}</div></div>`;
@@ -1665,7 +1703,7 @@ async function demoApi(path,body){
   if(path==='/tags'){ DD.tags=DD.tags||{ u:{}, l:{}, r:{} }; if(!body) return DD.tags; const b=DD.tags[body.kind]||(DD.tags[body.kind]={}), id=String(body.id), cur=new Set(b[id]||[]);
     if(body.on===false) cur.delete(body.tag); else cur.add(String(body.tag||'').trim().toLowerCase()); if(cur.size) b[id]=[...cur]; else delete b[id]; return DD.tags; }
   let m=path.match(/^\/issue\/(\d+)\/text$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i && i.meta) i.meta.text=body.text; return { ok:true, text:body.text }; }
-  m=path.match(/^\/issue\/(\d+)\/reply$/); if(m){ const a=DD.reps[m[1]]||(DD.reps[m[1]]=[]); if(body) a.push({ text:body.text, at:new Date().toISOString(), wait:true, shot:!!body.shot, voice:body.audio ? 'webm' : null, dur:body.audio && body.audio.dur || 0 }); return { replies:a, fixed:false }; }
+  m=path.match(/^\/issue\/(\d+)\/reply$/); if(m){ const a=DD.reps[m[1]]||(DD.reps[m[1]]=[]); if(body) a.push({ text:body.text, at:new Date().toISOString(), wait:true, shot:!!(body.shots && body.shots.length || body.shot), shots:(body.shots||[]).length||(body.shot?1:0), voice:body.audio ? 'webm' : null, dur:body.audio && body.audio.dur || 0 }); return { replies:a, fixed:false }; }
   m=path.match(/^\/issue\/(\d+)\/delete$/); if(m){ DD.list=DD.list.filter(x=>x.n!==+m[1]); return { ok:true, how:'deleted' }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m && body.kind){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.labels=i.labels.filter(l=>l!=='bug' && l!=='opinion').concat(body.kind); i.meta.kind=body.kind; } return { ok:true }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip').concat(body.state==='wip' ? ['wip'] : []); } return { ok:true }; }
