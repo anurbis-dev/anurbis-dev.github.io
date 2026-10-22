@@ -1007,7 +1007,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.13.2';
+const VERSION = '2.13.4';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -10309,7 +10309,7 @@ function buildBevel(b){
   }
   {                                                                  // uncut back sides of the square, cell by cell, where the neighbour behind is lower
     const [xc,zc]=b.at, cell=(i,j)=>[xc-i*b.A[0]-j*b.B[0], zc-i*b.A[1]-j*b.B[1]];
-    const need=(x,z,nx,nz)=>{ const q=bvqB(b,K(x,z)); if(!q || !q.solid) return false;
+    const need=(x,z,nx,nz,u,v)=>{ const q=bvqB(b,K(x,z)); if(!q || !b.geo.solid(u,v)) return false;   // the side itself is kept (a cove's cut cell keeps its back side)
       if(b.fl) return !ovhsOf(K(nx,nz)).some(o=>bvFloatOk(o) && o.b<=y0+.01 && o.t>=top-.01);   // a floating block: unless a block of the same span stands behind
       const nh=th(nx,nz); return nh===null || nh<top-.01; };   // a lower bevel square behind too — its terr is its own height
     const wall=(u0,v0,u1,v1,nu,nv,nh,gs)=>{
@@ -10319,8 +10319,8 @@ function buildBevel(b){
     };
     const gq=(x,z)=>bvqB(b,K(x,z)).gaps;
     const nth=(x,z)=>b.fl ? null : th(x,z);
-    for(let j=0;j<R;j++){ const [x,z]=cell(R-1,j), [nx,nz]=cell(R,j); if(need(x,z,nx,nz)) wall(0,R-1-j,0,R-j,-1,0,nth(nx,nz),gq(x,z)); }   // u=0 side
-    for(let i=0;i<R;i++){ const [x,z]=cell(i,R-1), [nx,nz]=cell(i,R); if(need(x,z,nx,nz)) wall(R-1-i,0,R-i,0,0,-1,nth(nx,nz),gq(x,z)); }   // v=0 side
+    for(let j=0;j<R;j++){ const [x,z]=cell(R-1,j), [nx,nz]=cell(R,j); if(need(x,z,nx,nz,.01,R-.5-j)) wall(0,R-1-j,0,R-j,-1,0,nth(nx,nz),gq(x,z)); }   // u=0 side
+    for(let i=0;i<R;i++){ const [x,z]=cell(i,R-1), [nx,nz]=cell(i,R); if(need(x,z,nx,nz,R-.5-i,.01)) wall(R-1-i,0,R-i,0,0,-1,nth(nx,nz),gq(x,z)); }   // v=0 side
   }
   const m=new THREE.Mesh(geoFrom(A),terrMat); m.castShadow=m.receiveShadow=true; m.userData={ kind:'bevelMesh' }; world.add(m);
   if(Bk.pos.length){ const bm=new THREE.Mesh(geoFrom(Bk),terrMat); bm.castShadow=bm.receiveShadow=true; bm.userData={ kind:'bevelBack' }; world.add(bm); }
@@ -16206,7 +16206,7 @@ function arcY(y0,cc,y1,k){ return (1-k)*(1-k)*y0+2*k*(1-k)*cc+k*k*y1; }
 function doLeap(dx,dz){
   const bc=P.bClimb||0; P.bClimb=0;                                     // from a rubber slam bounce — as high as it springs
   const L=P.l, big=P.jpow>=.6, rub=P.mat==='rubber', climb=bc||(big?2:1)+(rub?1:0), maxD=bc?Math.min(bc+1,5):(big?3:2)+(rub?1:0);
-  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L], peaks=[L], obIn=[], slIn=[];   // peaks — the highest point of each cell on the way (a ramp: its high edge); obIn — a low obstacle flown over (narrower than its cell)
+  let land=null, dist=0, solid=null, stick=null, railY=-Infinity; const tops=[L], peaks=[L], obIn=[], slIn=[], slOv=[];   // peaks — the highest point of each cell on the way (a ramp: its high edge); obIn — a low obstacle flown over (narrower than its cell); slOv — a slope flown over (its profile)
   for(let d=1; d<=maxD; d++){
     const x=P.x+dx*d, z=P.z+dz*d, nf=nicheFloor(x,z);
     if(nf!==null){ if(nf>L+STEPUP && nf<=L+climb+.01 && freeAt(x-dx,z-dz,nf)) return nicheGlide(x-dx,z-dz,x,z,dx,dz,nf,d-1);   // a niche up to the jump's height — fly to its mouth and slide in
@@ -16219,7 +16219,7 @@ function doLeap(dx,dz){
     if(rk>L+climb+.01) break;
     slIn[d]=rk!==c.top ? rs : null;                                    // a slope reached by its edge: the arc may come down onto it along its rise
     dist=d; land=c; tops[d]=c.top; if(c.top>-Infinity) solid=[d,c];
-    const ar=slopes[K(x,z)], arc=!!(ar && !ar.bridge && ar.seg && ar.seg.arc && !ovhOn(K(x,z),L+climb)); peaks[d]=arc ? Math.max(ar.b,ar.b+ar.r) : c.top; obIn[d]=!arc && !!lowOb(K(x,z));
+    const ar=slopes[K(x,z)], arc=!!(ar && !ar.bridge && ar.seg && ar.seg.arc && !ovhOn(K(x,z),L+climb)); slOv[d]=ar && !ar.bridge && !ovhOn(K(x,z),L+climb) ? ar : null; peaks[d]=slOv[d] ? Math.max(ar.b,ar.b+ar.r) : c.top; obIn[d]=!arc && !!lowOb(K(x,z));
     if(geyCell(x,z)) break;                                            // a playing geyser on the way: the leap comes down into its column (geyCatch)
     if(c.top>L+STEPUP && !(d<maxD && (big || obRoll(obst[K(x,z)])) && lowOb(K(x,z))) && !(d<maxD && arc && peaks[d]<=L+climb+.01)) break;   // fly over a bush (and a rock — when charged), over a curved ramp the jump clears
   }
@@ -16237,12 +16237,18 @@ function doLeap(dx,dz){
   for(let d=0; d<=dist; d++){ const t=d===dist?land.top:tops[d];
     for(const o of ovhsOf(K(P.x+dx*d,P.z+dz*d))) if(o.b>=L+1-.01 && t<o.b) cap=Math.min(cap,o.b-HALF-.02); }
   let pk=-Infinity; for(let d=1; d<dist; d++) pk=Math.max(pk,peaks[d]);   // the arc clears what it flies over (a ramp's high edge)
-  const y1=to.pos.y, top=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF,pk+HALF+.1)+.35, Math.max(cap,p0.y,y1)), cc=2*top-(p0.y+y1)/2;
-  // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top
+  const y1=to.pos.y, capY=Math.max(cap,p0.y,y1), top0=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF,pk+HALF+.1)+.35, capY);
+  // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top;
+  // over a tree or a ramp mid-way it moves forward first and comes down after it (hw<1), or the arc rises a little — never a rise in place and a snap onto the far cell
   const u0=(p0.x-P.x)*dx+(p0.z-P.z)*dz, uD=(to.pos.x-p0.x)*dx+(to.pos.z-p0.z)*dz, yE=mp?mp.y+HALF:y1;
+  const ovSl=(sl,d,u)=>{ const a=Math.max(u-.5,d-.5), b=Math.min(u+.5,d+.5); return Math.max(slopeY(sl,P.x+dx*a,P.z+dz*a),slopeY(sl,P.x+dx*b,P.z+dz*b)); };   // a ramp flown over: its highest point under the cube
+  let top=top0, cc=2*top-(p0.y+y1)/2;
   const clears=e=>{ for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*k**e, yb=arcY(p0.y,cc,yE,k)-HALF;
-      for(let d=1; d<=dist; d++){ const sl=d===dist && !air && slIn[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && obIn[d]; if(u>d-1+(ob ? .25 : .02) && !(ob && u>d+.75) && yb<h-(sl ? SL_LIP : .05)) return false; } } return true; };
-  let hw=1; for(const e of [1,1.4,2,2.8,4,6]){ hw=e; if(clears(e)) break; }
+      for(let d=1; d<=dist; d++){ const sl=d===dist && !air && slIn[d], so=d<dist && slOv[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : so ? ovSl(so,d,u) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && (obIn[d] || so);
+        if(u>d-1+(ob && !so ? .25 : .02) && !(ob && u>d+.75) && yb<h-(sl||so ? SL_LIP : .05)) return false; } } return true; };
+  let hw=0;
+  for(const lift of [0,.3,.6,1]){ top=Math.min(top0+lift,capY); cc=2*top-(p0.y+y1)/2; for(const e of [1,.8,1.4,.6,2,.45,2.8,4]) if(clears(e)){ hw=e; break; } if(hw) break; }
+  if(!hw){ top=top0; cc=2*top-(p0.y+y1)/2; hw=6; }
   const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), D=.3+.1*dist, vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
   play(D, k=>{
     const kh=k**hw; root.position.set(lerp(p0.x,to.pos.x,kh), arcY(p0.y,cc,yE,k), lerp(p0.z,to.pos.z,kh));

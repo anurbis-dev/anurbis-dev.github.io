@@ -330,10 +330,10 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .days{display:flex;align-items:flex-end;gap:2px;height:34px;border-bottom:1px solid var(--line)}
 .days i{flex:1;background:var(--gold);border-radius:1px 1px 0 0;min-height:1px;transform-origin:bottom}
 .days i.z{background:rgba(255,255,255,.06);height:2px!important}
-.prog{display:grid;gap:4px}
-.prog .ar{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:start;gap:6px;font-size:11.5px;color:var(--dim)}
-.prog .ar>span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cells{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+.prog{display:grid;gap:8px}
+.prog .ar{display:flex;flex-direction:column;align-items:stretch;gap:4px;font-size:11.5px;color:var(--dim)}
+.prog .ar>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cells{display:flex;flex-wrap:wrap;gap:3px;width:100%}
 .cells > i{width:28px;height:28px;min-width:28px;max-width:28px;flex:0 0 28px;border-radius:4px;background:#140e22;cursor:pointer;transition:transform .12s;display:grid;place-items:center;overflow:hidden;padding:2px}
 .cells > i:hover{transform:scale(1.35);box-shadow:0 0 0 1px var(--gold);z-index:2}
 .cells > i .hmap{width:100%;gap:0;--mh:24px;margin:0}
