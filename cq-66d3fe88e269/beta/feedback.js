@@ -82,6 +82,8 @@ css.textContent=`
 #fbInList .it{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
 #fbInList .it b{font-weight:700;color:#ffd66b}
 #fbInList .it .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+#fbInList .it img{max-width:100%;border-radius:8px}
+#fbInList .it audio{width:100%}
 #fbInList .it .q{font-size:13px;opacity:.7;overflow-wrap:anywhere}
 #fbInOk{font:inherit;font-size:16px;font-weight:700;border:0;border-radius:12px;padding:11px;background:#ffd66b;color:#2d1f55;cursor:pointer}
 #fbCard h2{margin:0;font:600 19px Fredoka,Quicksand,system-ui,sans-serif;letter-spacing:.02em}
@@ -399,7 +401,9 @@ function inRender(){
   const L=$('fbInList'); L.textContent='';
   for(const m of inMsgs){ const it=document.createElement('div'); it.className='it';
     if(m.t!=='news'){ const h=document.createElement('b'); h.textContent=t(m.t==='fixed' ? 'The bug from your feedback has been fixed. Thank you for taking part!' : 'Reply to your feedback'); it.append(h); }
-    if(m.t!=='fixed'){ const x=document.createElement('div'); x.className='tx'; x.textContent=m.text||''; it.append(x); }
+    if(m.t!=='fixed' && m.text){ const x=document.createElement('div'); x.className='tx'; x.textContent=m.text; it.append(x); }
+    if(m.shot){ const im=document.createElement('img'); im.alt=''; im.src=m.shot; it.append(im); }
+    if(m.voice){ const au=document.createElement('audio'); au.controls=true; au.preload='none'; au.src=m.voice; it.append(au); }
     if(m.q){ const q=document.createElement('div'); q.className='q'; q.textContent=t('Your feedback')+': «'+m.q+(m.q.length>=160 ? '…' : '')+'»'; it.append(q); }
     L.append(it); }
 }

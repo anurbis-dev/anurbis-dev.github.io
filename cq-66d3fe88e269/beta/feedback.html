@@ -295,6 +295,14 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .rep .r small,.note{display:block;color:var(--dim);font-size:11.5px;white-space:normal}
 .rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-height:56px;resize:vertical;width:100%;transition:border-color .2s}
 .rep textarea:focus{border-color:var(--gold);outline:0}
+.tgs,.tbar{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tbar{padding:0 2px 6px}
+.tbar .chip{cursor:pointer;border-color:var(--line);color:var(--dim);background:transparent;padding:2px 9px}
+.tbar .chip.on{border-color:var(--gold);color:var(--gold);background:rgba(255,214,107,.12)}
+.tgin{width:7.5em;background:transparent;border:1px dashed var(--line);border-radius:99px;padding:2px 9px;font:700 12px var(--f-body);color:var(--txt)}
+.tgin:focus{outline:0;border-color:var(--gold)}
+.rshot{max-width:220px;max-height:140px;border-radius:8px;border:1px solid var(--line)}
+.rfile{font-size:12px;color:var(--dim)}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px 11px;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;white-space:nowrap;text-decoration:none;color:var(--txt);transition:background .15s,transform .15s}
 .btn:hover{background:var(--card2)}
 .btn:active{transform:scale(.96)}
@@ -579,7 +587,8 @@ async function load(quiet,testers){
   if(loading) return; loading=true; if(!quiet){ S.busy=true; render(); if(S.booted) anim('spin'); }
   try{
     const tl=testers || !tpAt, st=p=>tl ? api(p).catch(e=>{ if(e.key) throw e; return undefined; }) : undefined;   // undefined — keep what we had
-    const [list,tp,ls,es]=await Promise.all([api('/list'),tl ? api('/testers').catch(e=>{ if(e.key) throw e; return null; }) : null,st('/stats/levels'),st('/stats/errors')]);
+    const [list,tp,ls,es,tg]=await Promise.all([api('/list'),tl ? api('/testers').catch(e=>{ if(e.key) throw e; return null; }) : null,st('/stats/levels'),st('/stats/errors'),api('/tags').catch(e=>{ if(e.key) throw e; return null; })]);
+    if(tg) TAGS=tg;
     if(ls!==undefined) LST=ls; if(es!==undefined) ERR=es && es.errors ? es.errors.map(e=>({ ...e, key:eKey(e.m), vers:e.vers||[] })) : null;
     const fresh=seen ? list.filter(i=>!seen.has(i.n)).length : 0;
     RAW=list; if(tp){ TRAW=tp; tpAt=Date.now(); } model(); failed=''; loadAt=Date.now(); S.gate=false;
@@ -607,10 +616,10 @@ async function repLoad(r){
 const WD0={ side:360, list:420 };   // panel widths (px) the dividers start from
 const wdLoad=()=>{ try{ return { ...WD0, ...JSON.parse(LSg('cube-fb2-w','{}')) }; }catch(e){ return { ...WD0 }; } };
 const S={ frame:LSg('cube-fb2-f','wide'), wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }[location.hash]||'rep', sel:null, pl:null, sheet:null, menu:null, ask:null,
-  F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', not:{ lv:[], ver:[], dev:[], who:[] } },
+  F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
   toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, A:new Set(),
-  lsort:'ord', lq:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, pstuck:'', about:false, dc:'', xo:new Set() };
+  lsort:'ord', lq:'', ltag:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, pstuck:'', ptag:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, rshot:{}, rvoice:{}, rec:false };
 const anim=(...a)=>a.forEach(x=>S.A.add(x));
 const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab:['rep','pl','lv','err'] };   // swipeable tab sets: S[key] holds the current one
 const slide=k=>S.A.has('sl:'+k+':l') ? ' sl-l' : S.A.has('sl:'+k+':r') ? ' sl-r' : '';   // entrance animations for the next render only
@@ -627,9 +636,17 @@ const DIMS={
   who:{ t:'Игроки', n:'Игрок', k:r=>r.who, l:k=>{ const r=REPS.find(x=>x.who===k); return esc(k)+(r && r.cc ? `<small>${flag(r.cc)}</small>` : ''); }, o:(a,b,c)=>c[b]-c[a] },
   day:{ t:'Дни', n:'День', k:r=>r.day, l:k=>dayLbl(+k), o:(a,b)=>a-b },
   state:{ t:'Статус', n:'Статус', k:r=>r.state, l:k=>STN[k]||k, o:(a,b)=>(STO[a]??9)-(STO[b]??9) }};
+let TAGS={ u:{}, l:{}, r:{} };
+const tagsOf=(k,id)=>{ const a=TAGS[k] && TAGS[k][String(id)]; return Array.isArray(a) ? a : []; };
+const tagBits=a=>a.length ? a.map(t=>`<span class="tag chg">${esc(t)}</span>`).join('') : '';
+function tagEdit(kind,id){ const a=tagsOf(kind,id);
+  return `<div class="tgs">${a.map(t=>`<span class="chip"><span>${esc(t)}</span><button data-act="untag" data-k="${kind}" data-id="${esc(id)}" data-t="${esc(t)}" aria-label="Убрать тег">×</button></span>`).join('')}<input class="tgin" id="tagIn" data-k="${kind}" data-id="${esc(String(id))}" placeholder="+ тег" maxlength="24"></div>`; }
+function tagBar(kind,cur){ const set=new Set(Object.values(TAGS[kind]||{}).flat()); if(!set.size) return '';
+  return `<div class="tbar">${[...set].sort((a,b)=>a.localeCompare(b,'ru')).map(t=>`<button class="chip${cur===t ? ' on' : ''}" data-act="tfil" data-k="${kind}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`; }
 const FLAGS={ err:['ошибки консоли',r=>r.errs.length>0], fps:['FPS ниже 35',r=>r.fps && r.fps<35], voice:['с голосом',r=>!!r.m.voice] };
 const match=(r,...sk)=>{ const F=S.F, q=F.q.trim().toLowerCase(), s=k=>sk.includes(k);
-  if(q && !r.hay.includes(q)) return false;
+  if(q && !r.hay.includes(q) && !tagsOf('r',r.n).some(t=>t.includes(q))) return false;
+  if(F.tag && !tagsOf('r',r.n).includes(F.tag)) return false;
   if(!s('kind') && F.kind && r.kind!==F.kind || !s('state') && F.state && !stOk(r,F.state) || F.flag && !FLAGS[F.flag][1](r)) return false;
   if(!s('day') && F.day!=null && r.day!==F.day) return false;
   for(const d of ['lv','ver','dev','who']){ if(s(d)) continue; const k=DIMS[d].k(r); if(F.not[d].includes(k) || F[d] && k!==F[d]) return false; }
@@ -657,13 +674,14 @@ function row(r){
     <button class="row${r.state==='closed' ? ' closed' : ''}${S.sel===r ? ' on' : ''}${S.flash===r.n ? ' flash' : ''}" data-act="open" data-n="${r.n}" data-lp="rep">${thumb(r)}
     <span class="rm"><span class="r1"><i class="dot ${r.kind}"></i><b>${esc(r.who)}</b>${r.fresh ? '<span class="tag">новый</span>' : r.chg ? '<span class="tag chg">изменён</span>' : ''}${r.lv ? `<span class="lv">· ${esc(r.lv)}${r.s.sub ? ' → '+esc(r.s.sub) : ''}</span>` : ''}<span class="t" title="${full(r.at)}">${ago(r.at)}</span></span>
     <span class="r2">${esc(r.text||'(без текста)')}</span>
-    <span class="r3">${r.state==='wip' ? '<span class="wp">⚙ в работе</span>' : ''}<span>#${r.n}</span>${r.ver ? `<span>v${esc(r.ver)}</span>` : ''}${r.dev ? `<span>${CLI[r.cls]} ${ico(osI(r.u.os))}${ico(brI(r.u.br))}${esc(r.dev)}</span>` : ''}${r.m.voice ? `<span>🎤 ${mmss(r.m.dur||0)}</span>` : ''}${r.errs.length ? `<span class="e">⚠ ${r.errs.length}</span>` : ''}${r.comments ? `<span>💬 ${r.comments}</span>` : ''}${r.fps && r.fps<35 ? `<span class="e">${r.fps} fps</span>` : ''}</span></span></button></div>`;
+    <span class="r3">${tagBits(tagsOf('r',r.n))}${r.state==='wip' ? '<span class="wp">⚙ в работе</span>' : ''}<span>#${r.n}</span>${r.ver ? `<span>v${esc(r.ver)}</span>` : ''}${r.dev ? `<span>${CLI[r.cls]} ${ico(osI(r.u.os))}${ico(brI(r.u.br))}${esc(r.dev)}</span>` : ''}${r.m.voice ? `<span>🎤 ${mmss(r.m.dur||0)}</span>` : ''}${r.errs.length ? `<span class="e">⚠ ${r.errs.length}</span>` : ''}${r.comments ? `<span>💬 ${r.comments}</span>` : ''}${r.fps && r.fps<35 ? `<span class="e">${r.fps} fps</span>` : ''}</span></span></button></div>`;
 }
 function detail(r,sheet){
   if(!r) return `<div class="empty">${REPS.length ? 'Выберите отзыв в списке' : ''}</div>`;
   const s=r.s, m=r.m, qq=s.q||{}, f=(a,b,c)=>b ? `<div><span>${a}</span><b>${b}</b>${c ? `<small>${c}</small>` : ''}</div>` : '';
   const replay=m.snap && m.id && !DEMO ? `fb.html?id=${m.id}&k=${encodeURIComponent(KEY)}` : null;
-  const reps=r.reps ? r.reps.map(p=>`<div class="r">${esc(p.text)}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`).join('')
+  const reps=r.reps ? r.reps.map(p=>{ const shot=p.shot && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-shot.jpg') : '', voice=p.voice && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-voice.'+p.voice) : '';
+    return `<div class="r">${p.text ? esc(p.text) : ''}${shot ? `<img class="rshot" data-act="zoom" src="${shot}" alt="">` : ''}${voice ? `<audio controls preload="none" src="${voice}"></audio>` : ''}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`; }).join('')
     +(r.fixed ? `<span class="note">🔔 «Баг исправлен» — ${r.fixed.wait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : '') : '';
   const where=r.lv ? esc(r.lv)+(s.sub ? ' → '+esc(s.sub) : '') : '', wSub=[(r.icon||'')+' '+esc(r.area||''),r.ano ? '№'+r.ano : '',r.lvId ? `<code>${esc(r.lvId)}</code>` : ''].filter(x=>x.trim()).join(' · ');
   const acts=(replay ? `<a class="btn sm pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : DEMO && m.snap ? '<button class="btn sm pri" data-act="noop">▶ Открыть в игре</button>' : '')
@@ -673,10 +691,10 @@ function detail(r,sheet){
     <div class="dt-h"><button class="badge btnk ${r.kind}" data-act="kind2" title="Сменить тип: ${r.kind==='bug' ? 'впечатление' : 'ошибка'}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'} ⇄</button><span class="badge ${r.state}">${r.state==='open' ? 'открыт' : r.state==='wip' ? '⚙ в работе' : '✓ закрыт'}</span>
       <span class="no">#${r.n}</span>${acts}<span class="sp"></span>${r.url && !DEMO ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>` : ''}
       <button class="ib" data-act="step" data-d="-1" title="Предыдущий (↑ / K)">↑</button><button class="ib" data-act="step" data-d="1" title="Следующий (↓ / J)">↓</button><button class="ib" data-act="del" title="Удалить отзыв">🗑</button><button class="ib" data-act="menu" data-lp="rep" data-n="${r.n}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>
-    <div class="who"><h2>${esc(r.who)}</h2>${r.cc ? flag(r.cc) : ''}<span class="dte" title="${full(r.at)}">${short(r.at)} · ${ago(r.at)}</span></div></div>
+    <div class="who"><h2>${esc(r.who)}</h2>${r.cc ? flag(r.cc) : ''}<span class="dte" title="${full(r.at)}">${short(r.at)} · ${ago(r.at)}</span></div>${tagEdit('r',r.n)}</div>
     <div class="dtm"><div class="dtl">
       ${m.shot ? (DEMO ? `<div class="shot ph" style="--h:${r.hue}">${CUBE}</div>` : `<img class="shot" data-act="zoom" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">`) : ''}
-      <blockquote>${esc(r.text||'(без текста)')}</blockquote>
+      ${S.edit===r.n ? `<textarea id="editText" maxlength="4000">${esc(S.editText!=null ? S.editText : r.text||'')}</textarea><div class="pa"><button class="btn sm" data-act="editno">Отмена</button><span class="sp"></span><button class="btn sm pri" data-act="editsave">Сохранить текст</button></div>` : `<blockquote>${esc(r.text||'(без текста)')}</blockquote><div class="pa"><button class="btn sm" data-act="edit">Исправить текст</button></div>`}
       ${m.voice ? (DEMO ? '<div class="note">🎤 голосовая заметка '+mmss(m.dur||0)+' (в демо без звука)</div>' : `<audio controls preload="none" data-n="${r.n}" src="${media(m.id,'voice.'+m.voice)}"></audio>`) : ''}</div>
     <div class="dtr"><div class="facts">
       ${f('Где',where,wSub)}
@@ -689,16 +707,19 @@ function detail(r,sheet){
     </div>
     ${r.errs.length ? `<details class="box e" open><summary>⚠ Ошибки консоли (${r.errs.length})</summary><pre>${esc(r.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}</div></div>
     ${r.tester ? `<div class="rep"><h3>↩ Ответы игроку</h3>${r.reps ? reps || '<span class="note">Ответов пока нет</span>' : r.repErr ? `<span class="note err">Не удалось загрузить: ${esc(r.repErr)}</span>` : '<span class="note">Загрузка…</span>'}
-      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter)">${esc(S.draft[r.n]||'')}</textarea>
+      <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — текст, снимок или голос, придёт в игре (Ctrl+Enter)">${esc(S.draft[r.n]||'')}</textarea>
+      ${S.rshot[r.n] ? `<img class="rshot" src="${S.rshot[r.n]}" alt=""><button class="btn sm" data-act="rshotx">Убрать снимок</button>` : `<label class="rfile">Снимок <input id="repFile" type="file" accept="image/*"></label>`}
+      ${S.rvoice[r.n] ? `<audio controls src="${S.rvoice[r.n].url}"></audio><button class="btn sm" data-act="rvoicex">Убрать голос</button>` : `<button class="btn sm" data-act="rrec">${S.rec ? '■ Стоп' : '🎤 Голос'}</button>`}
       <div class="pa"><span class="sp"></span><button class="btn sm pri" data-act="reply">Ответить</button></div></div>` : ''}
   </div>`;
 }
 const chipsF=()=>{ const F=S.F, c=[];
-  if(F.flag) c.push(['flag','⚑ '+FLAGS[F.flag][0]]); if(F.day!=null) c.push(['day',dayLbl(F.day)]);
+  if(F.flag) c.push(['flag','⚑ '+FLAGS[F.flag][0]]); if(F.day!=null) c.push(['day',dayLbl(F.day)]); if(F.tag) c.push(['tag','#'+F.tag]);
   for(const d of ['lv','ver','dev','who']){ if(F[d]) c.push([d,(d==='lv' ? '📍 ' : d==='who' ? '👤 ' : d==='ver' ? 'v' : '')+F[d]]); F.not[d].forEach(k=>c.push([d,'≠ '+(d==='ver' ? 'v' : '')+k,k])); }
   return `<span class="chips">${c.map(([d,t,k])=>`<span class="chip${k!=null ? ' not' : ''}"><span>${esc(t)}</span><button data-act="unf" data-d="${d}"${k!=null ? ` data-k="${esc(k)}"` : ''} aria-label="Убрать фильтр">×</button></span>`).join('')}${c.length>1 ? '<button class="clr" data-act="unall">сбросить всё</button>' : ''}</span>`; };
 const segH=(act,cur,list)=>`<div class="seg sm">${list.map(([v,t])=>`<button data-act="${act}" data-v="${v}" aria-pressed="${cur===v}">${t}</button>`).join('')}</div>`;
-const plMatch=t=>{ const q=S.pq.trim().toLowerCase(); return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
+const plMatch=t=>{ const q=S.pq.trim().toLowerCase(); if(S.ptag && !tagsOf('u',t.id).includes(S.ptag)) return false;
+  return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...tagsOf('u',t.id),...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
 function plSorted(){ const s=S.psort, day=S.pday==null ? null : DAYS-1-S.pday;
   return TS.filter(t=>plMatch(t) && (day==null || t.ss.some(x=>dayOf(x.s)===day)) && (!S.pstuck || t.cur===S.pstuck && !t.done.has(t.cur) && Date.now()-t.last>STUCK_D*DAY)).sort(s==='time' ? (a,b)=>b.tot-a.tot : s==='lv' ? (a,b)=>b.lvN-a.lvN || b.stars-a.stars : s==='at' ? (a,b)=>b.at-a.at
     : s==='nick' ? (a,b)=>a.nick.localeCompare(b.nick,'ru') : (a,b)=>b.last-a.last || b.at-a.at); }
@@ -736,7 +757,7 @@ function plDetail(t,sheet){
   const oth=Object.keys(t.ccs).filter(c=>c!==t.cc);
   return `<div class="dt${S.A.has('det') ? ' fresh' : ''}" style="padding-bottom:16px"><div class="dhd"><div class="who"><h2 title="id ${esc(t.id)}">${t.ban ? '⛔ ' : ''}${esc(t.nick)}</h2>${flag(t.cc)}${oth.length ? `<span class="oth">(${oth.map(flag).join(' ')})</span>` : ''}
     <span class="reg"><span title="${t.at ? full(t.at) : ''}">регистрация <b>${t.at ? short(t.at) : '—'}</b></span><br>${t.live ? `<span class="lvb">играет ${hm(t.liveMs)}</span>` : t.last ? `<span title="${full(t.last)}">играл <b>${agoL(t.last)}</b></span>` : 'ещё не играл'}</span>
-    <button class="ib" data-act="menu" data-lp="pl" data-id="${esc(t.id)}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div></div>${plBody(t)}</div>`;
+    <button class="ib" data-act="menu" data-lp="pl" data-id="${esc(t.id)}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>${tagEdit('u',t.id)}</div>${plBody(t)}</div>`;
 }
 
 /* ==================== Analytics ==================== */
@@ -819,7 +840,7 @@ function repView(){
   const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень…" value="${esc(F.q)}">
     <select class="sel" id="grp" aria-label="Группировать">${[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']].map(([v,t])=>`<option value="${v}"${S.G===v ? ' selected' : ''}>${t}</option>`).join('')}</select>
     ${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : ''}</div>
-    <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${chipsF()}</div>`;
+    <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${tagBar('r',F.tag)}${chipsF()}</div>`;
   rowI=0; let list=''; VIS=S.G ? [] : L;
   if(!L.length) list=`<div class="empty">${REPS.length ? 'Ничего не найдено' : loadAt ? 'Отзывов пока нет' : failed ? '<span class="err">Не удалось загрузить: '+esc(failed)+'</span>' : 'Загрузка…'}</div>`;
   else if(!S.G) list=L.map(row).join('');
@@ -841,11 +862,11 @@ function plView(){
     <div class="st"><b data-n="${N.devs}">${N.devs}</b><span>устройств</span><span>${N.cc} ${nf(N.cc,'страна','страны','стран')}</span></div></div>`;
   const tool=`<div class="flt"><div class="f1"><input class="srch" id="pq" type="search" placeholder="Ник, устройство, страна…" value="${esc(S.pq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div><div class="f2">${segH('psort',S.psort,[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']])}
 </div>
-    <span class="chips">${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
+    ${tagBar('u',S.ptag)}<span class="chips">${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}${S.ptag ? `<span class="chip"><span>#${esc(S.ptag)}</span><button data-act="tfil" data-k="u" data-t="${esc(S.ptag)}" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
   rowI=0;
   const rows=L.map(t=>{ const rp=REPS.filter(r=>r.tester===t.id);
     return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.pl===t ? ' on' : ''}${t.ban ? ' ban' : ''}" data-act="pl" data-id="${esc(t.id)}" data-lp="pl">
-      <span class="p1">${t.ban ? '⛔' : ''}<b>${esc(t.nick)}</b>${flag(t.cc)}${t.live ? `<span class="lvb">играет ${hm(t.liveMs)}</span>` : ''}
+      <span class="p1">${t.ban ? '⛔' : ''}<b>${esc(t.nick)}</b>${flag(t.cc)}${tagBits(tagsOf('u',t.id))}${t.live ? `<span class="lvb">играет ${hm(t.liveMs)}</span>` : ''}
         <span class="t">${t.live ? '' : t.last ? ago(t.last) : 'не играл'}</span></span>
       <span class="p2"><span class="tb"><i style="width:${t.tot/mx*100}%"></i></span><span class="m"><b>${hm(t.tot)}</b> · ${t.n} сес. · ур. <b>${t.lvN}</b> · ★${t.stars}${rp.length ? ' · 🐞'+rp.filter(r=>r.kind==='bug').length+' 💬'+rp.filter(r=>r.kind!=='bug').length : ''}</span></span></button></div>`; }).join('');
   const fold=md!=='w' && S.ana ? foldHtml(plAna()) : '';
@@ -904,7 +925,8 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li><b>Сбои</b> — ошибки, которые игра отправила сама, сгруппированные по тексту: сколько раз, у скольких игроков, в каких версиях и на каких уровнях.</li></ul>
   <h5>Панели</h5><ul><li>Границы между панелями тянутся мышью — ширина запоминается, двойной клик возвращает. Стрелки у края панели — там есть ещё, тап прокручивает.</li>
     <li>Колесо мыши плавно прокручивает панель под курсором; <b>средняя кнопка</b> — тянуть содержимое, как пальцем (отпустил в движении — докатывается).</li></ul>
-  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип, 🗑 — удалить отзыв.</li>
+  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип, 🗑 — удалить отзыв. «Исправить текст» меняет формулировку. К ответу можно приложить снимок и голос — игрок увидит их в игре.</li>
+    <li>Поле «+ тег» и Enter ставит тег игроку, уровню или отзыву. Ряд тегов над списком фильтрует, повторный тап снимает.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
     <li>Кубик в левом верхнем углу — сводка: версия беты и что происходит.</li></ul>
@@ -1073,8 +1095,39 @@ function delRep(r){
     catch(e){ toast('Не удалось: '+e.message); } })(); });
 }
 async function replySend(r){
-  const text=(S.draft[r.n]||'').trim(); if(!text){ $('repText') && $('repText').focus(); return; }
-  try{ await api(`/issue/${r.n}/reply`,{ text }); r.comments++; delete S.draft[r.n]; toast('Отправлено — '+r.who+' увидит в игре'); repLoad(r); }
+  const text=(S.draft[r.n]||'').trim(), shot=S.rshot[r.n]||null, voice=S.rvoice[r.n]||null;
+  if(!text && !shot && !voice){ $('repText') && $('repText').focus(); return; }
+  if(DEMO && (shot || voice)){ toast('В демо снимок и голос не уходят'); return; }
+  try{ await api(`/issue/${r.n}/reply`,{ text, shot, audio:voice ? { data:voice.data, dur:voice.dur } : null }); r.comments++; delete S.draft[r.n]; delete S.rshot[r.n];
+    if(voice) URL.revokeObjectURL(voice.url); delete S.rvoice[r.n]; toast('Отправлено — '+r.who+' увидит в игре'); repLoad(r); }
+  catch(e){ toast('Не удалось: '+e.message); }
+}
+let REC=null;
+function recStop(){ if(REC){ try{ REC.stop(); }catch(e){} REC.stream.getTracks().forEach(t=>t.stop()); REC=null; S.rec=false; } }
+async function recStart(r){
+  if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Микрофон недоступен'); return; }
+  let st; try{ st=await navigator.mediaDevices.getUserMedia({ audio:true }); }catch(e){ toast('Нет доступа к микрофону'); return; }
+  const type=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4','audio/webm'].find(x=>MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x))||'';
+  const mr=new MediaRecorder(st,type ? { mimeType:type, audioBitsPerSecond:32000 } : { audioBitsPerSecond:32000 }), parts=[], t0=performance.now();
+  REC={ stop:()=>mr.state!=='inactive' && mr.stop(), stream:st }; S.rec=true; mr.ondataavailable=e=>{ if(e.data.size) parts.push(e.data); };
+  mr.onstop=async()=>{ S.rec=false; REC=null; st.getTracks().forEach(t=>t.stop());
+    const blob=new Blob(parts,{ type:mr.mimeType||'audio/webm' }), fr=new FileReader();
+    fr.onload=()=>{ const was=S.rvoice[r.n]; if(was) URL.revokeObjectURL(was.url); S.rvoice[r.n]={ data:fr.result, dur:(performance.now()-t0)/1000, url:URL.createObjectURL(blob) }; render(); };
+    fr.readAsDataURL(blob); };
+  mr.start(); setTimeout(()=>{ if(REC && REC.stop===mr.stop || mr.state==='recording'){ try{ mr.stop(); }catch(e){} } },60000); render();
+}
+function jpegFile(file){ return new Promise((ok,no)=>{ const im=new Image(); im.onload=()=>{ const s=Math.min(1,1280/Math.max(im.width,im.height)), c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(im.width*s)); c.height=Math.max(1,Math.round(im.height*s)); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(im.src); ok(c.toDataURL('image/jpeg',.72)); };
+  im.onerror=()=>no(new Error('image')); im.src=URL.createObjectURL(file); }); }
+async function saveText(r){
+  const text=(S.editText!=null ? S.editText : r.text||'');
+  try{ await api(`/issue/${r.n}/text`,{ text }); const i=RAW.find(x=>x.n===r.n); if(i){ i.meta=i.meta||{}; i.meta.text=text; if(i.title) i.title=i.title.replace(/ — [^\n]*$/,'')+' — '+(text||'голосовое').replace(/\s+/g,' ').slice(0,70); }
+    S.edit=0; S.editText=null; model(); toast('Текст отзыва исправлен'); }
+  catch(e){ toast('Не удалось: '+e.message); }
+}
+async function setTag(kind,id,tag,on){
+  tag=String(tag||'').trim().toLowerCase().replace(/\s+/g,' '); if(!/^[\p{L}\p{N}][\p{L}\p{N} _.\-]{0,22}[\p{L}\p{N}]$/u.test(tag)){ toast('Тег: 2–24 буквы или цифры'); return; }
+  try{ TAGS=await api('/tags',{ kind, id:String(id), tag, on }); model(); render(); }
   catch(e){ toast('Не удалось: '+e.message); }
 }
 function admin(t,a){
@@ -1148,6 +1201,15 @@ app.addEventListener('click',e=>{
   else if(a==='xp'){ const k=el.dataset.k; S.xo.has(k) ? S.xo.delete(k) : S.xo.add(k); }
   else if(a==='pmap'){ const t=TSI[el.dataset.t], e=t && t.prog[+el.dataset.x]; if(!e) return; $('lb').querySelector('img').hidden=true; $('lb').querySelector('.lbm').innerHTML=starMap(el.dataset.id,t,e); $('lb').hidden=false; tipHide(); return; }
   else if(a==='reply'){ replySend(S.sel); return; }
+  else if(a==='edit'){ S.edit=S.sel.n; S.editText=S.sel.text||''; S.focus='editText'; }
+  else if(a==='editno'){ S.edit=0; S.editText=null; }
+  else if(a==='editsave'){ saveText(S.sel); return; }
+  else if(a==='rshotx'){ if(S.sel) delete S.rshot[S.sel.n]; }
+  else if(a==='rvoicex'){ const v=S.sel && S.rvoice[S.sel.n]; if(v){ URL.revokeObjectURL(v.url); delete S.rvoice[S.sel.n]; } }
+  else if(a==='rrec'){ if(S.rec) recStop(); else recStart(S.sel); return; }
+  else if(a==='untag'){ setTag(el.dataset.k,el.dataset.id,el.dataset.t,false); return; }
+  else if(a==='tfil'){ const k=el.dataset.k, t=el.dataset.t, cur=k==='u' ? 'ptag' : k==='l' ? 'ltag' : null;
+    if(cur) S[cur]=S[cur]===t ? '' : t; else F.tag=F.tag===t ? '' : t; anim('list'); }
   else if(a==='noop'){ toast('В демо не работает'); return; }
   else if(a==='ana'){ toggleAna(); return; }
   else if(a==='kind'){ F.kind=el.dataset.v; anim('list'); }
@@ -1159,7 +1221,7 @@ app.addEventListener('click',e=>{
       all.forEach(x=>{ if(op){ if(S.shut.delete(x)) anim('g:'+x); } else S.shut.add(x); }); }
     else if(S.shut.has(k)){ S.shut.delete(k); anim('g:'+k); } else S.shut.add(k); }
   else if(a==='unf'){ const d=el.dataset.d, k=el.dataset.k; if(k!=null) F.not[d]=F.not[d].filter(x=>x!==k); else F[d]=d==='day' ? null : ''; anim('list'); }
-  else if(a==='unall'){ Object.assign(F,{ flag:'', day:null, lv:'', ver:'', dev:'', who:'', not:{ lv:[], ver:[], dev:[], who:[] } }); anim('list'); }
+  else if(a==='unall'){ Object.assign(F,{ flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } }); anim('list'); }
   else if(a==='unpday') S.pday=null;
   else if(a==='bday') setF('day',DAYS-1-+el.dataset.i);
   else if(a==='pday'){ const i=+el.dataset.i; S.pday=S.pday===i ? null : i; anim('list'); }
@@ -1174,7 +1236,11 @@ app.addEventListener('click',e=>{
   render();
 },true);
 app.addEventListener('input',e=>{ const id=e.target.id;
-  if(id==='q'){ S.F.q=e.target.value; render(); } else if(id==='pq'){ S.pq=e.target.value; render(); } else if(id==='lq'){ S.lq=e.target.value; render(); } else if(id==='eq'){ S.eq=e.target.value; render(); } else if(id==='repText' && S.sel) S.draft[S.sel.n]=e.target.value; });
+  if(id==='q'){ S.F.q=e.target.value; render(); } else if(id==='pq'){ S.pq=e.target.value; render(); } else if(id==='lq'){ S.lq=e.target.value; render(); } else if(id==='eq'){ S.eq=e.target.value; render(); }
+  else if(id==='repText' && S.sel) S.draft[S.sel.n]=e.target.value; else if(id==='editText') S.editText=e.target.value; });
+app.addEventListener('change',e=>{ if(e.target.id!=='repFile' || !S.sel || !e.target.files[0]) return; const n=S.sel.n, f=e.target.files[0];
+  jpegFile(f).then(u=>{ S.rshot[n]=u; render(); }).catch(()=>toast('Не удалось прочитать снимок')); });
+app.addEventListener('keydown',e=>{ if(e.target.id==='tagIn' && e.key==='Enter'){ e.preventDefault(); const t=e.target; setTag(t.dataset.k,t.dataset.id,t.value,true); t.value=''; } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='keyIn' && e.key==='Enter') app.querySelector('[data-act=key]').click(); });
 /* Right click (and the system long press on touch) opens the same menu once: it takes over the pending long-press timer */
 app.addEventListener('contextmenu',e=>{ const lp=e.target.closest('[data-lp]'); if(!lp) return; e.preventDefault(); if(S.menu || G0 && G0.mode) return;
@@ -1315,7 +1381,7 @@ const tEnd=()=>{ if(T && T.on){ eatClick=Date.now(); pvEnd(T.sh,T.dy||0,T.v); } 
 app.addEventListener('touchend',tEnd); app.addEventListener('touchcancel',tEnd);
 
 addEventListener('keydown',e=>{
-  if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); return; }
+  if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); else if(e.target.id==='editText' && S.sel) saveText(S.sel); return; }
   if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
   if(e.target.matches('input,textarea,select')){ if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape'){ if(S.sheet) closeSheet(); }
@@ -1364,13 +1430,13 @@ function lvModel(){
   if(S.lsel) S.lsel=LVMI[S.lsel.id]||null;
 }
 const LSORT={ ord:(a,b)=>a.gi-b.gi, die:(a,b)=>b.dpp-a.dpp, quit:(a,b)=>b.quitRate-a.quitRate, bug:(a,b)=>b.bugRate-a.bugRate || b.bugs-a.bugs, fps:(a,b)=>(a.fps??999)-(b.fps??999) };
-const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>(!q || l.hay.includes(q)) && (!S.lcause || l.t && l.t.causes[S.lcause])).sort(LSORT[S.lsort]||LSORT.ord); };
+const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>(!S.ltag || tagsOf('l',l.id).includes(S.ltag)) && (!q || l.hay.includes(q) || tagsOf('l',l.id).some(t=>t.includes(q))) && (!S.lcause || l.t && l.t.causes[S.lcause])).sort(LSORT[S.lsort]||LSORT.ord); };
 let VISL=[], VISE=[];
 const fpsCol=v=>v==null ? 'inherit' : v<30 ? 'var(--bug)' : v<45 ? 'var(--warn)' : 'var(--ok)';
 function lvRow(l){
   const t=l.t, w=l.reach ? l.won/l.reach : 0;
   return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.lsel===l ? ' on' : ''}" data-act="lvo" data-id="${esc(l.id)}">
-    <span class="p1"><b>${esc(l.name)}</b><small style="color:var(--dim2)">${esc(l.icon||l.a)} ${l.no}</small>${l.stuck.length ? `<span class="tg w" title="застряли">⏸ ${l.stuck.length}</span>` : ''}<span class="t">${l.reach} → ${l.won}</span></span>
+    <span class="p1"><b>${esc(l.name)}</b><small style="color:var(--dim2)">${esc(l.icon||l.a)} ${l.no}</small>${tagBits(tagsOf('l',l.id))}${l.stuck.length ? `<span class="tg w" title="застряли">⏸ ${l.stuck.length}</span>` : ''}<span class="t">${l.reach} → ${l.won}</span></span>
     <span class="p2"><span class="tb" title="прошли из дошедших"><i style="width:${w*100}%;background:var(--ok)"></i></span>
       <span class="m">${t ? `💀 <b>${l.dpp.toFixed(1).replace('.',',')}</b>` : ''}${t && t.winT ? ` · ⏱ ${mmss(t.winT)}` : ''}${l.starPct!=null ? ` · ★ ${Math.round(l.starPct*100)}%` : ''}${l.bugs ? ` · <span style="color:var(--bug)">🐞 ${l.bugs}</span>` : ''}${l.fps!=null ? ` · <span style="color:${fpsCol(l.fps)}">${Math.round(l.fps)} fps</span>` : ''}</span></span></button></div>`;
 }
@@ -1414,7 +1480,7 @@ function lvDetail(l,sheet){
   const fp=t && t.fps ? Object.entries(t.fps).filter(([,v])=>v>0) : [];
   return `<div class="dt${S.A.has('det') ? ' fresh' : ''}" style="padding-bottom:16px">
     <div class="dhd"><div class="dt-h"><h2 style="margin:0;font:600 20px var(--f-disp)">${esc(l.name)}</h2><span style="color:var(--dim);font-size:12.5px">${esc(l.icon)} ${esc(l.a)} · №${l.no}</span><span class="sp"></span>
-      <button class="ib" data-act="lstep" data-d="-1" title="Предыдущий (↑)">↑</button><button class="ib" data-act="lstep" data-d="1" title="Следующий (↓)">↓</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div></div>
+      <button class="ib" data-act="lstep" data-d="-1" title="Предыдущий (↑)">↑</button><button class="ib" data-act="lstep" data-d="1" title="Следующий (↓)">↓</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>${tagEdit('l',l.id)}</div>
     <div class="facts">
       ${f('Дошли · прошли',l.reach+' → '+l.won,l.reach ? Math.round(l.won/l.reach*100)+'% прошли' : '')}
       ${t ? f('Попыток до победы',t.firstTries ? t.firstTries.toFixed(1).replace('.',',') : '—',t.starts+' '+nf(t.starts,'запуск','запуска','запусков')+' · '+t.restarts+' '+nf(t.restarts,'рестарт','рестарта','рестартов')) : ''}
@@ -1454,7 +1520,7 @@ function lvView(){
     <div class="st"><b data-n="${slow}" style="color:${slow ? 'var(--bug)' : 'inherit'}">${slow}</b><span>${nf(slow,'уровень','уровня','уровней')}</span><span>FPS ниже 35</span></div></div>`;
   const tool=`<div class="flt"><div class="f1"><input class="srch" id="lq" type="search" placeholder="Уровень…" value="${esc(S.lq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div>
     <div class="f2">${segH('lsort',S.lsort,[['ord','По порядку'],['die','Гибели'],['quit','Бросают'],['bug','Ошибки'],['fps','FPS']])}</div>
-    <span class="chips">${S.lcause ? `<span class="chip"><span>💀 ${esc(dcName(S.lcause))}</span><button data-act="unlcause" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
+    ${tagBar('l',S.ltag)}<span class="chips">${S.lcause ? `<span class="chip"><span>💀 ${esc(dcName(S.lcause))}</span><button data-act="unlcause" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
   rowI=0; VISL=[];
   const g=new Map(); for(const l of L){ if(!g.has(l.a)) g.set(l.a,[]); g.get(l.a).push(l); }
   const areas=[...g.keys()].sort((a,b)=>Math.min(...g.get(a).map(l=>l.gi))-Math.min(...g.get(b).map(l=>l.gi)));
@@ -1596,7 +1662,10 @@ async function demoApi(path,body){
   if(path==='/testers') return JSON.parse(JSON.stringify(DD.testers));
   if(path==='/stats/levels') return JSON.parse(JSON.stringify(DD.stats));
   if(path==='/stats/errors') return JSON.parse(JSON.stringify(DD.errors));
-  let m=path.match(/^\/issue\/(\d+)\/reply$/); if(m){ const a=DD.reps[m[1]]||(DD.reps[m[1]]=[]); if(body) a.push({ text:body.text, at:new Date().toISOString(), wait:true }); return { replies:a, fixed:false }; }
+  if(path==='/tags'){ DD.tags=DD.tags||{ u:{}, l:{}, r:{} }; if(!body) return DD.tags; const b=DD.tags[body.kind]||(DD.tags[body.kind]={}), id=String(body.id), cur=new Set(b[id]||[]);
+    if(body.on===false) cur.delete(body.tag); else cur.add(String(body.tag||'').trim().toLowerCase()); if(cur.size) b[id]=[...cur]; else delete b[id]; return DD.tags; }
+  let m=path.match(/^\/issue\/(\d+)\/text$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i && i.meta) i.meta.text=body.text; return { ok:true, text:body.text }; }
+  m=path.match(/^\/issue\/(\d+)\/reply$/); if(m){ const a=DD.reps[m[1]]||(DD.reps[m[1]]=[]); if(body) a.push({ text:body.text, at:new Date().toISOString(), wait:true, shot:!!body.shot, voice:body.audio ? 'webm' : null, dur:body.audio && body.audio.dur || 0 }); return { replies:a, fixed:false }; }
   m=path.match(/^\/issue\/(\d+)\/delete$/); if(m){ DD.list=DD.list.filter(x=>x.n!==+m[1]); return { ok:true, how:'deleted' }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m && body.kind){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.labels=i.labels.filter(l=>l!=='bug' && l!=='opinion').concat(body.kind); i.meta.kind=body.kind; } return { ok:true }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip').concat(body.state==='wip' ? ['wip'] : []); } return { ok:true }; }
