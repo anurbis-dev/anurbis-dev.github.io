@@ -1031,7 +1031,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.6';
+const VERSION = '2.16.7';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -16470,6 +16470,10 @@ function airLeapFromQueue(k,k0){ if(!leapUsed && k>k0 && queue.length && queue[0
 const SL_LIP=.35;                                                     // a leap onto a slope moves sideways at once: the cube's lower edge may graze its near edge this much (it rolls over it)
 function slopeAlong(sl,dx,dz,f){ const a=dx*sl.d[0]+dz*sl.d[1]; f=clamp(f,0,1); return a>0 ? sl.b+sl.r*f : a<0 ? sl.b+sl.r*(1-f) : sl.b+sl.r/2; }
 /* Quadratic Bezier height of a jump arc: from y0 through control cc to y1 at k */
+/* Leap progress along the way at time k: pf.e — a power; pf.a..pf.b — a window (no forward move before a, there by b), steady inside it */
+const LEAP_DROP=4;                                                    // a leap down onto ground up to this many blocks lower lands in one arc
+const LEAP_FS=[{e:1},{e:1.4},{e:.8}, ...[.08,.16,.24,.32,.4,.48,.56,.64].map(a=>({a,b:1})), ...[.9,.8,.7,.6].map(b=>({a:0,b})), {e:.6}];
+const leapProg=(k,pf)=>pf.e ? k**pf.e : clamp((k-pf.a)/(pf.b-pf.a),0,1);
 function arcY(y0,cc,y1,k){ return (1-k)*(1-k)*y0+2*k*(1-k)*cc+k*k*y1; }
 function doLeap(dx,dz){
   const bc=P.bClimb||0; P.bClimb=0;                                     // from a rubber slam bounce — as high as it springs
@@ -16497,7 +16501,9 @@ function doLeap(dx,dz){
   if(land.top===-Infinity && solid && !(P.mat==='paper' && windAt(P.x+dx*dist,P.z+dz*dist,L))){ [dist,land]=solid; }
   const voidLand=land.top===-Infinity, tx=P.x+dx*dist, tz=P.z+dz*dist, slTo=slopes[K(tx,tz)],
     slHi=slTo && !slTo.bridge && !ovhOn(K(tx,tz),L+climb) ? Math.max(slTo.b,slTo.b+slTo.r) : null,
-    drop=!voidLand && land.top<L-STEPUP && !pieceCellAt(tx,tz,.75,L) && !(slHi!=null && slHi>=L-STEPUP);   // a slope whose top is a step from here — land on it (not a pit-drop that zips to the cell and falls)
+    low=!voidLand && land.top<L-STEPUP && !pieceCellAt(tx,tz,.75,L) && !(slHi!=null && slHi>=L-STEPUP),   // a slope whose top is a step from here — land on it (not a pit-drop that zips to the cell and falls)
+    down=low && P.mat!=='paper' && L-land.top<=LEAP_DROP && !wpCol(tx,tz).some(t=>t.y>land.top+.01 && t.y<=L+.01),   // lower ground: one ballistic arc down onto it (no zip to the cell at the jump's height and a fall straight down)
+    drop=low && !down;                                                 // paper (a slow fall), a hatch on the way down, a deep pit — an arc to the jump height, then a fall
   const air=voidLand||drop, mp0=!air && pieceCellAt(tx,tz,.75), mp=mp0 && Math.abs(mp0.top-land.top)<.01 ? mp0.p : null;   // onto a piece: the arc's end follows its height (a moving lift)
   if(state==='idle' && (P.float||P.under)) waterColumn(P.x,P.z,.8);
   depart(); P.float=false; state='leap'; P.target=[tx,tz]; SND.leap();
@@ -16507,20 +16513,22 @@ function doLeap(dx,dz){
     for(const o of ovhsOf(K(P.x+dx*d,P.z+dz*d))) if(o.b>=L+1-.01 && t<o.b) cap=Math.min(cap,o.b-HALF-.02); }
   let pk=-Infinity; for(let d=1; d<dist; d++) if(!obIn[d]) pk=Math.max(pk,peaks[d]);   // the arc clears what it flies over (a ramp's high edge); over a tree, a bush, a rock — the ordinary jump height
   const y1=to.pos.y, capY=Math.max(cap,p0.y,y1), top0=Math.min(Math.max(p0.y,y1,L+HALF+1,railY+HALF,pk+HALF+.1)+.35, capY);
-  // forward progress k^hw: up a high step (a slam bounce from low, a wall top) the cube rises first, its front face doesn't enter a cell below its top;
-  // over a ramp mid-way it may move forward first and come down after it (hw<1) — never a rise in place and a snap onto the far cell
+  // forward progress leapProg(k,pf) at the ordinary jump height: steady (k^1) when the flight clears what's on the way; else the mildest bend that clears —
+  // a slight power (over a ramp mid-way), a late start (up a high step or onto a block next to the cube: it rises until its front face clears the top, then flies on
+  // at a steady speed), an early arrival (over a ramp, then down). No steep power: that was a rise in place and a snap onto the landing cell, whatever the object
   const u0=(p0.x-P.x)*dx+(p0.z-P.z)*dz, uD=(to.pos.x-p0.x)*dx+(to.pos.z-p0.z)*dz, yE=mp?mp.y+HALF:y1;
   const ovSl=(sl,d,u)=>{ const a=Math.max(u-.5,d-.5), b=Math.min(u+.5,d+.5); return Math.max(slopeY(sl,P.x+dx*a,P.z+dz*a),slopeY(sl,P.x+dx*b,P.z+dz*b)); };   // a ramp flown over: its highest point under the cube
   let top=top0, cc=2*top-(p0.y+y1)/2;
-  const clears=e=>{ for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*k**e, yb=arcY(p0.y,cc,yE,k)-HALF;
+  let D=.3+.1*dist;
+  if(down){ const yA=L+HALF, c0=2*top-(p0.y+yA)/2, v0=2*(c0-p0.y)/D, g=2*(p0.y-2*c0+yA)/(D*D);   // the flat leap's own launch speed and gravity, on down to the lower floor
+    D=(-v0-Math.sqrt(Math.max(0,v0*v0-2*g*(p0.y-y1))))/g; cc=p0.y+v0*D/2; }
+  const miss=pf=>{ let w=0; for(let i=1;i<40;i++){ const k=i/40, u=u0+uD*leapProg(k,pf), yb=arcY(p0.y,cc,yE,k)-HALF;   // how deep the flight goes into something on the way (0 — clear)
       for(let d=1; d<=dist; d++){ if(d<dist && obIn[d] && !slOv[d]) continue; const sl=d===dist && !air && slIn[d], so=d<dist && slOv[d], h=sl ? slopeAlong(sl,dx,dz,u-d+.5) : so ? ovSl(so,d,u) : d===dist ? (air ? -Infinity : tops[d]) : peaks[d]; const ob=d<dist && (obIn[d] || so);
-        if(u>d-1+(ob && !so ? .25 : .02) && !(ob && u>d+.75) && yb<h-(sl||so ? SL_LIP : .05)) return false; } } return true; };
-  // a ballistic flight at the ordinary jump height: steady forward speed (k^1); bending the progress — only when a ramp or a high step is in the way
-  let hw=0; for(const e of [1,1.4,.8,2,.6,2.8,4]) if(clears(e)){ hw=e; break; }
-  if(!hw) hw=6;
-  const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), D=.3+.1*dist, vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
+        if(u>d-1+(ob && !so ? .25 : .02) && !(ob && u>d+.75)) w=Math.max(w,h-(sl||so ? SL_LIP : .05)-yb); } } return w; };
+  let pf=LEAP_FS[0], best=Infinity; for(const f of LEAP_FS){ const w=miss(f); if(w<=0){ pf=f; break; } if(w<best-1e-6){ best=w; pf=f; } }
+  const axis=new V3(dz,0,-dx), q0=P.q.clone(), t0=P.tilt.clone(), q=new Q(), qt=new Q(), vEnd=2*(cc-y1)/D;   // downward speed at the end of the arc
   play(D, k=>{
-    const kh=k**hw; root.position.set(lerp(p0.x,to.pos.x,kh), arcY(p0.y,cc,yE,k), lerp(p0.z,to.pos.z,kh));
+    const kh=leapProg(k,pf); root.position.set(lerp(p0.x,to.pos.x,kh), arcY(p0.y,cc,yE,k), lerp(p0.z,to.pos.z,kh));
     q.setFromAxisAngle(axis,ease(k)*Math.PI/2*dist); qt.copy(t0).slerp(to.tilt,ease(k)); pMesh.quaternion.copy(qt).multiply(q).multiply(q0);
   }, ()=>{
     P.q.copy(q.setFromAxisAngle(axis,Math.PI/2*dist)).multiply(q0).normalize(); P.tilt.copy(to.tilt);
