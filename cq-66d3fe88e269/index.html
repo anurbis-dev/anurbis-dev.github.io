@@ -19,6 +19,8 @@
 <!-- fonts load without blocking the page: print media until loaded; fontsP waits for this link (data-done on load or error) -->
 <link id="gfonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Fredoka:wght@600&family=Quicksand:wght@600&display=swap" media="print" onload="this.media='all';this.dataset.done=1" onerror="this.dataset.done=1">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Fredoka:wght@600&family=Quicksand:wght@600&display=swap"></noscript>
+<!-- beta colours from the first paint (boot.js runs only after three.js loads); the beta workflow puts __CUBE_BETA__ above this -->
+<script>if(window.__CUBE_BETA__||/[?&]beta\b/.test(location.search)){ document.documentElement.classList.add('isbeta'); document.querySelector('meta[name="theme-color"]').content='#0f2f3a'; }</script>
 <style>
 :root{
   --bg-top:#65509a; --bg-bot:#b3718f; --dot:rgba(255,255,255,.28);
@@ -31,6 +33,7 @@
   :root:not([data-theme="light"]){ --panel:rgba(22,12,44,.5); --panel-strong:rgba(18,10,36,.86); }
 }
 :root[data-theme="dark"]{ --panel:rgba(22,12,44,.5); --panel-strong:rgba(18,10,36,.86); }
+html.isbeta{ --bg-top:#0f2f3a; --bg-bot:#3f9a86; }   /* beta: teal while loading too (a level sets its own inline) */
 html,body{ height:100%; margin:0; overflow:hidden; }
 body{
   background:linear-gradient(180deg,var(--bg-top),var(--bg-bot));
@@ -11186,7 +11189,7 @@ function wsFrame(){                                                  // uniforms
 }
 const wsN=r=>r>0 ? Math.floor(r)+(Math.random()<r%1?1:0) : 0;          // a rate this frame → a count (zero and negative — none)
 const WS_DROP=[0xffffff,0xe6f6ff,0xd2ecff], WS_MIST=[0xf6f9ff,0xe4ecf6];
-function wsDrop(x,y,z,vx,vy,vz){ puff(x,y,z,{ color:WS_DROP, n:1, size:.07, speed:0, up:0, grav:7, drag:.3, life:rand(.45,.9), grow:.4, alpha:.85, vel:[vx,vy,vz] }); }
+function wsDrop(x,y,z,vx,vy,vz,sz=.07){ puff(x,y,z,{ color:WS_DROP, n:1, size:sz, speed:0, up:0, grav:7, drag:.3, life:rand(.45,.9), grow:.4, alpha:.85, vel:[vx,vy,vz] }); }
 function wsMist(x,y,z,vx,vy,vz,sz,a){ puff(x,y,z,{ color:WS_MIST, n:1, size:sz, speed:.15, up:0, grav:-.2, drag:1.2, life:rand(1.2,2.2), grow:1.8, alpha:a, vel:[vx,vy,vz] }); }
 function wsCrest(){ let h=0; for(let i=0;i<WSU.uNT.value;i++){ const tr=WS_TR[i]; h+=tr.a*Math.pow(.5+.5*Math.cos(time*WSU.uWv.value*tr.w+tr.off),2.5); } return h; }   // at the shore line ('all' — the phase there is 0)
 /* The falls' sound: one loop (SND.cascade) — each fall by its nearest point to the view centre and its size, the loudest + 0.3·the rest, panned by screen */
@@ -11215,6 +11218,7 @@ function wsFx(){
     f.tm-=dt; if(f.tm<0){ f.tm=rand(1.2,4.5)/Math.max(1,L*.6); const u=Math.random(), p=f.at(u,rand(.15,.8)*(f.vd?.6:1)), r=f.dir(u);   // now and then a burst on the sheet
       for(let i=Math.round(rand(4,8));i--;) wsDrop(p[0],p[1],p[2],r[0]*rand(.4,1)+rand(-.3,.3),rand(.1,.9),r[1]*rand(.4,1)+rand(-.3,.3));
       wsMist(p[0]+r[0]*.05,p[1],p[2]+r[1]*.05,r[0]*.25,.1,r[1]*.25,.4,.3); } }
+  wsCubeHit();
   if(!WSU.uSurfOn.value || !wsWalls.length) return;                  // surf against high banks: a strong wave throws spray up the wall
   const thr=WSU.uNT.value>1 ? 1.12 : .95, k=Math.min(1,WSU.uSurfA.value*8), h=wsCrest(), sd=wsSD;
   const hit=h>=thr && wsFx.prev<thr && k>.05; wsFx.prev=h; if(!hit || sd) return;   // directional surf — its phase differs per wall: no spray (yet)
@@ -11224,6 +11228,25 @@ function wsFx(){
     if(Math.random()<s) wsMist(w.x-w.d[0]*.08,w.y+rand(.1,.4),w.z-w.d[1]*.08,bx*.2,rand(.2,.5),bz*.2,.35,.35); }
 }
 wsFx.prev=0;
+/* The cube under a fall: where the sheet meets the cube, spray bursts off it — drops thrown out and up, and mist.
+   WSH.s — the drops' strength, WSH.m — the mist's, WSH.f — bursts per second (the sheet over the whole cube) */
+const _wsH=[], WSH={ s:15, m:2, f:15 };
+function wsCubeHit(){
+  wsCubeHit.n=0; if(!root.visible || !wsFalls.length || WSH.f<=0) return;
+  const x=root.position.x, y=root.position.y, z=root.position.z, B=HALF+.06, H=_wsH; H.length=0;
+  for(const f of wsFalls){ if(Math.hypot(f.cx-x,f.cz-z)>f.len/2+2.5 || f.Y<y-B) continue;
+    for(let i=0,m=Math.max(2,Math.ceil(f.len/.08));i<=m;i++){ const u=i/m, l=f.at(u,0); if(Math.abs(l[0]-x)>2 || Math.abs(l[2]-z)>2) continue;
+      for(let j=0;j<=16;j++){ const p=f.at(u,j/16); if(p[1]<y-B) break;
+        if(p[1]<=y+B && Math.abs(p[0]-x)<B && Math.abs(p[2]-z)<B){ H.push(p,f.dir(u)); break; } } } }
+  if(!H.length) return;
+  const w=Math.min(1.5,H.length/2*.08/SIZE), vs=Math.sqrt(WSH.s);  // the share of the cube's width the sheet hits
+  for(let b=wsN(dt*WSH.f*w);b--;){ const a=2*Math.floor(Math.random()*H.length/2), p=H[a], r=H[a+1], ox=p[0]-x, oz=p[2]-z, top=p[1]>y+B-.12;   // one burst
+    for(let i=wsN(2*WSH.s);i--;){ const sx=ox+r[0]*.6+rand(-.5,.5), sz=oz+r[1]*.6+rand(-.5,.5);   // off the top: up and out; off a side: out along the fall
+      wsDrop(p[0],p[1]+.03,p[2],sx*rand(1.2,2.6),(top?rand(1.2,2.8):rand(.2,1.2))*vs,sz*rand(1.2,2.6),.14); }
+    for(let i=wsN(.15*WSH.m);i--;) wsMist(p[0],p[1]+.05,p[2],r[0]*.3+rand(-.3,.3),rand(.2,.6),r[1]*.3+rand(-.3,.3),rand(1.05,1.8),Math.min(.7,.27*Math.sqrt(WSH.m))); }
+  wsCubeHit.n=H.length/2;
+}
+wsCubeHit.n=0;
 /* =====================================================================
    DRAW-CALL BATCHING: one draw call per object (per material class), not one per box.
    A material class (batKey) — everything about a material except its colour; the colour moves into the vertices
@@ -15670,8 +15693,8 @@ function rollTo(nx,nz,dx,dz,eA,done){
   const from = poseAt(P.x,P.z,P.l), axis=new V3(dz,0,-dx);
   if(!slopeOn(K(P.x,P.z),P.l) && !(entering && slopeOn(K(nx,nz),top)) && (!entering || flatStep)){
     const pivot=from.pos.clone().add(new V3(dx*HALF,-HALF,dz*HALF));
-    pivotAnim(from.pos,pivot,axis,Math.PI/2,.19,()=>{ P.tilt.copy(to.tilt); done(); });
-  } else genericRoll(from,to,axis,Math.PI/2,.24,done, entering && eB>eA+.01 ? .34 : .18);
+    pivotAnim(from.pos,pivot,axis,Math.PI/2,.19,()=>{ P.tilt.copy(to.tilt); done(); }); wtrRoll(dx,dz,.19,P.l);
+  } else { genericRoll(from,to,axis,Math.PI/2,.24,done, entering && eB>eA+.01 ? .34 : .18); wtrRoll(dx,dz,.24,P.l); }
 }
 /* A spray ploughed ahead and to the sides by a cube sunk in a drift or a dune it rolls down (movMound, from the pose code in loop.js) */
 function movPlough(r,d){
@@ -17094,18 +17117,38 @@ function floatMove(dx,dz,qc){                                        // qc — t
   const tx=P.x+dx*n, tz=P.z+dz*n; P.target=[tx,tz];
   // Water wheel: the cube turns a quarter turn more than the cells it floated, and slows down with the motion
   const p0=root.position.clone(), to=exitTop!==null?poseAt(tx,tz,exitTop).pos:new V3(tx,b+FLOAT_Y,tz), axis=new V3(dz,0,-dx), qr=new Q(), q0=P.q.clone(), ang=Math.PI/2*(n+1);
+  let fq=0;                                                            // quarter turns done: each one slaps a face onto the water
   play(.36+.22*n, k=>{ const e=1-(1-k)*(1-k); root.position.lerpVectors(p0,to,e); root.position.y+=Math.sin(Math.PI*k)*.08;
       qr.setFromAxisAngle(axis,e*ang); pMesh.quaternion.copy(qr).multiply(qc ? _fq.copy(qc).slerp(q0,e) : q0);
-      if(Math.random()<.35) splash(root.position.x+(Math.random()-.5)*.6,root.position.z+(Math.random()-.5)*.6,.12);
-      const sp=(1-k)*(1-k);                                            // wheel: the bottom goes backward — spray flies back and up from the rear edge
-      if(Math.random()<.2+.7*sp) puff(root.position.x-dx*.42+rand(-.3,.3)*Math.abs(dz),b+WATER_Y+.02,root.position.z-dz*.42+rand(-.3,.3)*Math.abs(dx),
-        { color:[0xffffff,0xdff4ff,0xbfe8ff], n:2+Math.round(3*sp), size:.07, speed:.5, up:1.6+2*sp, grav:9, drag:.4, life:.6, grow:.7, alpha:.9, spread:.08, vel:[-dx*(1+2*sp),0,-dz*(1+2*sp)] }); },
+      const sp=(1-k)*(1-k), qn=Math.floor(e*(n+1)+.15);
+      if(qn>fq && qn<=n+1){ fq=qn; wtrSlap(dx,dz,sp); }
+      wtrSpray(root.position.x,root.position.z,b+WATER_Y+.02,dx,dz,sp); },
     ()=>{ P.x=tx; P.z=tz; P.q.copy(qr.setFromAxisAngle(axis,ang)).multiply(q0).normalize(); setMeshQ();
       if(overEdge){ P.float=false; return fallDeath(); }
       if(exitTop!==null){ P.float=false; P.l=exitTop; return afterLand(null,null,'soft'); }
       if(drop){ P.drop=null; return fallTo(b,dx,dz); }
       P.pos.copy(to); settle(K(tx,tz),false); });
   if(drop) P.drop=anim;                                                 // floating off a ledge to lower water: a swipe waits for it (floatSteer)
+}
+
+/* Spray of a cube rolling in water — floating (floatMove) or standing in it (a roll on a bed the surface crosses: rollTo → wtrRoll).
+   sp — 0…1 how fast it turns now; WTR_K — the strength */
+const WTR_K=1.6;
+const WTR_C=[0xffffff,0xdff4ff,0xbfe8ff], wtrN=r=>Math.floor(r)+(Math.random()<r%1?1:0);
+function wtrSpray(rx,rz,wy,dx,dz,sp){
+  const K_=WTR_K; if(K_<=0) return;
+  for(let i=wtrN(.7*K_);i--;) splash(rx+(Math.random()-.5)*.8,rz+(Math.random()-.5)*.8,(.16+.12*sp)*Math.sqrt(K_),wy);
+  for(const s of [-1,1]) for(let i=wtrN((.3+.6*sp)*K_);i--;) puff(rx+s*.46*Math.abs(dz)+rand(-.2,.2)*Math.abs(dx),wy,rz+s*.46*Math.abs(dx)+rand(-.2,.2)*Math.abs(dz),   // side sheets
+    { color:WTR_C, n:2+Math.round(2*sp), size:.08, speed:.4, up:1.4+1.6*sp, grav:9, drag:.4, life:.6, grow:.7, alpha:.9, spread:.06, vel:[s*Math.abs(dz)*(1+1.5*sp)+dx*.6,0,s*Math.abs(dx)*(1+1.5*sp)+dz*.6] });
+  for(let i=wtrN((.4+.6*sp)*K_);i--;) puff(rx-dx*.42+rand(-.35,.35)*Math.abs(dz),wy,rz-dz*.42+rand(-.35,.35)*Math.abs(dx),   // wheel: the bottom goes backward — spray back and up off the rear edge
+    { color:WTR_C, n:3+Math.round(5*sp), size:.09, speed:.6, up:2+2.6*sp, grav:9, drag:.4, life:.7, grow:.8, alpha:.95, spread:.1, vel:[-dx*(1.2+2.4*sp),0,-dz*(1.2+2.4*sp)] });
+}
+function wtrSlap(dx,dz,sp,wy){ if(WTR_K>0) splash(root.position.x+dx*.3,root.position.z+dz*.3,(.3+.25*sp)*Math.sqrt(WTR_K),wy); }   // a face slaps the water
+const wtrIn=(x,z,l)=>{ const k=K(Math.round(x),Math.round(z)); if(!water[k]) return null; const wy=wsurf(x,z); return wy>l+.05 && wy<l+SIZE+.15 ? wy : null; };   // the surface crosses the cube
+function wtrRoll(dx,dz,dur,l){                                       // a roll on the ground in water: the same spray as floating
+  if(P.float || wtrIn(P.x,P.z,l)===null && wtrIn(P.x+dx,P.z+dz,l)===null) return;
+  tween(dur, k=>{ const wy=wtrIn(root.position.x,root.position.z,l); if(wy!==null) wtrSpray(root.position.x,root.position.z,wy,dx,dz,.6*(1-k)+.3); },
+    ()=>{ const wy=wtrIn(P.x,P.z,P.l); if(wy!==null) wtrSlap(0,0,.5,wy); });
 }
 
 /* ---------- River: the current picks up a floating cube once it has stayed FLOW_WAIT, then carries it smoothly,
@@ -17123,7 +17166,7 @@ function flowStep([dx,dz]){
   play(pd?.6:.75, k=>{ const e=e0 ? k : k*k*(2-k)*.5+k*.5;
       if(c){ const u=1-e; root.position.set(u*u*p0.x+2*u*e*c.x+e*e*to.x, to.y, u*u*p0.z+2*u*e*c.z+e*e*to.z); }
       else root.position.lerpVectors(p0,to,e);
-      if(Math.random()<.25) splash(root.position.x-dx*.4+rand(-.3,.3),root.position.z-dz*.4+rand(-.3,.3),.1); },
+      if(Math.random()<.45) splash(root.position.x-dx*.4+rand(-.3,.3),root.position.z-dz*.4+rand(-.3,.3),.14); },
     ()=>{ P.x=x; P.z=z; P.pos.copy(to); P.drift=[dx,dz]; settle(k,false); });
 }
 /* A waterfall down into lower water: the cube tips over the lip like off an edge (the same roll, starting at the drift speed) and falls in */
@@ -19732,9 +19775,9 @@ function shadowBox(){
    Only the walls that hide it dissolve (seeMask): the cells its rays to the camera pass through, and the high cells joined to them
    on the camera's side of it (a wall off to the side, even one reaching toward the camera, stays). Every cell fades in and out on its own
    (SEE_MT — the target, SEE_MK — shown). It waits SEE_WAIT of being hidden (a roll over an edge that hides the cube for a moment doesn't
-   start it) and stays off under a low roof (a tunnel, a niche). seeN, seeR — dev panel, cube-see-n / cube-see-r */
+   start it) and stays off under a low roof (a tunnel, a niche). seeN, seeR — walls around the cube, the cut's radius */
 const SEE_DT=.1, SEE_IN=3.5, SEE_OUT=2, SEE_N0=14, SEE_R0=7, SEE_HID=.3, SEE_WAIT=.45, SEE_HIDE=new Set(), SEE_BOX=new THREE.Box3();   // SEE_HID: the hidden share (camHide) that starts the cut — a grazed corner doesn't
-let seeT=-1, seeOn=false, seeN=clamp(+LS.get('cube-see-n',SEE_N0)||SEE_N0,1,25), seeR=clamp(+LS.get('cube-see-r',SEE_R0)||SEE_R0,1,20), SEE_MK=new Uint8Array(1), SEE_MT=new Uint8Array(1), seeLv=null, seeY=0, seeHT=0, seeAct=false;
+let seeT=-1, seeOn=false, seeN=SEE_N0, seeR=SEE_R0, SEE_MK=new Uint8Array(1), SEE_MT=new Uint8Array(1), seeLv=null, seeY=0, seeHT=0, seeAct=false;
 function seeWalls(){
   const c=root.position, ce=Math.cos(el), se=Math.sin(el), wl=P.l+1; let n=0;
   for(let dz=-2;dz<=2;dz++) for(let dx=-2;dx<=2;dx++){ if(!dx && !dz) continue; const L=Math.hypot(dx,dz);
@@ -25603,21 +25646,9 @@ function dbgShow(on){
   if(on && !dbgEl){ dbgEl=document.createElement('div');
     dbgEl.style.cssText='position:fixed;right:6px;bottom:6px;z-index:99999;pointer-events:none;font:11px/1.35 ui-monospace,Consolas,monospace;color:#9f9;background:rgba(0,0,0,.62);border-radius:5px;padding:4px 7px;text-align:left';
     dbgTx=document.createElement('pre'); dbgTx.style.cssText='margin:0;white-space:pre;font:inherit';
-    dbgEl.append(dbgTx, dbgSee()); document.body.appendChild(dbgEl); }
+    dbgEl.append(dbgTx); document.body.appendChild(dbgEl); }
   if(dbgEl) dbgEl.style.display=on?'block':'none';
   dbgN=dbgSum=dbgMax=dbgLong=dbgCpu=dbgRen=0; dbgT0=dbgPrev=0;
-}
-/* Live tuning sliders (touch works: only this block takes pointers; its keys and touches don't reach the game):
-   see-through walls on open levels — walls around the cube (seeN), the cut's radius (seeR); saved as device settings */
-function dbgSee(){
-  const b=document.createElement('div'); b.style.cssText='pointer-events:auto;touch-action:none;margin-top:4px;border-top:1px solid #9f93;padding-top:3px';
-  const row=(lab,lo,hi,st,get,set,key)=>{ const r=document.createElement('label'), v=document.createElement('b'), i=document.createElement('input');
-    r.style.cssText='display:flex;align-items:center;gap:6px'; r.append(lab+' ', i, v); v.style.cssText='min-width:2.2em;text-align:right;font-weight:normal';
-    Object.assign(i,{ type:'range', min:lo, max:hi, step:st, value:get() }); i.style.cssText='width:110px;height:22px;margin:0;accent-color:#9f9';
-    const up=()=>{ set(+i.value); v.textContent=i.value; LS.set(key,i.value); }; i.oninput=up; v.textContent=i.value; return r; };
-  b.append(row('see walls',1,25,1,()=>seeN,x=>{ seeN=x; },'cube-see-n'), row('see size',1,20,.5,()=>seeR,x=>{ seeR=x; },'cube-see-r'));
-  for(const e of ['pointerdown','pointerup','pointermove','touchstart','keydown','click','wheel']) b.addEventListener(e,ev=>ev.stopPropagation());
-  return b;
 }
 /* every rAF callback: now — its timestamp, cpu — the ms the callback itself took, ren — of them the renderer.render call (0 when paused) */
 function dbgFrame(now, cpu, ren){
