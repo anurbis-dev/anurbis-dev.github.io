@@ -61,6 +61,7 @@ try{
   if(saved && typeof saved==='object' && saved.tok && typeof saved.nick==='string' && saved.nick.trim() && saved.id && (!savedId || String(saved.id)===String(savedId))) acct=saved;
   else betaClear();
 }catch(e){ betaClear(); }
+let betaSeen=!!acct || LSget('cube-beta-ok','')==='1';   // signed in before or once entered the game: the notice is only a greeting, without the confidentiality text
 FB.up=true;   // fbsnap.js: the beta notice stays locked until the sign-in lets it go
 const post=async(path,body,keep)=>{ const r=await fetch(API.replace(/\/$/,'')+path,{ method:'POST', headers:{ 'content-type':keep ? 'text/plain' : 'application/json' }, body:JSON.stringify(body), keepalive:!!keep });
   let d={}; try{ d=await r.json(); }catch(e){} if(!r.ok) throw Object.assign(new Error(d.error||'HTTP '+r.status),{ status:r.status }); return d; };
@@ -287,8 +288,9 @@ function syncStatusText(){
 function gMode_(m){ gMode=m; gm.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m))); $('fgPin').autocomplete=m==='new' ? 'new-password' : 'current-password'; $('fgMsg').textContent=''; gTexts(); }
 gm.forEach(b=>b.onclick=()=>gMode_(b.dataset.m));
 function gHead(key){
-  const betaHead=tb && tb.closest('.card')?.querySelector('h2'); if(!betaHead) return;
+  const card=tb && tb.closest('.card'), betaHead=card?.querySelector('h2'), txt=card?.querySelector('[data-t=betaTxt]'); if(!betaHead) return;
   betaHead.dataset.t=key; betaHead.dataset.src=key; betaHead.textContent=t(key);
+  if(txt) txt.hidden=!!acct && betaSeen;
 }
 function gSync(){
   if(!acct){
@@ -300,7 +302,7 @@ function gSync(){
   }
   const on=true; $('fgMe').hidden=false; $('fgForm').hidden=true; $('fgNm').textContent=acct.nick;
   document.body.classList.toggle('fbin',on);
-  gHead('Welcome back! Have a pleasant game!');
+  gHead(betaSeen ? 'Welcome back! Have a pleasant game!' : 'Closed beta');
   if(tb){ tb.textContent=t('Enter the game'); tb.hidden=false; tb.disabled=syncing; }
   const txt=syncStatusText(); $('fgSy').hidden=!txt; $('fgSy').textContent=txt;
 }
@@ -310,6 +312,7 @@ function signOut(){
   if(tb) tb.disabled=true;
   gSync();
 }
+if(tb) tb.addEventListener('click',()=>{ if(acct){ betaSeen=true; LSset('cube-beta-ok','1'); } });   // entered once — later launches only greet
 $('fgChg').onclick=()=>{ signOut(); gMode_('old'); $('fgNick').focus(); };
 $('fgGo').onclick=async()=>{
   if(gBusy) return; const nick=$('fgNick').value.trim().replace(/\s+/g,' '), pin=$('fgPin').value.trim(), M=s=>{ $('fgMsg').textContent=s; };
@@ -317,7 +320,7 @@ $('fgGo').onclick=async()=>{
   if(!/^\d{4,6}$/.test(pin)) return M(t('PIN: 4–6 digits'));
   gBusy=true; $('fgGo').disabled=true; M('…');
   try{ const d=await post(gMode==='new' ? '/tester/register' : '/tester/login',{ nick, pin, id:tester });
-    acct={ id:d.id, nick:d.nick, tok:d.tok }; syncDone=false; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); inPull(); }
+    acct={ id:d.id, nick:d.nick, tok:d.tok }; if(gMode==='old') betaSeen=true; syncDone=false; LSset('cube-tester-acct',JSON.stringify(acct)); LSset('cube-tester',d.id); M(''); $('fgPin').value=''; gSync(); syncStart(); inPull(); }
   catch(e){ M(t(e.message==='taken' ? 'This nickname is taken' : e.message==='wrong' ? 'Wrong nickname or PIN' : e.message==='locked' || e.status===429 ? 'Too many attempts. Try again in 15 minutes.'
       : e.message==='nick' ? 'Nickname: 2–20 letters or digits' : e.message==='pin' ? 'PIN: 4–6 digits' : 'No connection. Try again.')); }
   finally{ gBusy=false; $('fgGo').disabled=false; }

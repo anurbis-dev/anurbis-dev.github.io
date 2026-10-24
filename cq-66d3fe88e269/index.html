@@ -405,9 +405,9 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   display:flex; align-items:center; gap:10px; padding:10px 10px 10px 16px; border-radius:16px; background:rgba(28,16,52,.92); color:#f3eefc; box-shadow:0 6px 24px rgba(20,6,40,.45);
   font:700 15px/1.25 Quicksand,Nunito,system-ui,sans-serif; animation:updIn .35s ease; }
 #upd[hidden]{ display:none; }
-#upd p{ margin:0; min-width:0; } #upd b{ display:block; font-weight:800; } #upd small{ display:block; font-size:13px; opacity:.8; }
+#upd p{ margin:0; min-width:0; } #upd b{ display:block; font-weight:800; } #upd .v{ display:block; color:#ffd23f; font-weight:800; } #upd small{ display:block; font-size:13px; opacity:.8; }
 #upd button{ flex:none; border:0; border-radius:11px; font:inherit; font-weight:800; cursor:pointer; }
-#updGo{ padding:9px 14px; background:#ffd23f; color:#4a2a00; } #updX{ width:34px; height:34px; background:rgba(255,255,255,.12); color:inherit; font-size:20px; line-height:1; }
+#updGo{ padding:9px 14px; background:#ffd23f; color:#4a2a00; }
 @keyframes updIn{ from{ opacity:0; transform:translate(-50%,-12px); } }
 @media (prefers-reduced-motion: reduce){ #upd{ animation:none; } }
 #lvIntro{ position:fixed; inset:0; z-index:6; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -609,6 +609,10 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 
 #title,#xp{ background:radial-gradient(rgba(255,255,255,.13) 1.2px, transparent 1.6px) center/46px 46px,
   linear-gradient(180deg,#261a48,#4f3486 55%,#935ea6); }
+.isbeta #title,.isbeta #xp{ background:radial-gradient(rgba(255,255,255,.13) 1.2px, transparent 1.6px) center/46px 46px,
+  linear-gradient(180deg,#0f2f3a,#1d5e66 55%,#3f9a86); }   /* beta: teal instead of the release's violet */
+.tbox .vbeta{ font-size:13px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#ffd66b; margin-top:clamp(8px,2vh,14px); }
+.tbox .vbeta[hidden]{ display:none; } .tbox .vbeta + .ver{ margin-top:2px; }
 .tbox{ text-align:center; }
 .logo{ width:clamp(96px,min(44vw,26vh),230px); margin:0 auto clamp(10px,3vh,34px); animation:bob 3.4s ease-in-out infinite alternate; }
 .logo svg{ display:block; width:100%; overflow:visible; }
@@ -722,6 +726,7 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .tbeta .card{ width:min(92vw,380px); zoom:var(--ui); text-align:center; }
 .tbeta h2{ justify-content:center; }
 .tbeta small{ display:block; font-size:15px; font-weight:700; line-height:1.45; opacity:.85; }
+.tbeta small[hidden]{ display:none; }
 #title.beta .tbox{ opacity:0; pointer-events:none; }
 #title.beta{ cursor:default; }
 #title.boot .tbeta{ opacity:0; pointer-events:none; }
@@ -831,7 +836,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 
 <div id="hint" class="otl dim" aria-live="polite"></div>
 <div id="toast" class="otl" aria-live="polite"></div>
-<!--web--><div id="upd" role="status" hidden><p><b data-t>A new version of the game is out</b><small data-t>Reload the page to get it — your progress is saved.</small></p><button id="updGo" data-t>Reload</button><button id="updX" aria-label="Later" data-ta>×</button></div><!--/web-->
+<!--web--><div id="upd" role="status" hidden><p><b data-t>A new version of the game is out</b><span class="v" id="updV"></span><small data-t>Reload the page to get it — your progress is saved.</small></p><button id="updGo" data-t>Reload</button></div><!--/web-->
 <div id="smart" aria-hidden="true">!</div>
 <div id="mood" aria-hidden="true"></div>
 <button id="palBub" hidden data-ta aria-label="The Yeti wants to tell you something"><i></i><i></i><i></i></button>
@@ -853,6 +858,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
     <h1 id="titleGame">Data Cube</h1>
     <div class="rule"></div>
     <div class="series" id="titleSeries">Expedition Log</div>
+    <div class="vbeta" id="titleBeta" hidden data-t>Closed beta</div>
     <div class="ver" id="titleVer">version 0.5</div>
     <div class="tact"><p class="tap"></p>
       <div class="xbox" id="xBox" aria-live="polite"><div class="xin">
@@ -1031,11 +1037,12 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.9';
+const VERSION = '2.16.10';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
 const BETA = !!window.__CUBE_BETA__ || /[?&]beta\b/.test(location.search);   // closed beta build (the beta workflow sets __CUBE_BETA__; ?beta — a local check): a confidentiality notice on the title
+if(BETA) document.documentElement.classList.add('isbeta');   // its own title colours: a beta screenshot never passes for the release
 if(BETA){ const lg=m=>{ FB_LOG.push([Math.round(performance.now()),String(m).slice(0,600)]); if(FB_LOG.length>30) FB_LOG.shift(); if(FB_LOG.on) FB_LOG.on(String(m)); }, ce=console.error.bind(console);
   console.error=(...a)=>{ lg(a.map(x=>x && x.stack || x).join(' ')); ce(...a); };
   addEventListener('error',e=>lg((e.error && e.error.stack) || e.message)); addEventListener('unhandledrejection',e=>lg('promise: '+((e.reason && e.reason.stack) || e.reason))); }
@@ -23061,7 +23068,7 @@ function applyLang(){
   document.documentElement.lang=lang;
   document.querySelectorAll('[data-t]').forEach(e=>{ if(e.dataset.src==null) e.dataset.src=e.innerHTML.trim(); e.innerHTML=locTr(e.dataset.t||e.dataset.src)||e.dataset.src; });
   document.querySelectorAll('[data-ta]').forEach(e=>{ if(e.dataset.src==null) e.dataset.src=e.getAttribute('aria-label'); e.setAttribute('aria-label',locTr(e.dataset.src)||e.dataset.src); });
-  document.title=TITLE+' v'+VERSION; $('titleGame').textContent=GAME; $('titleSeries').textContent=SERIES; $('titleVer').textContent=loc('version {0}',VERSION); $('menuVer').textContent='v'+VERSION;
+  document.title=TITLE+' v'+VERSION; $('titleGame').textContent=GAME; $('titleSeries').textContent=SERIES; $('titleVer').textContent=loc('version {0}',VERSION); $('menuVer').textContent='v'+VERSION; if($('updV') && $('updV').dataset.v) $('updV').textContent=loc('version {0}',$('updV').dataset.v);
   lvBtns.forEach((b,i)=>b.setAttribute('aria-label',loc('Level {0}: {1}',lvNo(i),lvName(LEVELS[i])))); areaTitle(); lvdRelang(); if(artOn) artText(artI);
   [...$('shipRow').children].forEach((b,i)=>b.textContent=loc(SHIPS[i][0]));
   [...$('gfxRow').children].forEach(b=>b.textContent=loc({ auto:'Auto', high:'High', low:'Low', manual:'Manual' }[b.dataset.q])); gfxUi(); camIdleTxt();
@@ -23280,6 +23287,7 @@ function toTitle(){                                                    // the me
 function betaAgree(e){ const t=$('title'); if(!t.classList.contains('beta') || t.classList.contains('boot') || $('tBetaOk').hidden || $('tBetaOk').disabled) return;
   t.classList.remove('beta'); $('tBeta').hidden=true; titleTap(e); fbEvCfg(); }   // hidden/disabled: the tester has not signed in yet (beta/feedback.js)
 if(BETA && !FBS){ $('title').classList.add('beta'); $('tBeta').hidden=false; $('tBetaOk').hidden=true; $('tBetaOk').disabled=true; }   // beta/feedback.js asks for the tester's nickname, then lets it go
+if(BETA) $('titleBeta').hidden=false;   // "Closed beta" above the version number
 $('tBetaOk').onclick=e=>{ e.stopPropagation(); betaAgree(e); };
 $('title').onclick=e=>{ if(xMode){ if(!e.target.closest('#xBox')) xBack(); } else titleTap(e); };   // a tap beside the list and its button hides it: back to the start screen
 $('xNew').onclick=()=>{ SND.uiTap(); newExp(); };
@@ -25834,17 +25842,16 @@ Promise.all([fontsP, warm()]).then(reveal, e=>{ console.error(e); reveal(); });
 const swReg=()=>{ try{ navigator.serviceWorker.register('sw.js?v='+VERSION).catch(()=>{}); }catch(e){} };
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ if(document.readyState==='complete') setTimeout(swReg,1000); else addEventListener('load',swReg); }
 /* A newer version: a tab left open keeps the old game. version.json (written by the build) is polled when the tab comes back,
-   on progress saves and every VER_POLL while it is open (no more often than VER_GAP); a newer VERSION — the strip #upd: "Reload" or "Later" (asks again in VER_SNOOZE) */
-const VER_GAP=60e3, VER_POLL=15*60e3, VER_SNOOZE=30*60e3;
-let verAt=0, verOff=0;
+   on progress saves and every VER_POLL while it is open (no more often than VER_GAP); a newer VERSION — the strip #upd with its number and "Reload" (it stays until then) */
+const VER_GAP=60e3, VER_POLL=15*60e3;
+let verAt=0;
 const verNum=v=>String(v).split('.').map(n=>+n||0), verNewer=(a,b)=>{ a=verNum(a); b=verNum(b); for(let i=0;i<3;i++) if((a[i]||0)!==(b[i]||0)) return (a[i]||0)>(b[i]||0); return false; };
 function verCheck(force){
-  const t=Date.now(); if(TEST || !/^https?:$/.test(location.protocol) || !force && t-verAt<VER_GAP || t<verOff || !$('upd').hidden) return; verAt=t;
-  fetch('version.json?t='+t,{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(j=>{ if(j && verNewer(j.v,VERSION) && Date.now()>=verOff) $('upd').hidden=false; }).catch(()=>{});
+  const t=Date.now(); if(TEST || !/^https?:$/.test(location.protocol) || !force && t-verAt<VER_GAP || !$('upd').hidden) return; verAt=t;
+  fetch('version.json?t='+t,{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(j=>{ if(!j || !verNewer(j.v,VERSION)) return; const v=$('updV'); v.dataset.v=j.v; v.textContent=loc('version {0}',j.v); $('upd').hidden=false; }).catch(()=>{});
 }
 verHook=verCheck;
 $('updGo').onclick=()=>{ try{ xpSave(); }catch(e){} location.reload(); };
-$('updX').onclick=()=>{ $('upd').hidden=true; verOff=Date.now()+VER_SNOOZE; };
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) verCheck(); });
 addEventListener('focus',()=>verCheck());
 setInterval(()=>{ if(!document.hidden) verCheck(true); },VER_POLL);
