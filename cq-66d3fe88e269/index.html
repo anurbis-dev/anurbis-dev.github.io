@@ -84,7 +84,7 @@ body.night::before{ opacity:0; }
 #hudArt[hidden]{ display:none; } .off #hudArt{ pointer-events:none; } #hudArt canvas{ display:block; width:100%; height:100%; } #hudArt:active{ transform:scale(.92); }
 #hudArt:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; } #hudArt.land canvas{ opacity:0; }
 #starCount{ display:flex; align-items:center; margin-top:calc(6px*var(--hl)); font-size:calc(15px*var(--hl)); font-weight:900; color:var(--gold); text-shadow:0 2px 8px rgba(40,10,60,.4); }
-/* Top right: restart and menu, Locations under the menu button; landscape — the camera under restart, portrait — the camera at the bottom centre */
+/* Top right: restart and menu. Landscape — the camera under restart, Locations under the menu. Portrait — the camera at the bottom centre, Locations in the top row, left of the menu */
 .btns{ flex:none; display:grid; gap:8px; grid-template-columns:repeat(2,44px); grid-template-areas:"reset menu" "cam lv"; }
 #btnCam{ grid-area:cam; } #btnReset{ grid-area:reset; } #btnMenu{ grid-area:menu; } #btnLv{ grid-area:lv; }
 .btn{ width:44px; height:44px; border-radius:14px; border:0; background:var(--panel); color:var(--ink);
@@ -96,8 +96,7 @@ body.night::before{ opacity:0; }
    Portrait: it sits at the bottom centre, a little above the edge (the system's swipe zone), hidden while the level hint shows */
 #btnCam,#camRow .btn{ touch-action:none; } #btnCam.pan,#camRow .btn.pan{ background:var(--cream); color:#4a2f78; } body.nocam #btnCam, body.cam3 #btnCam{ display:none; }
 @media (orientation:portrait){
-  .btns{ grid-template-areas:"reset menu" "cam cam"; }
-  #btnLv{ position:fixed; right:calc(env(safe-area-inset-right,0px) + 14px*var(--ui)); bottom:calc(env(safe-area-inset-bottom,0px) + 16px); z-index:21; }
+  .btns{ grid-template-columns:repeat(3,44px); grid-template-areas:"reset lv menu"; }
   #btnCam{ position:fixed; left:50%; margin-left:-22px; bottom:calc(env(safe-area-inset-bottom,0px) + 52px); }
   body:has(#hint:not(.dim)) #btnCam{ opacity:0; transform:scale(.7); visibility:hidden; pointer-events:none; transition:opacity .25s ease, transform .25s ease, visibility 0s .25s; } }
 /* Three camera buttons (the setting's third state, body.cam3): turn · zoom · pan in a row. Landscape — under restart, where the one button sits
@@ -1093,7 +1092,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.11';
+const VERSION = '2.16.12';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
