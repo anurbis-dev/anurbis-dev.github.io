@@ -387,6 +387,11 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .ab span{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800}
 .ab b{font:600 18px var(--f-disp)}
 .ab small{display:block;color:var(--dim);font-size:11.5px}
+.share{display:grid;gap:6px}
+.share>span{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800}
+.share input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:12px/1.35 var(--f-mono);width:100%}
+.share .row2{align-items:center}
+.share small{color:var(--dim);font-size:12.5px}
 /* An instant tooltip (data-tip), drawn by the page — not the browser's slow title */
 #tip{position:fixed;z-index:60;pointer-events:none;background:#2f2257;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font:12.5px/1.35 var(--f-body);color:var(--txt);white-space:pre-line;max-width:280px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 #tip b{color:var(--gold)}
@@ -440,6 +445,7 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .mn .mi.dng{color:var(--bug)}
 .dlg{position:absolute;inset:0;z-index:35;background:rgba(5,3,12,.6);display:grid;place-items:center;padding:16px;animation:fade .15s}
 .dlg .box{width:min(360px,100%);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:10px;animation:pop .25s var(--ease)}
+.dlg.stay,.dlg.stay .box,.mn.stay,.mn.stay .box{animation:none}
 .dlg h4{margin:0;font:600 16px var(--f-disp)}
 /* Help: how the page is driven, opened by the (i) in the header */
 .ib.inf{border-color:transparent;background:none;color:var(--dim2);width:30px}
@@ -988,22 +994,30 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). Ряд тегов над каждым списком, включая сбои, фильтрует; поиск тоже ищет по тегам.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
-    <li>Кубик в левом верхнем углу — сводка: версия беты и что происходит.</li></ul>
+    <li>Кубик в левом верхнем углу — сводка: версия беты, что происходит, и ссылка с ключом для другого человека.</li></ul>
   <h5>Клавиши</h5><ul><li><b>/</b> — поиск, <b>G</b> — графики, <b>R</b> — обновить, <b>Esc</b> — закрыть окно или карточку.</li></ul></div></div>`;
 /* The logo's summary: the published beta's version and what is going on now */
 let BVER=null;   // version.json next to the beta's index.html (one level up)
-const aboutVer=()=>{ if(BVER!==null || DEMO) return; BVER=''; fetch('../version.json',{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(d=>{ BVER=d && d.v || '—'; if(S.about) render(); },()=>{ BVER='—'; if(S.about) render(); }); };
+/* Version arrives after the window is open: write it into the cell. A second render() would replay the fade and the window blinks. */
+const aboutVer=()=>{ if(BVER!==null || DEMO) return; BVER='';
+  fetch('../version.json',{ cache:'no-store' }).then(r=>r.ok ? r.json() : null).then(d=>{ BVER=d && d.v || '—'; aboutVerPut(); },()=>{ BVER='—'; aboutVerPut(); }); };
+function aboutVerPut(){ if(!S.about) return; const el=$('abVer'), n=$('abVern'); if(!el) return;
+  const tver=LST && LST.info ? LST.info.ver : ''; el.textContent='v'+BVER;
+  if(n) n.textContent=tver && tver!==BVER ? 'данные уровней из v'+tver : 'pixis.ink/cq-…'; }
+const accessUrl=()=>{ const u=new URL(location.href); u.hash=''; u.search=''; if(KEY) u.searchParams.set('k',KEY); else if(DEMO) u.searchParams.set('demo',''); return u.toString(); };
 function aboutHtml(){
   const now=Date.now(), N=plStats(), open=REPS.filter(r=>r.state!=='closed'), ob=open.filter(r=>r.kind==='bug').length, today=REPS.filter(r=>r.day===0).length, wk=REPS.filter(r=>now-r.at<7*DAY).length;
   const pl24=TS.filter(t=>t.last>now-DAY).length, ss24=N.ss.filter(s=>s.s>now-DAY), m24=ss24.reduce((a,s)=>a+(s.e-s.s),0), nv=eNewest(), eNew=(ERR||[]).filter(e=>e.vers.includes(nv)), eDay=(ERR||[]).filter(e=>now-e.last<DAY).length;
   const stuck=LVM.reduce((a,l)=>a+l.stuck.length,0), gver=DEMO ? (LST && LST.info && LST.info.ver)||'—' : BVER||'…', tver=LST && LST.info ? LST.info.ver : '';
   const vers={}; for(const t of TS) if(t.ver) vers[t.ver]=(vers[t.ver]||0)+1; const vk=Object.keys(vers).sort((a,b)=>b.localeCompare(a,undefined,{ numeric:true }));
-  const c=(a,b,d)=>`<div><span>${a}</span><b>${b}</b>${d ? `<small>${d}</small>` : ''}</div>`;
+  const c=(a,b,d,id)=>`<div><span>${a}</span><b${id ? ` id="${id}"` : ''}>${b}</b>${d ? `<small${id ? ` id="${id}n"` : ''}>${d}</small>` : ''}</div>`;
+  const verNote=!BVER || DEMO ? 'pixis.ink/cq-…' : tver && tver!==gver ? 'данные уровней из v'+esc(tver) : 'pixis.ink/cq-…';
   return `<div class="dlg" data-act="abbg"><div class="box help" role="dialog" aria-label="Сводка беты"><div class="hh">${CUBE.replace('<svg','<svg style="width:26px;height:26px"')}<h4>Data Cube · бета</h4><button class="ib" id="abX" data-act="abx" aria-label="Закрыть">✕</button></div>
-    <div class="ab">${c('Опубликована','v'+esc(gver),tver && tver!==gver ? 'данные уровней из v'+esc(tver) : 'pixis.ink/cq-…')}${c('У игроков',vk[0] ? 'v'+esc(vk[0]) : '—',vk.length>1 ? vk.slice(0,4).map(v=>'v'+esc(v)+' · '+vers[v]).join(', ') : '')}
+    <div class="ab">${c('Опубликована','v'+esc(gver),verNote,'abVer')}${c('У игроков',vk[0] ? 'v'+esc(vk[0]) : '—',vk.length>1 ? vk.slice(0,4).map(v=>'v'+esc(v)+' · '+vers[v]).join(', ') : '')}
       ${c('Игроков',TS.length,(N.on ? '● '+N.on+' играют сейчас · ' : '')+pl24+' за сутки')}${c('Наиграно за сутки',hm(m24),ss24.length+' '+nf(ss24.length,'сессия','сессии','сессий'))}
       ${c('Открыто',`<span style="color:var(--bug)">🐞 ${ob}</span> · <span style="color:var(--op)">💬 ${open.length-ob}</span>`,STN.wip+': '+open.filter(r=>r.state==='wip').length)}${c('Новых отзывов',today+' сегодня',wk+' за неделю')}
       ${c('Сбои',ERR ? eNew.length+' в v'+esc(nv||'—') : '—',ERR ? eDay+' за сутки · '+ERR.length+' видов всего' : 'нет данных D1')}${c('Застряли',stuck,'не играют '+STUCK_D+'+ дня')}</div>
+    ${KEY ? `<div class="share"><span>Ссылка для доступа</span><input id="shareUrl" readonly value="${esc(accessUrl())}"><div class="row2"><button type="button" class="btn sm pri" data-act="share">Копировать</button></div><small>С ключом. У того, кому отправите, страница откроется сразу, ключ сохранится в его браузере.</small></div>` : ''}
     <p>${loadAt ? 'Данные обновлены '+agoL(loadAt)+'.' : ''}${unseen ? ' Непрочитанных отзывов: '+unseen+'.' : ''}${DEMO ? ' Демо-данные.' : ''}</p></div></div>`;
 }
 /* An in-page prompt / confirm: works where the browser's own dialogs are blocked */
@@ -1026,7 +1040,7 @@ function render(){
   const ae=document.activeElement, aid=ae && app.contains(ae) && ae.id, s0=ae && ae.selectionStart, s1=ae && ae.selectionEnd;
   const au=[...app.querySelectorAll('audio')].find(a=>!a.paused);   // a playing voice note survives the redraw
   if(au) au.remove();
-  const A=S.A, md=mode();
+  const A=S.A, md=mode(), stay=!!app.querySelector('.dlg,.mn');   // a window already on screen keeps its fade from replaying
   app.className='app'+(A.has('list') ? ' a-list' : '')+(A.has('bars') || A.has('fold') ? ' a-bars' : '')+([...A].some(x=>x.startsWith('g:')) ? ' a-grp' : '');
   let h;
   if(S.gate) h=gateHtml();
@@ -1040,13 +1054,14 @@ function render(){
   if(S.help) h+=helpHtml();
   if(S.about) h+=aboutHtml();
   if(S.ask) h+=askHtml();
+  if(stay) h=h.replace('class="dlg"','class="dlg stay"').replace('class="mn"','class="mn stay"');
   if(S.toast) h+=`<div class="toast">${esc(S.toast)}</div>`;
   app.innerHTML=h;
   app.querySelectorAll('#lst,#side,#pane,#shin').forEach(e=>{ if(keep[e.id]!=null) e.scrollTop=keep[e.id]; if(whk[e.id]) WH.set(e,whk[e.id]); });   // a wheel glide goes on in the new panel
   if(tipEl && !tipEl.isConnected) tipHide();
   if(au){ const p=app.querySelector(`audio[data-n="${au.dataset.n}"]`); if(p) p.replaceWith(au); }
   const want=S.focus, fid=want || aid; S.focus=null;
-  if(fid && $(fid)){ $(fid).focus({ preventScroll:true }); if(want) $(fid).scrollIntoView({ block:'center', behavior:'smooth' }); try{ if(fid===aid && s0!=null) $(fid).setSelectionRange(s0,s1); }catch(e){} }
+  if(fid && $(fid)){ $(fid).focus({ preventScroll:true }); if(want && !$(fid).closest('.dlg')) $(fid).scrollIntoView({ block:'center', behavior:'smooth' }); try{ if(fid===aid && s0!=null) $(fid).setSelectionRange(s0,s1); }catch(e){} }
   if($('grp')) $('grp').onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); };
   if($('askF')) $('askF').onsubmit=e=>{ e.preventDefault(); const v=$('askIn') ? $('askIn').value.trim() : true, er=ASKF && ASKF(v); if(typeof er==='string'){ $('askErr').textContent=er; return; } S.ask=null; render(); };
   app.querySelectorAll('.dims [aria-pressed=true]').forEach(b=>{ const d=b.parentNode; if(b.offsetLeft<d.scrollLeft || b.offsetLeft+b.offsetWidth>d.scrollLeft+d.clientWidth) d.scrollLeft=b.offsetLeft-12; });
@@ -1264,6 +1279,7 @@ app.addEventListener('click',e=>{
   else if(a==='kind2'){ setKind(S.sel); return; }
   else if(a==='del'){ delRep(S.sel); return; }
   else if(a==='about'){ S.about=true; S.focus='abX'; aboutVer(); render(); return; }
+  else if(a==='share'){ const u=$('shareUrl'); if(u){ u.focus(); u.select(); } copy(u ? u.value : accessUrl(),'Ссылка с ключом скопирована'); return; }
   else if(a==='abx' || a==='abbg' && e.target===el){ S.about=false; render(); return; }
   else if(a==='abbg') return;
   else if(a==='dcause'){ S.dc=S.dc===el.dataset.k ? '' : el.dataset.k; }
