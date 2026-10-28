@@ -578,8 +578,83 @@ function setLevels(d){ LVS=d; ORD=d ? d.areas.flatMap(a=>a.levels.map((l,i)=>({ 
 const lvH=id=>{ const b=LVI[id]; return b && b.h && b.h.length ? b.h : ((lvInfo()[id]||{}).h||null); };
 const xName=e=>(LVS && LVS.xnames && LVS.xnames[e.nm]) || 'Экспедиция';
 let RAW=[], TRAW=[], REPS=[], TS=[], TSI={}, seen=null, unseen=0, loadAt=0, tpAt=0, loading=false, failed='';
+let watchRev=0, watchCtl=null, watching=false, useWatch=false, safeAt=0, paintAt=Date.now();   // /watch cursor: the page applies the records, it does not poll /list
 let LST=null, ERR=null;   // gameplay telemetry from D1: /stats/levels and /stats/errors (null — the worker has no DB yet)
 const eKey=m=>{ let h=0; for(const c of String(m)) h=Math.imul(h^c.charCodeAt(0),16777619)>>>0; return h.toString(36); };
+const errList=es=>(es.errors||[]).map(e=>({ ...e, key:eKey(e.m), vers:e.vers||[] }));
+const nap=ms=>new Promise(ok=>setTimeout(ok,ms));
+/* A change from /watch. Same shapes the full load uses, merged in place: a new report, an edited one, a reply, a tester, tags, stats. */
+function feedTester(p){
+  if(!p || !p.id) return;
+  let t=TRAW.find(x=>x.id===p.id);
+  if(!t){ t={ id:p.id, nick:p.nick||'—', at:p.at||Date.now(), cc:p.cc||null, ban:false, save:false, stats:null, live:null, prog:null, cfg:null, ver:null, wins:{} }; TRAW.unshift(t); }
+  for(const k of ['nick','cc','at','ver','prog']) if(p[k]!==undefined) t[k]=p[k];
+  if('ban' in p) t.ban=!!p.ban; if('save' in p) t.save=!!p.save; if('live' in p) t.live=p.live;
+  if(p.stats){ if(!t.stats) t.stats={ n:0, ms:0, devs:{}, ss:[], ...p.stats }; else Object.assign(t.stats,p.stats); }
+  if(p.sess && t.stats){ t.stats.ss=t.stats.ss||[]; if(!t.stats.ss.some(s=>s.s===p.sess.s)) t.stats.ss.unshift(p.sess); }
+  if(p.nick!==undefined) for(const i of RAW){ const tid=(i.meta&&i.meta.tester)||((i.labels||[]).find(l=>l.startsWith('tester:'))||'').slice(7); if(tid===p.id) i.nick=p.nick; }
+}
+function applyFeed(changes){
+  let fresh=0; const replied=new Set();
+  for(const c of changes){
+    const d=c.data;
+    if(c.kind==='rep' && d && d.n!=null){ const i=RAW.findIndex(x=>x.n===d.n); if(i<0){ if(seen && !seen.has(d.n)) fresh++; RAW.push(d); } else RAW[i]=d; }
+    else if(c.kind==='repx' && d){ RAW=RAW.filter(x=>x.n!==d.n); if(S.sel && S.sel.n===d.n){ S.sel=null; if(mode()==='n') S.sheet=null; } }
+    else if(c.kind==='reply' && d){
+      const row=RAW.find(x=>x.n===d.n); if(row){ if(d.comments!=null) row.comments=d.comments; if(d.reply) row.up=d.reply.at; }
+      const rep=REPS.find(x=>x.n===d.n);
+      if(rep && Array.isArray(rep.reps) && d.reply && !rep.reps.some(x=>x.id===d.reply.id)) rep.reps.push(d.reply);
+      replied.add(d.n);
+    }else if(c.kind==='tag' && d) TAGS={ u:d.u||{}, l:d.l||{}, r:d.r||{} };
+    else if(c.kind==='pl' || c.kind==='live' || c.kind==='prog') feedTester(d);
+    else if(c.kind==='plx' && d){ TRAW=TRAW.filter(t=>t.id!==d.id); if(S.pl && S.pl.id===d.id){ S.pl=null; S.sheet=null; } }
+    else if(c.kind==='read' && d && Array.isArray(d.read)){ for(const x of d.read){ const rep=REPS.find(r=>r.n===x.n); if(!rep) continue; if(x.c && Array.isArray(rep.reps)){ const hit=rep.reps.find(r=>r.id===x.c); if(hit) hit.wait=false; } if(x.t==='fixed' && rep.fixed) rep.fixed.wait=false; } }
+    else if(c.kind==='stats' && d){ if(d.levels) LST=d.levels; if(d.errors) ERR=d.errors.errors ? errList(d.errors) : null; tpAt=Date.now(); }
+  }
+  const prevN=S.sel&&S.sel.n, prevSig=S.sel&&S.sel.sig, prevC=prevSig?prevSig.split('|')[1]:'';
+  model(); failed=''; loadAt=Date.now();
+  if(fresh){ unseen+=fresh; ping(fresh); }
+  if(S.sel && S.sel.reps && S.sel.n===prevN && String(S.sel.comments)!==prevC && !replied.has(S.sel.n)) repLoad(S.sel);
+  title(); render(S.booted ? { patch:true } : undefined);
+}
+async function watchOnce(since, parent){
+  const c=new AbortController(), t=setTimeout(()=>c.abort(),45000), stop=()=>c.abort();
+  parent.addEventListener('abort', stop);
+  try{
+    const r=await fetch(`${API}/watch?since=${encodeURIComponent(since)}&k=${encodeURIComponent(KEY)}`,{ cache:'no-store', signal:c.signal });
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(r.status===403) throw Object.assign(new Error('key'),{ key:true });
+    if(!r.ok) throw new Error((d&&d.error)||'HTTP '+r.status);
+    return d;
+  }finally{ clearTimeout(t); parent.removeEventListener('abort', stop); }
+}
+function armWatch(){
+  if(DEMO || !useWatch || !KEY) return;
+  if(watchCtl) watchCtl.abort();
+  const ctl=watchCtl=new AbortController(); watching=true;
+  (async()=>{
+    try{
+      while(!ctl.signal.aborted){
+        if(!liveOk()){ await nap(1000); continue; }
+        try{
+          const d=await watchOnce(watchRev, ctl.signal);
+          if(ctl.signal.aborted) break;
+          if(!d) continue;
+          if(d.poll){ useWatch=false; break; }
+          if(d.reset){ load(true,true); return; }
+          if(Number.isFinite(+d.rev)) watchRev=+d.rev;
+          failed=''; loadAt=Date.now();
+          if(d.changes && d.changes.length) applyFeed(d.changes);
+        }catch(e){
+          if(ctl.signal.aborted || e.name==='AbortError' && ctl.signal.aborted) break;
+          if(e.name==='AbortError') continue;
+          if(e.key){ S.gate='Неверный ключ'; KEY=''; useWatch=false; title(); render(); break; }
+          await nap(4000);
+        }
+      }
+    }finally{ if(watchCtl===ctl) watching=false; }
+  })();
+}
 function norm(i){ const b=i.body||'', m=i.meta||{}, s=m.sum||{}, labels=i.labels||[];
   if(!i.meta){ const id=(b.match(/[?&/]id=(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||b.match(/fb\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2}-[0-9a-f]{4}-[a-z0-9]{6})/)||[])[1];   // a report filed before the fbmeta comment
     if(id){ m.id=id; m.snap=/fb\.html\?id=/.test(b); m.shot=/shot\.jpg/.test(b); m.voice=(b.match(/voice\.(webm|ogg|m4a)/)||[])[1]||null; }
@@ -624,12 +699,18 @@ async function api(path,body){
   return d;
 }
 async function load(quiet,testers){
-  if(loading) return; loading=true; if(!quiet){ S.busy=true; render(); if(S.booted) anim('spin'); }
+  if(loading) return; loading=true; if(watchCtl){ watchCtl.abort(); watchCtl=null; }
+  if(!quiet){ S.busy=true; render(); if(S.booted) anim('spin'); }
   try{
+    let head=null;   // the feed cursor before the snapshots, so a record written during this load still arrives on /watch
+    if(!DEMO) head=await api('/watch').catch(e=>{ if(e.key) throw e; return null; });
     const tl=testers || !tpAt, st=p=>tl ? api(p).catch(e=>{ if(e.key) throw e; return undefined; }) : undefined;   // undefined — keep what we had
     const [list,tp,ls,es,tg]=await Promise.all([api('/list'),tl ? api('/testers').catch(e=>{ if(e.key) throw e; return null; }) : null,st('/stats/levels'),st('/stats/errors'),api('/tags').catch(e=>{ if(e.key) throw e; return null; })]);
     if(tg) TAGS=tg;
-    if(ls!==undefined) LST=ls; if(es!==undefined) ERR=es && es.errors ? es.errors.map(e=>({ ...e, key:eKey(e.m), vers:e.vers||[] })) : null;
+    if(ls!==undefined) LST=ls; if(es!==undefined) ERR=es && es.errors ? errList(es) : null;
+    if(head && head.poll) useWatch=false;
+    else if(head && Number.isFinite(+head.rev)){ watchRev=+head.rev; useWatch=true; if(!safeAt) safeAt=Date.now(); }
+    else if(!DEMO) useWatch=false;
     const fresh=seen ? list.filter(i=>!seen.has(i.n)).length : 0;
     const prevN=S.sel&&S.sel.n, prevSig=S.sel&&S.sel.sig, hadReps=!!(S.sel&&S.sel.reps);
     RAW=list; if(tp){ TRAW=tp; tpAt=Date.now(); } model(); failed=''; loadAt=Date.now(); S.gate=false;
@@ -638,7 +719,7 @@ async function load(quiet,testers){
     if(!S.booted){ S.booted=true; anim('list','num','bars'); const r=hn && REPS.find(r=>r.n===+hn[1]); if(r){ S.F.state=''; openRep(r,true); } else if(mode()!=='n') S.sel=shown()[0]||null; if(S.sel && mode()!=='n') S.pl=null; }
     if(S.sel && (!S.sel.reps || (hadReps && S.sel.n===prevN && prevSig && S.sel.sig!==prevSig))) repLoad(S.sel);
   }catch(e){ if(e.key){ S.gate='Неверный ключ'; KEY=''; } else failed=e.message; }
-  finally{ loading=false; S.busy=false; title(); render(quiet && S.booted ? { patch:true } : undefined); }
+  finally{ loading=false; S.busy=false; title(); render(quiet && S.booted ? { patch:true } : undefined); if(useWatch && !S.gate) armWatch(); }
 }
 function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a notification
   try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
@@ -1293,7 +1374,7 @@ function admin(t,a){
 function plRep(t){ Object.assign(S.F,{ who:t.nick, state:'', kind:'', flag:'', day:null, lv:'', ver:'', dev:'' }); S.pl=null; S.sel=null; anim('list'); setTab('rep'); }
 const setTab=t=>{ if(S.tab!==t) anim('list','num','bars'); S.tab=t; S.sheet=null; S.all=false; title();
   if(history.replaceState) history.replaceState(null,'',location.pathname+location.search+({ pl:'#testers', lv:'#levels', err:'#crashes' }[t]||(S.sel ? '#'+S.sel.n : '')));
-  if(t!=='rep' && Date.now()-tpAt>30e3) load(true,true); };
+  if(t!=='rep' && !useWatch && Date.now()-tpAt>30e3) load(true,true); };
 const closeSheet=()=>{ const sh=app.querySelector('.sheet'); if(!sh){ S.sheet=null; render(); return; }
   sh.classList.add('gone'); sh.firstElementChild.style.transition='transform .25s var(--ease)'; sh.firstElementChild.style.transform='translateY(100%)';
   setTimeout(()=>{ S.sheet=null; render(); },230); };
@@ -1558,13 +1639,21 @@ $('frameSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S.
 let lm=''; new ResizeObserver(()=>{ const m=mode(); if(lm && m!==lm){ if(m!=='n') S.sheet=null; else S.sheet=null; render(); } lm=m; moSoon(); }).observe(app);
 addEventListener('resize',syncP);
 
-/* Polling: the list every POLL while shown (POLL_BG behind), the testers every TP_POLL.
-   A quiet load patches regions whose markup changed. The field being typed in is not rebuilt. */
+/* Live data comes from GET /watch: the worker holds the request and answers with the new or changed records.
+   Demo mode, and a worker without the feed, keep the slow poll. Once a watch is up, a full load runs about every 5 min
+   so an edit made on GitHub itself (it never passes the worker) still shows up. A quiet render only patches changed regions. */
+const SAFE=5*60e3, PAINT=30e3;
 const liveOk=()=>(KEY || DEMO) && !S.gate && !loading && !S.menu && !S.ask && !G0 && !SP;
-setInterval(()=>{ if(liveOk() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true,Date.now()-tpAt>=TP_POLL && !document.hidden);
-  const el=$('live'); if(el && loadAt && !failed){ const s=Math.round((Date.now()-loadAt)/1000); el.textContent='обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад')+(DEMO ? ' · демо' : ''); } },5000);
-const back=()=>{ if(!document.hidden && liveOk() && Date.now()-loadAt>5000) load(true,S.tab!=='rep'); };
+setInterval(()=>{
+  const el=$('live'); if(el && loadAt && !failed){ const s=Math.round((Date.now()-loadAt)/1000); el.textContent='обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад')+(DEMO ? ' · демо' : ''); }
+  if(!liveOk()) return;
+  if(!useWatch){ if(Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true,Date.now()-tpAt>=TP_POLL && !document.hidden); return; }
+  if(safeAt && Date.now()-safeAt>=SAFE){ safeAt=Date.now(); load(true,true); return; }
+  if(!document.hidden && Date.now()-paintAt>=PAINT){ paintAt=Date.now(); render({ patch:true }); }
+},5000);
+const back=()=>{ if(document.hidden || !liveOk()) return; if(useWatch){ if(!watching) armWatch(); } else if(Date.now()-loadAt>5000) load(true,S.tab!=='rep'); };
 document.addEventListener('visibilitychange',back); addEventListener('focus',back);
+addEventListener('pagehide',()=>{ if(watchCtl) watchCtl.abort(); });
 
 /* ==================== Levels and crashes (gameplay telemetry: /stats/levels, /stats/errors — beta/worker/TELEMETRY.md) ==================== */
 const DCAUSE={ void:'Пропасть', crash:'Разбился', crush:'Раздавлен', spikes:'Шипы', soak:'Размок', sink:'Утонул', falls:'Водопад', burn:'Сгорел', melt:'Расплавился', heat:'Перегрев', quick:'Зыбучий песок', zap:'Молния' };
