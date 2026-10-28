@@ -276,9 +276,12 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 .lvd{ --cx:0px; --cy:0px; --co:1; --to:1; touch-action:none; }
 .lvds{ position:absolute; inset:0; transform:translateX(var(--cx)); will-change:transform; }   /* own layers: a swipe frame moves and fades them, no repaint */
 .lvdc{ position:absolute; top:0; left:0; width:100%; height:100%; display:block; transform:translateX(calc(var(--k)*125%)); }
-/* Every star and secret of the slot's level collected (lvAllGot, as .lv.full in the grid): a gold frame — on the slot, so it rides the swipe */
+/* Every star and secret of the shown level collected (lvAllGot, as .lv.full in the grid): a glowing gold frame on the top layer (above the
+   picture, the artifact view and the text), lit like the full bar in the report; it crossfades with the card's text (--to) */
 .lvds, .lvdc{ border-radius:inherit; }
-.lvdc.full{ outline:3px solid var(--gold); outline-offset:-3px; }
+.lvdf{ position:absolute; inset:0; z-index:4; border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .25s ease;
+  box-shadow:inset 0 0 0 3px var(--gold),inset 0 0 14px 2px rgba(255,214,107,.6); }
+.lvd.full .lvdf{ opacity:var(--to); }
 .lvdg{ position:absolute; top:0; height:100%; width:calc(25% + 2px); left:calc(100% - 1px); background:linear-gradient(var(--a0),var(--a1)); }
 .lvdg:first-child{ left:calc(-25% - 1px); }
 .lvdg::after{ content:""; position:absolute; inset:0; background:linear-gradient(var(--b0),var(--b1));
@@ -361,6 +364,7 @@ body.artkeep #btnLv{ visibility:hidden; }
   display:flex; align-items:center; justify-content:center; gap:calc(4px*var(--ui)); background:#fff; cursor:pointer; touch-action:none; will-change:transform;
   box-shadow:0 3px 10px rgba(40,10,60,.4), inset 0 -3px 0 rgba(0,0,0,.08); animation:pbIn .35s cubic-bezier(.3,1.6,.5,1) both; }
 #palBub[hidden]{ display:none; }
+#palBub.out{ animation:none; opacity:0; scale:.6; transition:opacity .3s ease, scale .3s ease; pointer-events:none; }
 #palBub::before{ content:''; position:absolute; left:50%; bottom:calc(-7px*var(--ui)); width:calc(12px*var(--ui)); height:calc(12px*var(--ui)); margin-left:calc(-6px*var(--ui)); background:#fff; transform:rotate(45deg); border-radius:2px; }
 #palBub::after{ content:''; position:absolute; inset:calc(-12px*var(--ui)); }   /* a bigger tap target */
 #palBub i{ position:relative; width:calc(7px*var(--ui)); height:calc(7px*var(--ui)); border-radius:50%; background:#5a6a8c; animation:pbDot 1.1s ease-in-out infinite; }
@@ -806,6 +810,8 @@ body.mapon :is(#btnCam,#camRow){ visibility:visible !important; }   /* the camer
 #mapCard{ position:absolute; left:50%; bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:min(calc(100vw - 32px),400px); box-sizing:border-box; touch-action:none;
   background:var(--panel-strong); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-radius:22px; padding:16px 18px; color:var(--ink);
   box-shadow:0 12px 34px rgba(20,8,40,.45); transform:translate(-50%,calc(100% + 40px)); transition:transform .32s cubic-bezier(.2,.9,.3,1.15); }
+#mapCard.full::after{ content:""; position:absolute; inset:0; z-index:4; border-radius:inherit; pointer-events:none;
+  box-shadow:inset 0 0 0 3px var(--gold),inset 0 0 14px 2px rgba(255,214,107,.6); }   /* fully explored: the same lit gold frame as on the level card */
 #mapCard.on{ transform:translate(calc(-50% + var(--dx,0px)),var(--dy,0px)); }
 #mapCard.drag{ transition:none !important; }
 body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
@@ -981,6 +987,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
       <div class="lvd" id="lvd" role="group" aria-labelledby="lvdName">
         <div class="lvds" id="lvdS" aria-hidden="true"><i class="lvdg"></i><i class="lvdg"></i>
           <canvas class="lvdc" style="--k:-1"></canvas><canvas class="lvdc" id="lvdPic" style="--k:0"></canvas><canvas class="lvdc" style="--k:1"></canvas></div>
+        <i class="lvdf" aria-hidden="true"></i>
         <div class="lvdtop"><small id="lvdNum"></small><b id="lvdName"></b></div>
         <div class="lvdbot"><div id="lvdStats"></div><button class="cta" id="lvdGo"></button></div>
         <div class="lvda" id="lvdA" aria-hidden="true"><canvas id="lvdAPic"></canvas>
@@ -1093,7 +1100,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.27';
+const VERSION = '2.16.28';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -2973,6 +2980,17 @@ const SND = (() => {
         ship:[[1800,1800,.05,.04],[1800,1800,.05,.04],[1800,1800,.12,.07],[1100,1500,.07,.02],[1500,2900,.18,0,90,24]] }[k]||[[1000,1800,.12]],v,r); }); },
     /* Idle warmup: the same R2 whistle, phrases timed to the body poses (breath is silent) */
     warmCut(){ cutWarm(); },
+    /* A wet dog shaking itself: rhythmic flaps of fur and ears (band-passed noise pulsed ~11 Hz, slowing and fading), a hiss of spray, droplets pattering down */
+    shake(v=1){ if(!ctx || busy()) return;
+      const t=ctx.currentTime+lead, s=ctx.createBufferSource(), fl=ctx.createBiquadFilter(), g=ctx.createGain(), n=10; let w=0;
+      s.buffer=nbuf; s.loop=true; fl.type='bandpass'; fl.frequency.value=700*rk; fl.Q.value=1.1; g.gain.value=0;
+      for(let i=0;i<n;i++){ const T=t+w, vv=.11*v*(1-.6*i/n)*rand(.8,1);
+        g.gain.setValueAtTime(.0001,T); g.gain.exponentialRampToValueAtTime(vv,T+.012); g.gain.exponentialRampToValueAtTime(.0001,T+.06); g.gain.setValueAtTime(0,T+.061);
+        w+=.085+i*.006; }
+      s.connect(fl); fl.connect(g); out(g,'s',0,.12); voice1(s); s.start(t,Math.random()*1.5); s.stop(t+w+.1);
+      noise({ d:w*.9, v:.03*v, f:4200, f2:2600, q:.8, type:'bandpass', a:.06, wet:.2 });                         // the spray flying off
+      taps({ n:14, when:.1, span:w+.3, f:3200, q:3, v:.05*v, d:[.012,.03], dec:.5, wet:.25 });                     // droplets hitting the ground
+      bub({ n:4, when:.15, span:w, f:[1100,2000], g:.7, d:[.02,.045], v:.014*v, wet:.4 }); },
     warm(k){ cutWarm(); if(holds.size) return;   // paused, the map, the title, a hidden tab: no whistle (it skips the master)
       const r=rand(.94,1.06), v=.045, p={
       legs:{ when:.3, segs:[[740,1200,.08,0],[1200,860,.07,.52],[700,1160,.08,0],[1160,820,.07,.52],[780,1240,.08,0],[1240,880,.07,.52],[720,1180,.08,0],[1180,800,.07]] },
@@ -18860,7 +18878,7 @@ function doJump(power,detached){
     if(gap<=H+.01 && (o.sticky||P.mud>0||stickAt(P.x,P.z,o.b,'U'))) return jumpToCeil(o.b-1);
     H=Math.min(H,Math.max(.04,gap-.02));
   }
-  if(P.float||P.under) waterColumn(P.x,P.z,big?1.2:.8);                 // jumped out of the water — a column
+  if(P.float||P.under){ waterColumn(P.x,P.z,big?1.2:.8); shakeArm(); }   // jumped out of the water — a column, and a shake once on land
   depart(); P.float=false; P.sink=0; P.justTele=null;                   // a jump in place on a portal we arrived by lands on it and carries again
   if(floatBlend) setMeshQ();                                            // leftover water pose eases into the jump (depart captured it)
   state='jump'; leapUsed=false; P.jpow=power; P.bClimb=0; P.jTop=P.l+H;   // jTop — the apex (nicheFromAir: a niche up to it)
@@ -18993,7 +19011,7 @@ function doLeap(dx,dz){
     down=low && P.mat!=='paper' && L-land.top<=LEAP_DROP && !wpCol(tx,tz).some(t=>t.y>land.top+.01 && t.y<=L+.01),   // lower ground: one ballistic arc down onto it (no zip to the cell at the jump's height and a fall straight down)
     drop=low && !down;                                                 // paper (a slow fall), a hatch on the way down, a deep pit — an arc to the jump height, then a fall
   const air=voidLand||drop, mp0=!air && pieceCellAt(tx,tz,.75), mp=mp0 && Math.abs(mp0.top-land.top)<.01 ? mp0.p : null;   // onto a piece: the arc's end follows its height (a moving lift)
-  if(state==='idle' && (P.float||P.under)) waterColumn(P.x,P.z,.8);
+  if(P.float||P.under){ if(state==='idle') waterColumn(P.x,P.z,.8); shakeArm(); }
   depart(); P.float=false; state='leap'; P.target=[tx,tz]; SND.leap();
   const p0=root.position.clone(), to=air?{ pos:new V3(tx,L+HALF,tz), tilt:new Q() }:poseAt(tx,tz,land.top);
   let cap=Infinity;                                                  // the arc doesn't pass through overhanging blocks above the path
@@ -19363,6 +19381,7 @@ function afterLand(dx,dz,mode){ const brake=mode==='brake'; if(brake) mode='soft
   const onGround=!sl && ((t!==null && Math.abs(P.l-t)<.01) || (!!o && Math.abs(P.l-o.t)<.01));
   const bedIn = water[k] && !whang[k] && t!==null && Math.abs(P.l-t)<.01 && t<wlk(k)-.01;   // on the bed of deep water (def.wd)
   const inWater = water[k] && Math.abs(P.l-wlk(k))<.01 && surface(P.x,P.z,P.l)===wlk(k), plunge=inWater && (mode==='hard' || ['jump','leap','fall','pound'].includes(state));
+  if(shakeOut){ shakeOut=false; shakeDue=inWater ? 0 : time+SHAKE_WAIT; }   // out of the water onto land — a wet-dog shake once still (loop.js)
   const pounded=P.pounded; P.pounded=false;                          // a slam already threw its (double) dust
   if(brake && dx!==null && dx!==undefined && !(iceSlip(k) && onGround && !fell) && !lowRoof(P.x,P.z,P.l)) dashLean={ dx, dz, t:leanPre, T:LEAN_T+leanPre }; leanPre=0;   // ice slide takes the dash — no brake lean
   if(mode!=='slide'){ squashT=0; squashAmt=brake?0:mode==='hard'?.28:.16; if(bedIn) SND.land(false,'water'); else if(!inWater){ const st=surfAt(P.x,P.z); SND.land(mode==='hard',st); if(mode==='hard' && !pounded) dust(P.x,P.l,P.z,st,1);
@@ -19617,7 +19636,7 @@ function floatMove(dx,dz,qc){                                        // qc — t
   const stay=(v0)=>{ P.tilt.identity(); P.pos.set(P.x,b+FLOAT_Y,P.z); startFloatCoast(dx,dz,pMesh.quaternion,root.position,v0); settle(K(P.x,P.z),false); };
   const outcome=v0=>{ dead=true; anim=null; commit();
     if(seg.overEdge){ P.float=false; setMeshQ(); return fallDeath(); }
-    if(seg.exitTop!==null){ P.float=false; P.l=seg.exitTop; P.tilt.copy(poseAt(seg.tx,seg.tz,seg.exitTop).tilt); setMeshQ(); return afterLand(null,null,'soft'); }
+    if(seg.exitTop!==null){ P.float=false; P.l=seg.exitTop; P.tilt.copy(poseAt(seg.tx,seg.tz,seg.exitTop).tilt); setMeshQ(); shakeArm(); return afterLand(null,null,'soft'); }   // paddled ashore — shakes off
     if(seg.drop){ P.drop=null; setMeshQ(); return fallTo(b,dx,dz); }
     stay(v0); };
   const armBrake=(u0,left)=>{ mode='brake'; if(u0<.05) hopA=.11; brake={ t:0, T:2*left/(vc+VE), u0, spin0:spin, left }; };
@@ -20222,7 +20241,7 @@ function restoreTraps(){
 function resetPlayer(x,z,l,m,color){
   anim=null; queue=[]; chargeV=0; holdDir=null; kickW=kickD=null; bncCtl=null; slideTo=slideV=jumpCarry=iceTurn=null; leapUsed=false; floatCoast=null; floatBlend=null; floatDiving=false;
   P.x=x; P.z=z; P.l=l; P.color=color; P.mat=m; P.on=null; P.justTele=null; P.target=null; P.wall=null; P.jpow=0; slideN=0;
-  P.q.identity(); P.tilt.identity(); P.wet=0; P.mud=0; P.still=0; P.dry=0; stainShow=stainLag=stainDry=0; P.ceil=false; P.float=false; P.fly=false; P.gey=null; P.spin=false; P.dropH=0; P.carry.set(0,0,0);
+  P.q.identity(); P.tilt.identity(); P.wet=0; shakeOut=false; shakeDue=0; P.mud=0; P.still=0; P.dry=0; stainShow=stainLag=stainDry=0; P.ceil=false; P.float=false; P.fly=false; P.gey=null; P.spin=false; P.dropH=0; P.carry.set(0,0,0);
   P.under=false; P.void=false; airLock=false; P.sink=0; P.heat=0; P.burnT=0; P.zap=0; P.iceSpin=false; P.st=null; P.bv=null; P.airH=0; P.drift=null; P.flowT=0; afterSpin=null; spinHold=false;
   P.push=null; P.pushK=0; P.pushA=0; P.bClimb=0; P.fallL=null;
   SND.setCave(T.cave?1:0,.5);                                        // the level's own echo: on in a cave level, off elsewhere (and after a cut-short tunnel)
@@ -21990,7 +22009,7 @@ buildShip();
 function setShip(i){ shipKind=i; LS.set('cube-ship',String(i)); buildShip(); }
 /* The ship's flight and beam live apart from level animations — loading a level doesn't cut them off */
 const _shq=new Q(), _shq2=new Q(), _shq3=new Q();
-const SH={ fly:null, leave:null, a:0, aT:0, len:0, carry:false, yaw:0, pyaw:0, roll:0, ry:0, pitch:0, spin:3, spinA:0, dropK:0 };
+const SH={ mat:null, fly:null, leave:null, a:0, aT:0, len:0, carry:false, yaw:0, pyaw:0, roll:0, ry:0, pitch:0, spin:3, spinA:0, dropK:0 };
 /* The hull's own spin is always one way: SPIN_FLY in flight, slows down smoothly toward the hover point (not to zero), returns to flight speed on take-off */
 const SPIN_HOVER=.9, SPIN_FLY=5;
 ship.rotation.order='YXZ';                                            // heading, roll around the long axis, pitch
@@ -22040,16 +22059,18 @@ function shipOffScreen(upd){ return !camFrustum(upd).intersectsSphere(_sph.set(s
 const _cd=new V3(), _cr=new V3();
 function camAxes(){ _cd.subVectors(cam.position,camTgt).normalize(); _cr.crossVectors(_cd,UP).negate().normalize(); }   // toward the camera and right on screen
 const perspK=(p,h)=>clamp(1+(_v.copy(p).sub(h).dot(_cd)-3)*.09,1,2.8);   // the ortho camera's "perspective": closer to it — bigger
+const SHIP_VMAX=34, SHIP_RGROW=1.6, SHIP_MAT=.7;                                     // mean speed cap along a path (units/s); the spiral may grow at most this many times past its base radius
 function flyPath(pts,dur,prof,done,delay){
   const c=new THREE.CatmullRomCurve3(pts,false,'centripetal',.5);
-  return { c, len:c.getLength(), dur, prof, done, t:-(delay||0), u:0, pu:0 };
+  const len=c.getLength();
+  return { c, len, dur:Math.max(dur,len/SHIP_VMAX), prof, done, t:-(delay||0), u:0, pu:0 };   // a long path takes longer: the mean speed stays sane
 }
 /* A simple spiral around point h: coil after coil wider and higher from it (r ~ f^1.4, height ~ f^1.8 — gentle near the point),
    the outer end is pushed out until it's off-frame (accounting for the "closeness scale" to the camera) */
 function coil(h,aEnd,sg,turns,R,H){
   const f=camFrustum(), e=new V3(), n=56, pts=[];
   const at=(t,R,H,p)=>{ const a=aEnd-sg*turns*6.283*(1-t), r=R*Math.pow(t,1.4); return p.set(h.x+Math.cos(a)*r, h.y+H*Math.pow(t,1.8), h.z+Math.sin(a)*r); };
-  for(let i=0;i<30 && f.intersectsSphere(_sph.set(at(1,R,H,e),3.2*perspK(e,h)));i++){ R*=1.15; H*=1.1; }
+  const R0=R, H0=H; for(let i=0;i<30 && R<R0*SHIP_RGROW && f.intersectsSphere(_sph.set(at(1,R,H,e),3.2*perspK(e,h)));i++){ R*=1.15; H*=1.1; }   // pushed out of frame, but within reason (a wide view can't blow the spiral up 60×)
   for(let i=0;i<=n;i++) pts.push(at(i/n,R,H,new V3()));
   return pts;
 }
@@ -22058,6 +22079,7 @@ function shipArrive(h,done){                                          // approac
   camAxes(); const sg=Math.random()<.5?-1:1, aC=Math.atan2(_cd.z,_cd.x)+RND(-.9,.9);   // outer end — on the camera side
   const pts=coil(h,aC,sg,RND(1.1,1.9),RND(16,20),RND(7,11)).reverse(); shipClear(pts,pts.length-1);
   SH.leave=null; ship.scale.set(1,1,1); ship.visible=true; SH.spin=SPIN_FLY;
+  SH.mat=camFrustum().intersectsSphere(_sph.set(pts[0],3.2*perspK(pts[0],h))) ? { t:0 } : null;   // the start is still in frame (the spiral can't grow forever): materialise in a rainbow shimmer instead of popping up
   SH.fly=flyPath(pts,RND(2.8,3.3),'in',done); SH.fly.h=h.clone(); ship.position.copy(pts[0]);
   const T=SH.fly.c.getTangentAt(0); SH.pyaw=SH.yaw=Math.atan2(-T.z,T.x); SH.roll=SH.ry=SH.pitch=0;
   ship.rotation.set(0,SH.yaw,0);
@@ -22068,12 +22090,12 @@ function shipReturn(h,done){
   const p=ship.position.clone(), a0=Math.atan2(p.z-h.z,p.x-h.x), r0=Math.max(.5,Math.hypot(p.x-h.x,p.z-h.z)), y0=p.y;
   const sg=Math.cos(SH.pyaw)*-Math.sin(a0)+(-Math.sin(SH.pyaw))*Math.cos(a0)>=0 ? 1 : -1, turns=clamp(r0/10,.4,.9), n=40, pts=[];   // along the motion, not against it
   for(let i=0;i<=n;i++){ const t=1-i/n, a=a0+sg*turns*6.283*(1-t), r=r0*Math.pow(t,1.4); pts.push(new V3(h.x+Math.cos(a)*r, h.y+(y0-h.y)*Math.pow(t,1.8), h.z+Math.sin(a)*r)); }
-  shipClear(pts,n); SH.leave=null; ship.visible=true;
+  shipClear(pts,n); SH.leave=null; SH.mat=null; ship.visible=true;
   SH.fly=flyPath(pts,clamp(1.2+r0*.12,1.6,2.8),'in',done); SH.fly.h=h.clone();
 }
 function shipLeave(h,done,delay){                                     // departure: a diverging spiral — wider and higher, accelerating
   const sg=Math.random()<.5?-1:1, pts=shipClear(coil(h,RND(0,6.283),sg,RND(1,1.8),RND(16,20),RND(8,12)),0);
-  SND.shipOut(delay||0); SH.fly=null; SH.leave=flyPath(pts,RND(2.6,3.3),'out',done,delay); SH.leave.h=h.clone(); ship.visible=true;
+  SND.shipOut(delay||0); SH.fly=null; SH.mat=null; SH.leave=flyPath(pts,RND(2.6,3.3),'out',done,delay); SH.leave.h=h.clone(); ship.visible=true;
 }
 const _fp=new V3(), _ft=new V3();
 function flyStep(F){                                                  // advance along the curve and turn along the motion
@@ -22083,6 +22105,9 @@ function flyStep(F){                                                  // advance
   ship.position.copy(p);
   camAxes(); const ps=perspK(p,F.h);                                  // the camera is orthographic — closeness to it is "drawn" by scale
   ship.scale.setScalar(ps);
+  if(SH.mat){ const M=SH.mat; M.t+=dt; const m=clamp(M.t/SHIP_MAT,0,1); ship.scale.multiplyScalar(Math.max(.02,ease(m)));
+    for(let i=0;i<2;i++) puff(p.x+rand(-.5,.5)*ps,p.y+rand(-.3,.4)*ps,p.z+rand(-.5,.5)*ps,{ color:[0xff6b6b,0xffc857,0x7be07a,0x5ec8ff,0xa78bff,0xff7ad9][(Math.random()*6)|0], n:1, size:.22*ps, speed:.3, up:.3, grav:0, drag:2, life:.5, grow:.4, alpha:.9, add:true, soft:false });
+    if(m>=1) SH.mat=null; }
   if(F.prof==='out'){ const s2=Math.sin(Math.PI*clamp(F.t/.7,0,1))**2;   // a soft crouch before rising
     ship.position.y-=.35*s2; ship.scale.multiply(_v.set(1+.1*s2,1-.14*s2,1+.1*s2)); }
   const hz=Math.hypot(T.x,T.z);
@@ -23144,7 +23169,7 @@ const LVD_HFADE=140;
 /* The area page under the card follows the level shown, at once (no page slide): a card closed in another area opens on it */
 function lvdArea(i){ if(i<0 || areaOf(i)===aCur) return; aview.classList.add('drag'); areaGo(areaOf(i)); aview.offsetWidth; aview.classList.remove('drag'); }
 function lvdFill(i,meas){                                             // the title, the stats and the button: of level i; meas — only to be measured (lvdYs): the section title stays
-  lvdTx=i; const st=lvStat(i), A=AREAS[areaOf(i)], rows=$('lvdStats'); if(!meas) lvdHead(i);
+  lvdTx=i; const st=lvStat(i), A=AREAS[areaOf(i)], rows=$('lvdStats'); if(!meas){ lvdHead(i); $('lvd').classList.toggle('full',lvAllGot(i)); }
   $('lvdNum').textContent=lvCaption(i); $('lvdName').textContent=lvName(LEVELS[i]);
   rows.textContent='';
   const row=(k,v)=>{ const r=document.createElement('div'); r.className='strow'; r.innerHTML='<span></span><b></b>'; r.firstChild.textContent=loc(k); r.lastChild.textContent=v; rows.append(r); };
@@ -25799,8 +25824,11 @@ function palAskOpen(id){
 }
 /* The speech cloud over a pal (#palBub): stays over his head until tapped (the cube may walk away); the tap opens the panel */
 const PAL_BUB_Y=2.45, _pbv=new V3(); let palBubY=null;
-function palBubShow(y){ palBubY=y; $('palBub').hidden=false; palBubPos(); }
-function palBubHide(){ palBubY=null; $('palBub').hidden=true; }
+let palBubT=0;
+function palBubShow(y){ clearTimeout(palBubT); palBubY=y; const b=$('palBub'); b.classList.remove('out'); b.hidden=false; palBubPos(); }
+function palBubHide(soft){ palBubY=null; const b=$('palBub'); clearTimeout(palBubT);   // soft — fades out in place (the cube died: the cloud isn't kept)
+  if(!soft || b.hidden){ b.hidden=true; b.classList.remove('out'); return; }
+  b.classList.add('out'); palBubT=setTimeout(()=>{ if(palBubY===null){ b.hidden=true; b.classList.remove('out'); } },360); }
 function palBubPos(){ const y=palBubY; if(!y) return; cam.updateMatrixWorld();
   _pbv.set(y.g.position.x,y.g.position.y+(y.bf ? y.top+.45 : PAL_BUB_Y*YETI_K),y.g.position.z).project(cam);
   $('palBub').style.transform=`translate(${(_pbv.x+1)/2*innerWidth}px,${(1-_pbv.y)/2*innerHeight}px) translate(-50%,-100%)`; }
@@ -26082,7 +26110,7 @@ function updatePals(){
     else if(!y.walk && !busy && y.waveT<=0 && y.v<.2 && time>y.petCd && !y.laugh && !(here && near<=YETI_NEAR)){
       const c=critters.find(q=>q.ground && !(q.anim&&q.anim.fly) && Math.hypot(q.m.position.x-p.x,q.m.position.z-p.z)<1.7 && Math.abs(q.m.position.y-y.h)<.8);
       if(c){ y.pet=2.6; y.petC=c; y.pa=Math.random()<.5; y.petCd=time+10; } }
-    if(palBubY===y) palBubPos();
+    if(palBubY===y){ if(state==='dead'||state==='win') palBubHide(true); else palBubPos(); }   // the cube drowned, crashed or finished: the cloud fades away instead of hanging on
     if(palHelps(y) && !subLv) palPrize(y);
     if(!y.walk && !y.off && !(y.go2 && !y.go) && (here && near<=YETI_NEAR && Math.hypot(dx,dz)<YETI_NEAR+.5 || y.go && state!=='dead') && y.v<.2 || !y.walk && y.waveT>0 && state!=='dead') y.face=Math.atan2(P.x-p.x,P.z-p.z);   // he turns to the cube
     if(!y.walk){ y.jt=Math.min(1,y.jt+dt/.32); y.gy+=(y.h-y.gy)*(1-Math.exp(-dt*12)); p.y=y.gy+Math.sin(y.jt*Math.PI)*y.jh; }
@@ -29524,7 +29552,7 @@ function showCard(P){
     <div class="bds">${bd.join('')}</div>
     ${hint?`<div class="task"><b>${esc(loc('Task'))}</b>${esc(hint)}</div>`:''}${rows.join('')}
     <button class="cta" data-a="go">${esc(loc(!st.done?'Explore':lvAllGot(i)?'Explore again':'Look more closely'))}</button></div>`;
-  card.classList.add('on'); document.body.classList.add('mapcard');
+  card.classList.toggle('full',!!f.all); card.classList.add('on'); document.body.classList.add('mapcard');
 }
 function hideCard(){ if(!card) return; card.classList.remove('on'); document.body.classList.remove('mapcard'); cardX(0); }
 /* the plate's sideways offset (px) and its fade */
@@ -30362,6 +30390,21 @@ const WARM_POSE={
     { at:.58, shearX:-.32, topTiltX:.46, sy:1.05, spread:.06, arch:.04 },
     { at:.72, shearX:-.28, topTiltX:.38, sy:1.04 },{ at:.88, sy:.98 },{ at:1 } ]}
 };
+/* Shaking off like a wet dog: out of the water by a jump (or paddling ashore), the cube stops on land and twists fast to and fro,
+   the swing dying out; spray flies off its sides along the twist. shakeDue — until when a landed wet cube still shakes once it is still */
+let shakeDue=0, shakeOut=false;                                    // shakeOut — left the water, the shake waits for the landing (afterLand)
+const SHAKE_T=1.05, SHAKE_F=5.2, SHAKE_A=.55, SHAKE_WAIT=3;
+function shakeArm(){ shakeOut=true; }
+function shakeW(k){ return Math.sin(Math.min(1,k/.1)*Math.PI/2)*Math.pow(1-k,1.3); }   // the swing's envelope: quick in, dying out
+function shakePose(k){ const w=shakeW(k), ph=2*Math.PI*SHAKE_F*SHAKE_T*Math.max(0,k-.06), s=Math.sin(ph), crouch=k<.12 ? Math.sin(k/.12*Math.PI) : 0;
+  return poseOf({ twist:SHAKE_A*w*s, shearX:.12*w*s, sy:1-.05*crouch-.03*w*Math.abs(s), sxz:1+.02*crouch, spread:.1*w*Math.abs(s) }); }
+function shakeSpray(k){ const w=shakeW(k), ph=2*Math.PI*SHAKE_F*SHAKE_T*Math.max(0,k-.06), sv=Math.cos(ph)*w;   // flung hardest as the twist swings through the middle
+  const m=Math.abs(sv)*P.wetS; if(m<.12) return;
+  const c=root.position, d=Math.sign(sv), n=1+Math.round(m*3);
+  for(let i=0;i<n;i++){ const a=Math.random()*6.283, ca=Math.cos(a), sa=Math.sin(a), sp=3+4*m;   // off the corners, along the swing (tangent), flat and wide
+    puff(c.x+ca*.62,c.y+rand(-.3,.45),c.z+sa*.62,{ color:[0xffffff,0xeaf8ff,0xbfe8ff], n:2, size:.16, speed:.3, up:.5, grav:7, drag:.8, life:.75, grow:.5, alpha:1, spread:.05, soft:false,
+      vel:[(-sa*d*.9+ca*.6)*sp,1.2+m*1.5,(ca*d*.9+sa*.6)*sp] }); }
+  if(Math.random()<m*.5) puff(c.x,c.y+.1,c.z,{ color:0xeaf8ff, n:2, size:.35, speed:1.2, up:.2, grav:0, drag:2, life:.45, grow:1.6, alpha:.4, spread:.4, soft:false }); }   // a faint mist
 let idleT=0, warmPose=null, lastWarm=-1, warmVis=null, warmBlend=null;
 const WARM_BLEND=.14, _wbP=new V3(), _wbQ=new Q();
 function resetWarm(){
@@ -30397,7 +30440,8 @@ function updateIdleBody(){
   if(canWarm()){
     if(warmPose){
       warmPose.t+=dt; const k=Math.min(1,warmPose.t/warmPose.dur);
-      if(warmPose.rock){
+      if(warmPose.shake){ pose=shakePose(k); shakeSpray(k); P.wet=Math.min(P.wet,1-k); }
+      else if(warmPose.rock){
         const dirs=[[1,0],[-1,0],[1,0],[-1,0],[0,1],[0,-1],[0,1],[0,-1]], seg=.2, t=k*warmPose.dur;
         const i=Math.min(dirs.length-1,Math.floor(t/seg+1e-9)), local=Math.max(0,Math.min(1,(t-i*seg)/seg)), [dx,dz]=dirs[i];
         bumpPose(dx,dz,Math.sin(local*Math.PI)*.15,root.position,P.tilt,P.q);
@@ -30406,7 +30450,8 @@ function updateIdleBody(){
         if(A>1e-4) bumpPose(pose.tiltX/A,pose.tiltZ/A,A,root.position,P.tilt,P.q);
       }
       if(k>=1){ warmPose=null; idleT=0; pose=rest; moodHide(); warmVis=null; }
-    } else { idleT+=dt; if(idleT>=IDLE_WARM) startWarm(); }
+    } else if(shakeDue>time){ shakeDue=0; warmPose={ id:'shake', t:0, dur:SHAKE_T, shake:true }; P.wetS=Math.max(.5,P.wet); SND.shake(.6+.4*P.wetS); }
+    else { idleT+=dt; if(idleT>=IDLE_WARM) startWarm(); }
   }
   warmVis=pose; cubeDeform(withBreath(pose)); bodyDeformed=true; applyWarmBlend(); applyFloatBlend();
 }
