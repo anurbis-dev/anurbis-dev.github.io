@@ -134,6 +134,15 @@ body.spl-on{cursor:col-resize;user-select:none}
 .card h3{margin:0;font:600 14px var(--f-disp);display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap}
 .card h3 small{font:700 11.5px var(--f-body);color:var(--dim)}
 .card h3 .sp{flex:1}
+/* The section's total, next to the title — the same number the bars add up to */
+.hn{font:800 12px/1.5 var(--f-body);font-variant-numeric:tabular-nums;color:var(--txt);background:rgba(255,255,255,.08);border-radius:99px;padding:0 7px;letter-spacing:0;text-transform:none;flex:none}
+.sub .hn{margin-right:auto}
+.lsum{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line2);background:#1a1231;font-size:12.5px}
+.lsum.stk{position:sticky;top:0;z-index:2}
+.lsum b{font-size:13px}
+.lsum .sp{flex:1}
+.lsum small{color:var(--dim);font-weight:700;font-size:11.5px}
+.lsum .n{font-weight:800;font-variant-numeric:tabular-nums;display:inline-flex;gap:4px;align-items:baseline}
 .lg{display:inline-flex;gap:10px;font:700 11px var(--f-body);color:var(--dim)}
 .lg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
 .cc{display:grid;grid-template-columns:auto 1fr;gap:4px 6px}
@@ -290,7 +299,7 @@ details.box.e summary{color:var(--bug)}
 details.box pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11.5px/1.4 var(--f-mono);color:#ffc9d1;margin:8px 0 0}
 details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywhere}
 .rep{display:grid;gap:8px}
-.rep h3{margin:0;font:600 15px var(--f-disp)}
+.rep h3{margin:0;font:600 15px var(--f-disp);display:flex;align-items:center;gap:8px}
 .rep .r{background:var(--card);border-radius:10px;padding:7px 10px;white-space:pre-wrap;font-size:13.5px;overflow-wrap:anywhere;animation:rise .3s var(--ease)}
 .rep .r small,.note{display:block;color:var(--dim);font-size:11.5px;white-space:normal}
 .rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-height:56px;resize:vertical;width:100%;transition:border-color .2s}
@@ -333,6 +342,7 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .prog{display:grid;gap:8px}
 .prog .ar{display:flex;flex-direction:column;align-items:stretch;gap:4px;font-size:11.5px;color:var(--dim)}
 .prog .ar>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog .ar>span:first-child b{color:var(--txt);font-weight:800}
 .cells{display:flex;flex-wrap:wrap;gap:3px;width:100%}
 .cells > i{width:28px;height:28px;min-width:28px;max-width:28px;flex:0 0 28px;border-radius:4px;background:#140e22;cursor:pointer;transition:transform .12s;display:grid;place-items:center;overflow:hidden;padding:2px}
 .cells > i:hover{transform:scale(1.35);box-shadow:0 0 0 1px var(--gold);z-index:2}
@@ -744,7 +754,7 @@ function detail(r,sheet){
       ${s.ua ? `<div class="wide"><span>User agent</span><b class="ua">${esc(s.ua)}</b></div>` : ''}
     </div>
     ${r.errs.length ? `<details class="box e" open><summary>⚠ Ошибки консоли (${r.errs.length})</summary><pre>${esc(r.errs.map(e=>e[0]+'ms  '+e[1]).join('\n'))}</pre></details>` : ''}</div></div>
-    ${r.tester ? `<div class="rep"><h3>↩ Ответы игроку</h3>${r.reps ? reps || '<span class="note">Ответов пока нет</span>' : r.repErr ? `<span class="note err">Не удалось загрузить: ${esc(r.repErr)}</span>` : '<span class="note">Загрузка…</span>'}
+    ${r.tester ? `<div class="rep"><h3>↩ Ответы игроку${r.reps ? `<b class="hn">${r.reps.length}</b>` : ''}</h3>${r.reps ? reps || '<span class="note">Ответов пока нет</span>' : r.repErr ? `<span class="note err">Не удалось загрузить: ${esc(r.repErr)}</span>` : '<span class="note">Загрузка…</span>'}
       <div class="rbox${S.rdrop ? ' on' : ''}" id="rbox">
       <textarea id="repText" maxlength="2000" placeholder="Ответ ${esc(r.who)} — придёт в игре (Ctrl+Enter). Снимки можно перетащить сюда.">${esc(S.draft[r.n]||'')}</textarea>
       ${(S.rshot[r.n]||[]).length ? `<div class="rthumbs">${(S.rshot[r.n]||[]).map((u,i)=>`<span class="rth"><img class="rshot" src="${u}" alt=""><button class="rx" data-act="rshotx" data-i="${i}" title="Убрать" aria-label="Убрать снимок">×</button></span>`).join('')}</div>` : ''}
@@ -776,7 +786,8 @@ function plBody(t){
   const xps=t.prog.map((e,xi)=>{ const k=t.id+':'+(e.c||xi), op=(xi===0)!==S.xo.has(k), lv=e.lv||{}, dn=Object.keys(lv).filter(id=>lv[id].n>0), cl=e.cur && LVI[e.cur];
     const far=Math.max(-1,...dn.map(id=>LVI[id] ? LVI[id].gi : -1));
     const body=!op ? '' : ORD.length ? (LVS.areas.map(a=>{ const ls=ORD.filter(l=>l.a===a); if(!ls.length || ls[0].gi>far+1 && !(cl && cl.a===a)) return '';
-      return `<div class="ar"><span>${esc(a.icon||'')} ${esc(a.name)}</span><span class="cells">${ls.map(l=>{ const v=lv[l.id]||{}, d=v.n>0, c=l.id===e.cur, inf=LI[l.id], tot=inf ? (inf.st||0)+(inf.sc||0) : 0, g=v.got||0;
+      const doneN=ls.filter(l=>(lv[l.id]||{}).n>0).length, starN=ls.reduce((s,l)=>s+((lv[l.id]||{}).got||0),0), starAll=ls.reduce((s,l)=>{ const inf=LI[l.id]; return s+(inf ? (inf.st||0)+(inf.sc||0) : 0); },0);
+      return `<div class="ar"><span>${esc(a.icon||'')} ${esc(a.name)} <b>${doneN}/${ls.length}</b>${starAll ? ' · ★ '+starN+'/'+starAll : starN ? ' · ★ '+starN : ''}</span><span class="cells">${ls.map(l=>{ const v=lv[l.id]||{}, d=v.n>0, c=l.id===e.cur, inf=LI[l.id], tot=inf ? (inf.st||0)+(inf.sc||0) : 0, g=v.got||0;
         const w=t.wins[l.id], avg=w && w.t>0 ? mmss(w.t) : '';
         const h=lvH(l.id), icon=h ? hGrid(h,()=>null,{ cls:' mini' }) : '';
         const tip=`<b>${esc(l.name)}</b> <span style="color:var(--dim)">${l.no}</span>\n${d ? 'пройден '+v.n+' '+nf(v.n,'раз','раза','раз') : c ? 'сейчас здесь, не пройден' : 'не пройден'}\n★ ${g}${tot ? ' из '+tot : ''}${avg ? '\nсреднее время '+avg : v.best ? '\nлучшее время '+mmss(v.best) : ''}${icon ? '\n'+icon : ''}`;
@@ -789,7 +800,7 @@ function plBody(t){
     <div class="days" title="минут в день (по последним ${t.ss.length} сессиям)">${days.map((v,i)=>`<i class="${v ? '' : 'z'}" style="height:${v/mx*100}%;animation-delay:${i*15}ms" title="${dayShort(20-i)}: ${Math.round(v)} мин"></i>`).join('')}</div>` : '<span class="note">Статистики игры пока нет</span>'}
     ${plCfg(t)}
     ${t.prog.length || ORD.length ? `<div class="sub">Прогресс <em>${t.lvN} ${nf(t.lvN,'уровень пройден','уровня пройдено','уровней пройдено')} · ★ ${t.stars}${t.prog.length ? ' · '+t.prog.length+' '+nf(t.prog.length,'экспедиция','экспедиции','экспедиций') : ''}${t.save ? ' · ☁' : ''}</em></div><div>${prog}</div>` : ''}
-    ${t.devs.length ? `<div class="sub">Устройства <em>${t.devs.length}</em></div><div class="dl">${t.devs.map(d=>`<div><b>${CLI[d.u.kind]} ${esc(d.u.name)}</b><small>${[uaH(d.u),esc([d.sw ? d.sw+'×'+d.sh : '',d.gpu].filter(Boolean).join(' · '))].filter(Boolean).join(' · ')}</small><small>${d.n||0} сес. · ${hm(d.ms)}${d.last ? ' · '+ago(d.last) : ''}${live===d.id ? ' · <span class="lvb">сейчас</span>' : ''}${d.pwa ? ' · PWA' : ''}</small></div>`).join('')}</div>` : ''}
+    ${t.devs.length ? `<div class="sub">Устройства <b class="hn">${t.devs.length}</b><em>${t.devs.reduce((a,d)=>a+(d.n||0),0)} сес. · ${hm(t.devs.reduce((a,d)=>a+(d.ms||0),0))}</em></div><div class="dl">${t.devs.map(d=>`<div><b>${CLI[d.u.kind]} ${esc(d.u.name)}</b><small>${[uaH(d.u),esc([d.sw ? d.sw+'×'+d.sh : '',d.gpu].filter(Boolean).join(' · '))].filter(Boolean).join(' · ')}</small><small>${d.n||0} сес. · ${hm(d.ms)}${d.last ? ' · '+ago(d.last) : ''}${live===d.id ? ' · <span class="lvb">сейчас</span>' : ''}${d.pwa ? ' · PWA' : ''}</small></div>`).join('')}</div>` : ''}
     <div class="pa">${rp.length ? `<button class="lnk" data-act="plrep" data-id="${esc(t.id)}">Отзывы: 🐞 ${b} · 💬 ${rp.length-b} →</button>` : '<span class="note">Отзывов нет</span>'}<span class="sp"></span>
       <button class="ib" data-act="adm" data-a="rename" data-id="${esc(t.id)}" title="Переименовать">✎</button><button class="ib" data-act="adm" data-a="pin" data-id="${esc(t.id)}" title="Новый PIN">🔑</button>
       <button class="ib" data-act="adm" data-a="ban" data-id="${esc(t.id)}" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button><button class="ib" data-act="adm" data-a="delete" data-id="${esc(t.id)}" title="Удалить аккаунт">🗑</button></div>`;
@@ -829,13 +840,14 @@ function matrix(){
 function repAna(){
   const base=REPS.filter(r=>match(r,'day'));
   const vals=Array.from({ length:DAYS },(_,i)=>{ const d=DAYS-1-i, x=base.filter(r=>r.day===d); return [x.filter(r=>r.kind==='bug').length,x.filter(r=>r.kind==='opinion').length]; });
-  const sd=S.F.day==null || S.F.day>=DAYS ? null : DAYS-1-S.F.day;
+  const sd=S.F.day==null || S.F.day>=DAYS ? null : DAYS-1-S.F.day, bugs=vals.reduce((a,v)=>a+v[0],0), ops=vals.reduce((a,v)=>a+v[1],0);
+  let slice=0; if(S.dim==='mx') slice=REPS.filter(r=>match(r,'lv','ver') && r.lv && r.ver).length; else for(const r of REPS) if(match(r,S.dim)) slice++;
   const dims=[['lv','Уровни'],['ver','Версии'],['dev','Устройства'],['who','Игроки'],['mx','Уровень × версия']];
   return `<div class="ana">
-    <div class="card"><h3>Отзывы по дням<span class="sp"></span><span class="lg"><span><i style="background:var(--bug)"></i>ошибки</span><span><i style="background:var(--op)"></i>впечатления</span></span></h3>
+    <div class="card"><h3>Отзывы по дням<b class="hn" title="за ${DAYS} дней">${bugs+ops}</b><span class="sp"></span><span class="lg"><span><i style="background:var(--bug)"></i>ошибки</span><span><i style="background:var(--op)"></i>впечатления</span></span></h3>
       ${bars(vals,{ sel:sd, cols:['var(--bug)','var(--op)'], act:'bday', cap:i=>dayShort(DAYS-1-i)+': ошибок '+vals[i][0]+', впечатлений '+vals[i][1] })}
-      <div class="cap">${sd!=null ? `<b>${dayLbl(S.F.day)}</b>: 🐞 ${vals[sd][0]} · 💬 ${vals[sd][1]}` : ''}</div></div>
-    <div class="card" data-tabs="dim"><h3>Срез</h3>
+      <div class="cap">${sd!=null ? `<b>${dayLbl(S.F.day)}</b>: 🐞 ${vals[sd][0]} · 💬 ${vals[sd][1]}` : `за ${DAYS} дн. · 🐞 ${bugs} · 💬 ${ops}`}</div></div>
+    <div class="card" data-tabs="dim"><h3>Срез<b class="hn">${slice}</b></h3>
       <div class="dims">${dims.map(([k,t])=>`<button data-act="dim" data-v="${k}" aria-pressed="${S.dim===k}">${t}</button>`).join('')}</div>
       <div class="tbb${slide('dim')}">${S.dim==='mx' ? matrix() : facet(S.dim)}</div></div></div>`;
 }
@@ -852,23 +864,25 @@ function plAna(){
   const pdims=[['cls','Тип'],['os','ОС'],['br','Браузер'],['cc','Страна']], dc={};
   if(S.pdim==='cc'){ for(const t of TS){ const k=t.cc||'—'; dc[k]=(dc[k]||0)+1; } }
   else for(const t of TS) for(const d of t.devs){ const k=S.pdim==='cls' ? CLS[d.u.kind] : S.pdim==='os' ? d.u.os||'?' : d.u.br; dc[k]=(dc[k]||0)+1; }
-  const dk=Object.keys(dc).sort((a,b)=>dc[b]-dc[a]), dmx=Math.max(1,...Object.values(dc));
+  const dk=Object.keys(dc).sort((a,b)=>dc[b]-dc[a]), dmx=Math.max(1,...Object.values(dc)), devN=Object.values(dc).reduce((a,b)=>a+b,0), playMin=mins.reduce((a,b)=>a+b,0);
   return `<div class="ana">
-    <div class="card"><h3>Время игры по дням<small>минут, все игроки</small></h3>
+    <div class="card"><h3>Время игры по дням<b class="hn" title="за ${DAYS} дней">${hmS(playMin*MIN)}</b><small>все игроки</small></h3>
       ${bars(mins.map(v=>[Math.round(v)]),{ sel:sd, cols:['var(--gold)'], act:'pday', cap:i=>dayShort(DAYS-1-i)+': '+hm(mins[i]*MIN)+', игроков '+who(i).length })}
-      <div class="cap">${sd!=null ? `<b>${dayShort(DAYS-1-sd)}</b>: ${hm(mins[sd]*MIN)} · ${who(sd).length} ${nf(who(sd).length,'игрок','игрока','игроков')} — список ниже` : ''}</div></div>
-    <div class="card"><h3>Докуда дошли<small>из ${np} с прогрессом в облаке</small>${di>0 && drop>1 ? `<span class="sp"></span><small style="color:var(--warn)">отсев на «${esc(funnel[di].l.name)}»: −${drop}</small>` : ''}</h3>
+      <div class="cap">${sd!=null ? `<b>${dayShort(DAYS-1-sd)}</b>: ${hm(mins[sd]*MIN)} · ${who(sd).length} ${nf(who(sd).length,'игрок','игрока','игроков')} — список ниже` : `за ${DAYS} дн. · ${hm(playMin*MIN)}`}</div></div>
+    <div class="card"><h3>Докуда дошли<b class="hn" title="с прогрессом в облаке">${np}</b><small>с прогрессом в облаке</small>${di>0 && drop>1 ? `<span class="sp"></span><small style="color:var(--warn)">отсев на «${esc(funnel[di].l.name)}»: −${drop}</small>` : ''}</h3>
       ${funnel.length ? `<div class="bl">${funnel.map((f,i)=>`<div class="bi${i===di && drop>1 ? ' hot' : ''}"><span class="l">${esc(f.l.name)}<small>${esc(f.l.a.icon||'')} ${f.l.no}</small></span><span class="tr"><i style="width:${f.n/Math.max(1,np)*100}%;background:${i===di && drop>1 ? 'var(--warn)' : 'var(--ok)'}"></i></span><span class="v">${f.n}</span></div>`).join('')}</div>`
         : `<span class="note">${ORD.length ? 'Никто ещё не прошёл ни одного уровня' : 'Нужен levels.json (его кладёт публикация беты)'}</span>`}</div>
     ${plStuckCard()}${plRetCard()}${plVersCard()}
-    <div class="card"><h3>Когда играют<small>начала сессий, ваше время</small></h3>
+    <div class="card"><h3>Когда играют<b class="hn">${N.ss.length}</b><small>${nf(N.ss.length,'начало','начала','начал')} сессий, ваше время</small></h3>
       <div class="pc"><span></span>${Array.from({ length:24 },(_,h)=>`<span class="hx">${h%6 ? '' : h}</span>`).join('')}
       ${hrs.map((r,i)=>`<span>${WD[i]}</span>${r.map((v,h)=>`<i style="--a:${v ? (.2+v/hmx*.8).toFixed(2) : .04};--i:${h+i*3}" title="${WD[i]} ${h}:00 — ${v}"></i>`).join('')}`).join('')}</div></div>
-    <div class="card" data-tabs="pdim"><h3>${S.pdim==='cc' ? 'Игроки' : 'Устройства'}</h3><div class="dims">${pdims.map(([k,t])=>`<button data-act="pdim" data-v="${k}" aria-pressed="${S.pdim===k}">${t}</button>`).join('')}</div>
+    <div class="card" data-tabs="pdim"><h3>${S.pdim==='cc' ? 'Игроки' : 'Устройства'}<b class="hn">${devN}</b></h3><div class="dims">${pdims.map(([k,t])=>`<button data-act="pdim" data-v="${k}" aria-pressed="${S.pdim===k}">${t}</button>`).join('')}</div>
       <div class="bl tbb${slide('pdim')}">${dk.map(k=>`<div class="bi"><span class="l">${S.pdim==='cc' ? (k==='—' ? '—' : flag(k)+' '+esc(ccName(k))) : S.pdim==='os' ? osH(k) : S.pdim==='br' ? brH(k) : esc(k)}</span><span class="tr"><i style="width:${dc[k]/dmx*100}%;background:var(--op)"></i></span><span class="v">${dc[k]}</span></div>`).join('')||'<span class="note">Нет данных</span>'}</div></div></div>`;
 }
 const spl=(md,k)=>(k==='side' ? md==='w' : md!=='n') ? `<div class="spl" data-sp="${k}" title="Потяните, чтобы изменить ширину (двойной клик — как было)"></div>` : '';
 const foldHtml=html=>`<div class="fold${S.A.has('fold') ? ' in' : ''}" id="fold">${html}</div>`;
+/* The list window's own total — the charts already sum their bars; this is the same kind of count for the rows on screen */
+const lsum=(n,all,bits,stick)=>n || all ? `<div class="lsum${stick ? ' stk' : ''}"><b>В списке</b><span class="sp"></span>${bits ? `<small>${bits}</small>` : ''}<span class="n">${n}${all!=null && all!==n ? `<small>из ${all}</small>` : ''}</span></div>` : '';
 
 /* ==================== Tabs ==================== */
 function repView(){
@@ -894,7 +908,8 @@ function repView(){
         +(sh ? '' : (VIS.push(...v), nw ? `<div class="grp-new">${v.map(row).join('')}</div>` : v.map(row).join(''))); }).join(''); }
   const hint='';
   const fold=md!=='w' && S.ana ? foldHtml(repAna()) : '';
-  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? repAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${list}${hint}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? detail(S.sel) : ''}</div></div>`;
+  const rb=L.filter(r=>r.kind==='bug').length, head=lsum(L.length,REPS.length,L.length ? `🐞 ${rb} · 💬 ${L.length-rb}` : '',!S.G);
+  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? repAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${head}${list}${hint}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? detail(S.sel) : ''}</div></div>`;
 }
 function plView(){
   const N=plStats(), L=plSorted(), mx=Math.max(1,...TS.map(t=>t.tot)), md=mode();
@@ -912,7 +927,9 @@ function plView(){
         <span class="t">${t.live ? '' : t.last ? ago(t.last) : 'не играл'}</span></span>
       <span class="p2"><span class="tb"><i style="width:${t.tot/mx*100}%"></i></span><span class="m"><b>${hm(t.tot)}</b> · ${t.n} сес. · ур. <b>${t.lvN}</b> · ★${t.stars}${rp.length ? ' · 🐞'+rp.filter(r=>r.kind==='bug').length+' 💬'+rp.filter(r=>r.kind!=='bug').length : ''}</span></span></button></div>`; }).join('');
   const fold=md!=='w' && S.ana ? foldHtml(plAna()) : '';
-  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? plAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${rows || `<div class="empty">${TS.length ? 'Никого не найдено' : tpAt ? 'Игроков пока нет' : 'Загрузка…'}</div>`}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? plDetail(S.pl) : ''}</div></div>`;
+  const pms=L.reduce((a,t)=>a+t.tot,0), pn=L.reduce((a,t)=>a+t.n,0);
+  const head=lsum(L.length,TS.length,L.length ? `${hmS(pms)} · ${pn} ${nf(pn,'сессия','сессии','сессий')}` : '',1);
+  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? plAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${head}${rows || `<div class="empty">${TS.length ? 'Никого не найдено' : tpAt ? 'Игроков пока нет' : 'Загрузка…'}</div>`}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? plDetail(S.pl) : ''}</div></div>`;
 }
 
 /* ==================== Menu, dialog ==================== */
@@ -959,7 +976,7 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li><b>В работе</b> — отметка открытого отзыва (кнопка в шапке карточки или меню); фильтр «Открытые» показывает и их.</li></ul>
   <h5>Карточка</h5><ul><li><b>Свайп вбок</b>, ручка сверху или ✕ — закрыть.</li><li><b>Вверх или вниз</b>, когда карточка прокручена до края, — следующая или предыдущая по списку.</li><li>Клавиши <b>↑ ↓</b> (или J, K) — то же на компьютере.</li></ul>
   <h5>Сводка и графики</h5><ul><li>Цифры сводки — быстрые фильтры, повторный тап снимает.</li><li><b>Свайп по сводке</b> — соседняя вкладка: Отзывы, Игроки, Уровни, Сбои.</li>
-    <li><b>📊</b> — графики и срез (на широком экране они всегда слева).</li><li>Столбец дня — показать только этот день, повторный тап снимает.</li>
+    <li><b>📊</b> — графики и срез (на широком экране они всегда слева).</li><li>Число в шапке секции — общее количество по этому окну: у графика, у списка и у карточки, не только столбики.</li><li>Столбец дня — показать только этот день, повторный тап снимает.</li>
     <li><b>Срез:</b> тап по строке — только это, долгий тап — исключить (фильтр «≠» снимается крестиком). Клетка «уровень × версия» — оба фильтра сразу.</li>
     <li><b>Свайп по карточке с вкладками</b> — соседняя вкладка.</li></ul>
   <h5>Уровни и сбои</h5><ul><li>Уровни сгруппированы по локациям — заголовок сворачивает, Shift+клик — все. Карта уровня по тапу — во весь экран.</li><li><b>Уровни</b> — статистика из самой игры: сколько дошли и прошли, гибели и их причины, где гибнут (красное на карте уровня), сколько бросили, FPS, отзывы. Сортировка — над списком.</li>
@@ -1551,9 +1568,9 @@ function lvDetail(l,sheet){
       ${t && t.lo ? f('FPS',`<span style="color:${fpsCol(l.fps)}">${Math.round(l.fps)}</span>`,'5% худших кадров — '+Math.round(t.lo)) : ''}
       ${f('Отзывы',l.rp.length ? `🐞 ${l.bugs} · 💬 ${l.ops}` : null,l.reach ? (l.bugRate).toFixed(1).replace('.',',')+' ошибки на 10 игроков' : '')}
     </div>
-    ${cs.length || fp.length ? `<div class="lv2"><div>${cs.length ? `<div class="sub">Причины гибели <em>${t.deaths}${t.cellC ? ' · тап — на карте' : ''}</em></div><div class="bl">${cs.map(([c,n])=>`<button class="bi${S.dc===c ? ' on' : ''}" data-act="dcause" data-k="${esc(c)}"><span class="l">${esc(dcName(c))}</span><span class="tr"><i style="width:${n/cm*100}%;background:var(--bug)"></i></span><span class="v">${n}</span></button>`).join('')}</div>` : ''}</div>
-      <div>${fp.length ? `<div class="sub">FPS по устройствам</div><div class="bl">${fp.map(([k,v])=>`<div class="bi"><span class="l">${CLS[k]||k}</span><span class="tr"><i style="width:${Math.min(1,v/60)*100}%;background:${fpsCol(v)}"></i></span><span class="v">${Math.round(v)}</span></div>`).join('')}</div>` : ''}</div></div>` : ''}
-    ${l.h ? `<div class="sub">Где гибнут <em>${t && Object.keys(t.cells||{}).length ? (S.dc ? esc(dcName(S.dc))+' — ярче' : 'красное — чаще') : 'гибелей ещё нет'}</em></div>${lvMap(l)}` : ''}
+    ${cs.length || fp.length ? `<div class="lv2"><div>${cs.length ? `<div class="sub">Причины гибели <b class="hn">${t.deaths}</b><em>${cs.length} ${nf(cs.length,'причина','причины','причин')}${t.cellC ? ' · тап — на карте' : ''}</em></div><div class="bl">${cs.map(([c,n])=>`<button class="bi${S.dc===c ? ' on' : ''}" data-act="dcause" data-k="${esc(c)}"><span class="l">${esc(dcName(c))}</span><span class="tr"><i style="width:${n/cm*100}%;background:var(--bug)"></i></span><span class="v">${n}</span></button>`).join('')}</div>` : ''}</div>
+      <div>${fp.length ? `<div class="sub">FPS по устройствам <b class="hn">${fp.length}</b><em>худший ${Math.round(Math.min(...fp.map(x=>x[1])))}</em></div><div class="bl">${fp.map(([k,v])=>`<div class="bi"><span class="l">${CLS[k]||k}</span><span class="tr"><i style="width:${Math.min(1,v/60)*100}%;background:${fpsCol(v)}"></i></span><span class="v">${Math.round(v)}</span></div>`).join('')}</div>` : ''}</div></div>` : ''}
+    ${l.h ? `<div class="sub">Где гибнут <b class="hn">${t ? t.deaths : 0}</b><em>${t && Object.keys(t.cells||{}).length ? Object.keys(t.cells).length+' '+nf(Object.keys(t.cells).length,'клетка','клетки','клеток')+' · ' : ''}${t && t.deaths ? (S.dc ? esc(dcName(S.dc))+' — ярче' : 'красное — чаще') : 'гибелей ещё нет'}</em></div>${lvMap(l)}` : ''}
     ${l.here.length ? `<div class="sub">Сейчас на этом уровне <em>${l.here.length}</em></div><div class="dl">${l.here.map(s=>`<div><button class="lnk" data-act="pl" data-id="${esc(s.id)}">${esc(s.nick)}</button><small>${s.live ? 'играет' : s.last ? 'был '+agoL(s.last) : ''}${Date.now()-s.last>STUCK_D*DAY ? ' · застрял' : ''}</small></div>`).join('')}</div>` : ''}
     <div class="pa">${l.rp.length ? `<button class="lnk" data-act="lvrep" data-id="${esc(l.id)}">Отзывы на этом уровне: ${l.rp.length} →</button>` : '<span class="note">Отзывов на этом уровне нет</span>'}</div></div>`;
 }
@@ -1562,15 +1579,16 @@ function lvAna(){
   const ck=Object.keys(cs).sort((a,b)=>cs[b]-cs[a]), cm=Math.max(1,...Object.values(cs));
   const hard=[...LVM].filter(l=>l.t && l.t.players).sort((a,b)=>b.dpp-a.dpp).slice(0,6), hm2=Math.max(1,...hard.map(l=>l.dpp));
   const fc={}, fn={}; for(const l of LVM) if(l.t && l.t.fps) for(const [k,v] of Object.entries(l.t.fps)) if(v>0){ fc[k]=(fc[k]||0)+v; fn[k]=(fn[k]||0)+1; }
-  const slow=LVM.filter(l=>l.fps!=null).sort((a,b)=>a.fps-b.fps).slice(0,5);
+  const slow=LVM.filter(l=>l.fps!=null).sort((a,b)=>a.fps-b.fps).slice(0,5), fpsL=LVM.filter(l=>l.fps!=null), fpsAvg=fpsL.length ? Math.round(fpsL.reduce((a,l)=>a+l.fps,0)/fpsL.length) : null;
+  const hardAll=LVM.filter(l=>l.t && l.t.players).length;
   return `<div class="ana">
-    <div class="card"><h3>Причины гибели<small>${dt} на всех уровнях · тап — уровни с этой причиной</small></h3>
+    <div class="card"><h3>Причины гибели<b class="hn">${dt}</b><small>на всех уровнях · тап — уровни с этой причиной</small></h3>
       ${ck.length ? `<div class="bl">${ck.map(c=>`<button class="bi${S.lcause===c ? ' on' : ''}" data-act="lcause" data-k="${esc(c)}"><span class="l">${esc(dcName(c))}</span><span class="tr"><i style="width:${cs[c]/cm*100}%;background:var(--bug)"></i></span><span class="v">${cs[c]}</span></button>`).join('')}</div>` : '<span class="note">Гибелей пока нет</span>'}</div>
-    <div class="card"><h3>Сложнее всего<small>гибелей на игрока</small></h3>
+    <div class="card"><h3>Сложнее всего<b class="hn" title="уровней, где есть гибели">${hardAll}</b><small>гибелей на игрока</small></h3>
       ${hard.length ? `<div class="bl">${hard.map(l=>`<button class="bi" data-act="lvo" data-id="${esc(l.id)}"><span class="l">${esc(l.name)}<small>${esc(l.icon)} ${l.no}</small></span><span class="tr"><i style="width:${l.dpp/hm2*100}%;background:var(--warn)"></i></span><span class="v">${l.dpp.toFixed(1).replace('.',',')}</span></button>`).join('')}</div>` : '<span class="note">Данных пока нет</span>'}</div>
-    <div class="card"><h3>FPS<small>среднее по уровням</small></h3>
+    <div class="card"><h3>FPS<b class="hn">${fpsAvg!=null ? fpsAvg : '—'}</b><small>среднее по уровням</small></h3>
       ${Object.keys(fc).length ? `<div class="bl">${Object.keys(fc).map(k=>{ const v=fc[k]/fn[k]; return `<div class="bi"><span class="l">${CLS[k]||k}</span><span class="tr"><i style="width:${Math.min(1,v/60)*100}%;background:${fpsCol(v)}"></i></span><span class="v">${Math.round(v)}</span></div>`; }).join('')}</div>
-        <div class="sub">Самые медленные уровни</div><div class="bl">${slow.map(l=>`<button class="bi" data-act="lvo" data-id="${esc(l.id)}"><span class="l">${esc(l.name)}</span><span class="tr"><i style="width:${Math.min(1,l.fps/60)*100}%;background:${fpsCol(l.fps)}"></i></span><span class="v">${Math.round(l.fps)}</span></button>`).join('')}</div>` : '<span class="note">Данных пока нет</span>'}</div></div>`;
+        <div class="sub">Самые медленные уровни <b class="hn">${slow.length}</b></div><div class="bl">${slow.map(l=>`<button class="bi" data-act="lvo" data-id="${esc(l.id)}"><span class="l">${esc(l.name)}</span><span class="tr"><i style="width:${Math.min(1,l.fps/60)*100}%;background:${fpsCol(l.fps)}"></i></span><span class="v">${Math.round(l.fps)}</span></button>`).join('')}</div>` : '<span class="note">Данных пока нет</span>'}</div></div>`;
 }
 function lvView(){
   const md=mode(), L=lvShown(), tl=LVM.filter(l=>l.t), dt=tl.reduce((a,l)=>a+l.t.deaths,0), qt=tl.reduce((a,l)=>a+l.t.quits,0), stuck=LVM.reduce((a,l)=>a+l.stuck.length,0), slow=LVM.filter(l=>l.fps!=null && l.fps<35).length;
@@ -1589,7 +1607,9 @@ function lvView(){
       +(sh ? '' : (VISL.push(...v), S.A.has('g:'+gk) ? `<div class="grp-new">${v.map(lvRow).join('')}</div>` : v.map(lvRow).join(''))); }).join('');
   const none=!LST ? `<div class="empty">${DEMO || tpAt ? 'Статистики уровней пока нет: она появится, когда воркер подключён к D1 и тестеры поиграют новую сборку.' : 'Загрузка…'}</div>` : '<div class="empty">Ничего не найдено</div>';
   const fold=md!=='w' && S.ana ? foldHtml(lvAna()) : '';
-  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? lvAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${L.length ? rows : none}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? lvDetail(S.lsel) : ''}</div></div>`;
+  const Ld=L.reduce((a,l)=>a+(l.t ? l.t.deaths : 0),0), Lq=L.reduce((a,l)=>a+(l.t ? l.t.quits : 0),0), Ls=L.reduce((a,l)=>a+l.stuck.length,0);
+  const head=lsum(L.length,LVM.length,L.length ? `${Ld} ${nf(Ld,'гибель','гибели','гибелей')}${Lq ? ' · бросили '+Lq : ''}${Ls ? ' · ⏸ '+Ls : ''}` : '',0);
+  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="side scr" id="side">${md==='w' ? lvAna() : ''}</div>${spl(md,'side')}<div class="list scr" id="lst">${fold}${head}${L.length ? rows : none}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? lvDetail(S.lsel) : ''}</div></div>`;
 }
 
 /* Crashes: errors the game sent by itself, grouped by message */
@@ -1613,7 +1633,7 @@ function errDetail(e,sheet){
     <pre class="emsg">${esc(e.m)}</pre>
     <div class="facts">${f('Впервые',full(e.first),agoL(e.first))}${f('Последний раз',full(e.last),agoL(e.last))}${f('Версии',e.vers.map(v=>'v'+esc(v)).join(', '))}${f('Устройства',Object.entries(e.devs||{}).map(([k,n])=>CLI[k]+' '+n).join(' · '))}</div>
     ${e.s ? `<details class="box e" open><summary>Стек (последний случай)</summary><pre>${esc(e.s)}</pre></details>` : ''}
-    ${lvs.length ? `<div class="sub">На каких уровнях</div><div class="bl">${lvs.map(([k,n])=>`<button class="bi" data-act="lvo" data-id="${esc(k)}"><span class="l">${esc((LVMI[k]||{}).name||k)}</span><span class="tr"><i style="width:${n/lm*100}%;background:var(--bug)"></i></span><span class="v">${n}</span></button>`).join('')}</div>` : ''}
+    ${lvs.length ? `<div class="sub">На каких уровнях <b class="hn">${lvs.reduce((a,x)=>a+x[1],0)}</b><em>${lvs.length} ${nf(lvs.length,'уровень','уровня','уровней')}</em></div><div class="bl">${lvs.map(([k,n])=>`<button class="bi" data-act="lvo" data-id="${esc(k)}"><span class="l">${esc((LVMI[k]||{}).name||k)}</span><span class="tr"><i style="width:${n/lm*100}%;background:var(--bug)"></i></span><span class="v">${n}</span></button>`).join('')}</div>` : ''}
     <div class="pa">${rp.length ? `<button class="lnk" data-act="errrep" data-k="${esc(e.key)}">Отзывы с этой ошибкой: ${rp.length} →</button>` : '<span class="note">В отзывах эта ошибка не встречалась</span>'}</div></div>`;
 }
 function errView(){
@@ -1626,7 +1646,8 @@ function errView(){
     <div class="f2">${segH('esort',S.esort,[['new','Свежие'],['n','Частые'],['pl','Игроков']])}</div>${tagBar('e',S.etag)}</div>`;
   rowI=0; VISE=L;
   const none=!ERR ? `<div class="empty">${DEMO || tpAt ? 'Сбоев пока нет данных: они появятся, когда воркер подключён к D1.' : 'Загрузка…'}</div>` : `<div class="empty">${all.length ? 'Ничего не найдено' : 'Сбоев нет 🎉'}</div>`;
-  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="list scr" id="lst">${L.length ? L.map(errRow).join('') : none}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? errDetail(S.esel) : ''}</div></div>`;
+  const en=L.reduce((a,e)=>a+e.n,0), head=lsum(L.length,all.length,L.length ? `${en} ${nf(en,'раз','раза','раз')}` : '',1);
+  return `${strip}${tool}<div class="body${slide('tab')}" style="--sw:${S.wd.side}px;--lw:${S.wd.list}px"><div class="list scr" id="lst">${head}${L.length ? L.map(errRow).join('') : none}</div>${spl(md,'list')}<div class="pane scr" id="pane">${md!=='n' ? errDetail(S.esel) : ''}</div></div>`;
 }
 
 /* Players: who stopped where, versions in use, who comes back */
@@ -1634,19 +1655,19 @@ function plStuckCard(){
   const now=Date.now(), st=TS.filter(t=>t.n && now-t.last>STUCK_D*DAY && t.cur && !t.done.has(t.cur)), by={};
   for(const t of st) by[t.cur]=(by[t.cur]||[]).concat(t);
   const ks=Object.keys(by).sort((a,b)=>by[b].length-by[a].length), mx=Math.max(1,...ks.map(k=>by[k].length));
-  return `<div class="card"><h3>Застряли<small>не играют ${STUCK_D}+ дня, уровень не пройден</small></h3>
+  return `<div class="card"><h3>Застряли<b class="hn">${st.length}</b><small>не играют ${STUCK_D}+ дня, уровень не пройден</small></h3>
     ${ks.length ? `<div class="bl">${ks.map(k=>`<button class="bi${S.pstuck===k ? ' on' : ''}" data-act="pstuck" data-k="${esc(k)}"><span class="l">${esc((LVMI[k]||LVI[k]||{}).name||k)}<small>${by[k].map(t=>esc(t.nick)).join(', ')}</small></span><span class="tr"><i style="width:${by[k].length/mx*100}%;background:var(--warn)"></i></span><span class="v">${by[k].length}</span></button>`).join('')}</div>` : '<span class="note">Никто не застрял</span>'}</div>`;
 }
 function plVersCard(){
   const c={}; for(const t of TS){ const v=t.ver; if(v) c[v]=(c[v]||0)+1; }
-  const ks=Object.keys(c).sort((a,b)=>b.localeCompare(a,undefined,{ numeric:true })), mx=Math.max(1,...Object.values(c));
-  return `<div class="card"><h3>Версии у игроков<small>последняя, с которой играли</small></h3>
+  const ks=Object.keys(c).sort((a,b)=>b.localeCompare(a,undefined,{ numeric:true })), mx=Math.max(1,...Object.values(c)), vn=Object.values(c).reduce((a,b)=>a+b,0);
+  return `<div class="card"><h3>Версии у игроков<b class="hn">${vn}</b><small>последняя, с которой играли</small></h3>
     ${ks.length ? `<div class="bl">${ks.map((v,i)=>`<div class="bi"><span class="l">v${esc(v)}${i ? '' : '<small>новая</small>'}</span><span class="tr"><i style="width:${c[v]/mx*100}%;background:${i ? 'var(--dim2)' : 'var(--ok)'}"></i></span><span class="v">${c[v]}</span></div>`).join('')}</div>` : '<span class="note">Нет данных</span>'}</div>`;
 }
 function plRetCard(){
   const now=Date.now(), r=(d,k)=>{ const base=TS.filter(t=>t.first && now-t.first>=d*DAY); const ok=base.filter(t=>t.ss.some(s=>k(dayOf(t.first)-dayOf(s.s)))); return [ok.length,base.length]; };
-  const rows=[['на следующий день',r(1,x=>x===1)],['через 2–6 дней',r(3,x=>x>=2 && x<=6)],['через неделю и позже',r(7,x=>x>=7)]];
-  return `<div class="card"><h3>Возвращаются<small>после первой игры</small></h3><div class="bl">${rows.map(([t,[a,b]])=>`<div class="bi"><span class="l">${t}</span><span class="tr"><i style="width:${b ? a/b*100 : 0}%;background:var(--op)"></i></span><span class="v">${b ? Math.round(a/b*100)+'%' : '—'}</span></div>`).join('')}</div>
+  const rows=[['на следующий день',r(1,x=>x===1)],['через 2–6 дней',r(3,x=>x>=2 && x<=6)],['через неделю и позже',r(7,x=>x>=7)]], back=TS.filter(t=>t.n>1).length;
+  return `<div class="card"><h3>Возвращаются<b class="hn" title="больше одной сессии">${back}</b><small>после первой игры</small></h3><div class="bl">${rows.map(([t,[a,b]])=>`<div class="bi"><span class="l">${t}</span><span class="tr"><i style="width:${b ? a/b*100 : 0}%;background:var(--op)"></i></span><span class="v">${b ? Math.round(a/b*100)+'%' : '—'}</span></div>`).join('')}</div>
     <span class="note">${rows.map(([t,[a,b]])=>a+' из '+b).join(' · ')}</span></div>`;
 }
 const CFGL={ q:['Графика',v=>v], lang:['Язык',v=>v], mus:['Музыка',v=>Math.round(v*100)+'%'], sfx:['Звуки',v=>Math.round(v*100)+'%'], amb:['Окружение',v=>Math.round(v*100)+'%'], cam:['Кнопка камеры',v=>v ? 'да' : 'нет'], fs:['Полный экран',v=>v ? 'да' : 'нет'], pwa:['Установлена',v=>v ? 'да' : 'нет'] };
