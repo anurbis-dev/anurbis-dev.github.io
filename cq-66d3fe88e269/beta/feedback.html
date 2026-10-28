@@ -631,13 +631,14 @@ async function load(quiet,testers){
     if(tg) TAGS=tg;
     if(ls!==undefined) LST=ls; if(es!==undefined) ERR=es && es.errors ? es.errors.map(e=>({ ...e, key:eKey(e.m), vers:e.vers||[] })) : null;
     const fresh=seen ? list.filter(i=>!seen.has(i.n)).length : 0;
+    const prevN=S.sel&&S.sel.n, prevSig=S.sel&&S.sel.sig, hadReps=!!(S.sel&&S.sel.reps);
     RAW=list; if(tp){ TRAW=tp; tpAt=Date.now(); } model(); failed=''; loadAt=Date.now(); S.gate=false;
     if(fresh){ unseen+=fresh; ping(fresh); }
     const hn=location.hash.match(/^#(\d+)$/);
     if(!S.booted){ S.booted=true; anim('list','num','bars'); const r=hn && REPS.find(r=>r.n===+hn[1]); if(r){ S.F.state=''; openRep(r,true); } else if(mode()!=='n') S.sel=shown()[0]||null; if(S.sel && mode()!=='n') S.pl=null; }
-    if(S.sel && !S.sel.reps) repLoad(S.sel);
+    if(S.sel && (!S.sel.reps || (hadReps && S.sel.n===prevN && prevSig && S.sel.sig!==prevSig))) repLoad(S.sel);
   }catch(e){ if(e.key){ S.gate='Неверный ключ'; KEY=''; } else failed=e.message; }
-  finally{ loading=false; S.busy=false; title(); render(); }
+  finally{ loading=false; S.busy=false; title(); render(quiet && S.booted ? { patch:true } : undefined); }
 }
 function ping(n){   // a new report while the page is open: a short chime and, in a hidden tab, a notification
   try{ const c=new AudioContext(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.frequency.setValueAtTime(1320,c.currentTime+.12);
@@ -647,8 +648,8 @@ function ping(n){   // a new report while the page is open: a short chime and, i
 }
 const title=()=>{ document.title=(unseen ? '('+unseen+') ' : '')+'Data Cube · '+({ pl:'Игроки', lv:'Уровни', err:'Сбои' }[S.tab]||'Отзывы'); };
 async function repLoad(r){
-  try{ const d=await api(`/issue/${r.n}/reply`); r.reps=d.replies||[]; r.fixed=d.fixed ? { wait:!!d.fixedWait } : null; if(S.sel===r) render(); }
-  catch(e){ r.reps=null; r.repErr=e.message; if(S.sel===r) render(); }
+  try{ const d=await api(`/issue/${r.n}/reply`); r.reps=d.replies||[]; r.fixed=d.fixed ? { wait:!!d.fixedWait } : null; if(S.sel===r) render({ patch:true }); }
+  catch(e){ r.reps=null; r.repErr=e.message; if(S.sel===r) render({ patch:true }); }
 }
 
 
@@ -1030,12 +1031,74 @@ const copy=(t,msg)=>{ try{ navigator.clipboard.writeText(t).then(()=>toast(msg),
 
 /* ==================== Render ==================== */
 const app=$('app');
+let painting=0;   // innerHTML teardown blurs the field; focusout must not treat that as "the user left the editor"
+/* The focused box keeps whatever is on screen (a keystroke can still be ahead of the input event) */
+function syncFields(){
+  const ae=document.activeElement; if(!ae || !app.contains(ae)) return;
+  if(ae.id==='q') S.F.q=ae.value; else if(ae.id==='pq') S.pq=ae.value; else if(ae.id==='lq') S.lq=ae.value; else if(ae.id==='eq') S.eq=ae.value;
+  else if(ae.id==='repText' && S.sel) S.draft[S.sel.n]=ae.value; else if(ae.id==='editText') S.editText=ae.value;
+}
+function bindGrp(){ const g=$('grp'); if(!g) return; g.onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); }; }
+/* Quiet refresh: swap a region only when its markup changed. A focused field stays the same node, so the caret and an unfinished word survive. */
+/* Markup with the focused control's text and the tag suggestions taken out, so typing itself is not a change */
+function patchNorm(node,hot){
+  const c=node.cloneNode(true);
+  c.querySelectorAll('.tgsug').forEach(n=>n.remove());
+  if(hot && hot.id){ const f=c.querySelector('#'+CSS.escape(hot.id)); if(f){ if(f.tagName==='TEXTAREA') f.textContent=''; else f.setAttribute('value',''); } }
+  return c.innerHTML;
+}
+function patchRegion(a,b){
+  const ae=document.activeElement, hot=ae && a.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) ? ae : null;
+  if(hot && (hot.tagName==='SELECT' || hot.type==='file' || !hot.id)) return false;
+  if(patchNorm(a,hot)===patchNorm(b,hot)){
+    if(a.className!==b.className) a.className=b.className;
+    const st=b.getAttribute('style'); if((a.getAttribute('style')||'')!==(st||'')){ if(st==null) a.removeAttribute('style'); else a.setAttribute('style',st); }
+    return false;
+  }
+  const top=a.scrollTop, left=a.scrollLeft, au=[...a.querySelectorAll('audio')].find(x=>!x.paused);
+  const sug=hot && hot.id==='tagIn' && hot.parentNode ? hot.parentNode.querySelector('.tgsug') : null;
+  const ss=hot ? hot.selectionStart : null, se=hot ? hot.selectionEnd : null;
+  painting++;
+  try{
+    if(hot) hot.remove(); if(sug) sug.remove(); if(au) au.remove();
+    a.innerHTML=b.innerHTML;
+    if(a.className!==b.className) a.className=b.className;
+    const st=b.getAttribute('style'); if((a.getAttribute('style')||'')!==(st||'')){ if(st==null) a.removeAttribute('style'); else a.setAttribute('style',st); }
+    if(hot){ const slot=a.querySelector('#'+CSS.escape(hot.id)); if(slot){ slot.replaceWith(hot); if(sug && hot.parentNode) hot.after(sug); hot.focus({ preventScroll:true }); try{ if(ss!=null) hot.setSelectionRange(ss,se); }catch(e){} } }
+    if(au){ const p=a.querySelector('audio[data-n="'+(au.dataset.n||'')+'"]'); if(p) p.replaceWith(au); }
+  }finally{ painting--; }
+  a.scrollTop=top; a.scrollLeft=left;
+  return true;
+}
+function tryPatch(h){
+  if(S.gate || S.focus || S.A.size || S.flash || S.saving) return false;
+  const tpl=document.createElement('template'); tpl.innerHTML=h;
+  for(const sel of ['.hd','.strip','.flt','#lst','#pane']) if(!app.querySelector(sel) || !tpl.content.querySelector(sel)) return false;
+  if(!!app.querySelector('#side')!==!!tpl.content.querySelector('#side')) return false;
+  if(!!app.querySelector('#shin')!==!!tpl.content.querySelector('#shin')) return false;
+  if(!!app.querySelector('.sheet')!==!!tpl.content.querySelector('.sheet')) return false;
+  let flt=false;
+  for(const sel of ['.hd','.strip','.flt','#side','#lst','#pane','#shin']){
+    const a=app.querySelector(sel), b=tpl.content.querySelector(sel); if(!a || !b) continue;
+    if(patchRegion(a,b) && sel==='.flt') flt=true;
+  }
+  const ba=app.querySelector('.body'), bb=tpl.content.querySelector('.body');
+  if(ba && bb){ if(ba.className!==bb.className) ba.className=bb.className; const st=bb.getAttribute('style'); if((ba.getAttribute('style')||'')!==(st||'')) ba.setAttribute('style',st||''); }
+  if(flt) bindGrp();
+  const neu=tpl.content.querySelector('.toast'), cur=app.querySelector(':scope>.toast');
+  if(!neu && cur) cur.remove();
+  else if(neu && !cur) app.append(neu.cloneNode(true));
+  else if(neu && cur && cur.textContent!==neu.textContent) cur.textContent=neu.textContent;
+  if(tipEl && !tipEl.isConnected) tipHide();
+  return true;
+}
 function gateHtml(){ return `${header()}<div class="scr" style="flex:1"><div class="gate"><b style="font:600 18px var(--f-disp)">Ключ доступа</b>
   <span style="color:var(--dim)">Ключ <code>READ_KEY</code> есть в каждой ссылке «Открыть в игре» в issue (параметр <code>k=</code>). Он сохранится в этом браузере. Без ключа — <a href="?demo">демо-данные</a>.</span>
   <input id="keyIn" placeholder="READ_KEY" autocomplete="off"><button class="btn pri" data-act="key">Войти</button>${typeof S.gate==='string' ? `<span class="err">${esc(S.gate)}</span>` : ''}</div></div>`; }
-function render(){
+function render(opt){
   if(G0 && G0.mode || T && T.on){ rLost=true; return; }   // never under a finger; replayed when it lifts (rAfter)
   rLost=false;
+  syncFields();
   const keep={}, whk={}; app.querySelectorAll('#lst,#side,#pane,#shin').forEach(e=>{ keep[e.id]=e.scrollTop; if(WH.has(e)){ whk[e.id]=WH.get(e); WH.delete(e); } });
   const ae=document.activeElement, aid=ae && app.contains(ae) && ae.id, s0=ae && ae.selectionStart, s1=ae && ae.selectionEnd;
   const au=[...app.querySelectorAll('audio')].find(a=>!a.paused);   // a playing voice note survives the redraw
@@ -1056,13 +1119,16 @@ function render(){
   if(S.ask) h+=askHtml();
   if(stay) h=h.replace('class="dlg"','class="dlg stay"').replace('class="mn"','class="mn stay"');
   if(S.toast) h+=`<div class="toast">${esc(S.toast)}</div>`;
+  if(opt && opt.patch && tryPatch(h)){ S.focus=null; S.flash=0; moSoon(); return; }
+  painting++;
   app.innerHTML=h;
+  painting--;
   app.querySelectorAll('#lst,#side,#pane,#shin').forEach(e=>{ if(keep[e.id]!=null) e.scrollTop=keep[e.id]; if(whk[e.id]) WH.set(e,whk[e.id]); });   // a wheel glide goes on in the new panel
   if(tipEl && !tipEl.isConnected) tipHide();
   if(au){ const p=app.querySelector(`audio[data-n="${au.dataset.n}"]`); if(p) p.replaceWith(au); }
   const want=S.focus, fid=want || aid; S.focus=null;
   if(fid && $(fid)){ $(fid).focus({ preventScroll:true }); if(want && !$(fid).closest('.dlg')) $(fid).scrollIntoView({ block:'center', behavior:'smooth' }); try{ if(fid===aid && s0!=null) $(fid).setSelectionRange(s0,s1); }catch(e){} }
-  if($('grp')) $('grp').onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); };
+  bindGrp();
   if($('askF')) $('askF').onsubmit=e=>{ e.preventDefault(); const v=$('askIn') ? $('askIn').value.trim() : true, er=ASKF && ASKF(v); if(typeof er==='string'){ $('askErr').textContent=er; return; } S.ask=null; render(); };
   app.querySelectorAll('.dims [aria-pressed=true]').forEach(b=>{ const d=b.parentNode; if(b.offsetLeft<d.scrollLeft || b.offsetLeft+b.offsetWidth>d.scrollLeft+d.clientWidth) d.scrollLeft=b.offsetLeft-12; });
   if(A.has('num')) countUp();
@@ -1099,7 +1165,7 @@ function countUp(){
   const f=t=>{ const k=Math.min(1,(t-t0)/700), e=1-Math.pow(1-k,3); els.forEach(b=>{ if(b.isConnected) b.textContent=Math.round(+b.dataset.n*e); }); if(k<1) requestAnimationFrame(f); };
   requestAnimationFrame(f);
 }
-let tt=0; const toast=m=>{ S.toast=m; render(); clearTimeout(tt); tt=setTimeout(()=>{ S.toast=''; render(); },2200); };
+let tt=0; const toast=m=>{ S.toast=m; render({ patch:true }); clearTimeout(tt); tt=setTimeout(()=>{ S.toast=''; render({ patch:true }); },2200); };
 
 /* ==================== Actions ==================== */
 function openRep(r,quiet){
@@ -1322,7 +1388,7 @@ app.addEventListener('click',e=>{
   render();
 },true);
 app.addEventListener('input',e=>{ const id=e.target.id;
-  if(id==='q'){ S.F.q=e.target.value; render(); } else if(id==='pq'){ S.pq=e.target.value; render(); } else if(id==='lq'){ S.lq=e.target.value; render(); } else if(id==='eq'){ S.eq=e.target.value; render(); }
+  if(id==='q'){ S.F.q=e.target.value; render({ patch:true }); } else if(id==='pq'){ S.pq=e.target.value; render({ patch:true }); } else if(id==='lq'){ S.lq=e.target.value; render({ patch:true }); } else if(id==='eq'){ S.eq=e.target.value; render({ patch:true }); }
   else if(id==='repText' && S.sel) S.draft[S.sel.n]=e.target.value; else if(id==='editText') S.editText=e.target.value; else if(id==='tagIn') tagSuggest(); });
 app.addEventListener('change',e=>{ if(e.target.id!=='repFile' || !S.sel) return; addShots(S.sel,e.target.files); e.target.value=''; });
 app.addEventListener('dragover',e=>{ const box=e.target.closest && e.target.closest('#rbox'); if(!box || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); box.classList.add('on'); });
@@ -1331,7 +1397,8 @@ app.addEventListener('drop',e=>{ const box=e.target.closest && e.target.closest(
 let tagHold=0;   // choosing a suggestion: the letters in the field must not become their own tag
 app.addEventListener('mousedown',e=>{ if(e.target.closest && e.target.closest('.tgsug')){ e.preventDefault(); tagHold=1; } },true);
 app.addEventListener('mouseup',e=>{ if(tagHold && !(e.target.closest && e.target.closest('.tgsug'))) tagHold=0; },true);
-app.addEventListener('focusout',e=>{ if(e.target.id==='editText' && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-act]'))) leaveEdit();
+app.addEventListener('focusout',e=>{ if(painting || !e.target.isConnected) return;   // a redraw removed the field — not the user leaving it
+  if(e.target.id==='editText' && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-act]'))) leaveEdit();
   if(e.target.id==='tagIn'){ if(tagHold || e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.tgsug')) return; const t=e.target, v=t.value.trim(); S.tagAdd=''; if(v) setTag(t.dataset.k,t.dataset.id,v,true); else render(); } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='tagIn' && e.key==='Enter'){ e.preventDefault(); const t=e.target; setTag(t.dataset.k,t.dataset.id,t.value,true); S.tagAdd=''; t.value=''; } });
 app.addEventListener('keydown',e=>{ if(e.target.id==='keyIn' && e.key==='Enter') app.querySelector('[data-act=key]').click(); });
@@ -1491,7 +1558,8 @@ $('frameSeg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; S.
 let lm=''; new ResizeObserver(()=>{ const m=mode(); if(lm && m!==lm){ if(m!=='n') S.sheet=null; else S.sheet=null; render(); } lm=m; moSoon(); }).observe(app);
 addEventListener('resize',syncP);
 
-/* Polling: the list every POLL while shown (POLL_BG behind), the testers every TP_POLL */
+/* Polling: the list every POLL while shown (POLL_BG behind), the testers every TP_POLL.
+   A quiet load patches regions whose markup changed. The field being typed in is not rebuilt. */
 const liveOk=()=>(KEY || DEMO) && !S.gate && !loading && !S.menu && !S.ask && !G0 && !SP;
 setInterval(()=>{ if(liveOk() && Date.now()-loadAt>=(document.hidden ? POLL_BG : POLL)) load(true,Date.now()-tpAt>=TP_POLL && !document.hidden);
   const el=$('live'); if(el && loadAt && !failed){ const s=Math.round((Date.now()-loadAt)/1000); el.textContent='обновлено '+(s<5 ? 'только что' : s<60 ? s+' с назад' : Math.round(s/60)+' мин назад')+(DEMO ? ' · демо' : ''); } },5000);
