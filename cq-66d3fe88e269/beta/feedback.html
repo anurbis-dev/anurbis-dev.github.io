@@ -225,7 +225,7 @@ button.bi:hover{background:rgba(255,255,255,.04)}
 .r2{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .r3{display:flex;gap:9px;font-size:11.5px;color:var(--dim2);white-space:nowrap;overflow:hidden}
 .r3 .e{color:var(--bug)}
-.r3 .wp{color:var(--warn);font-weight:800}
+.r3 .wp{color:var(--warn);font-weight:800} .r3 .wp.dn{color:var(--ok)}
 .tag{font-size:10px;font-weight:800;background:var(--gold);color:#000;border-radius:6px;padding:0 5px}
 .tag.chg{background:rgba(255,255,255,.18);color:var(--txt)}
 .prow{gap:3px}
@@ -271,7 +271,7 @@ pre.emsg{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.4 var(
 .dt-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .badge{padding:1px 9px;border-radius:99px;font-weight:800;font-size:12px}
 .badge.bug{background:rgba(255,122,138,.16);color:var(--bug)} .badge.opinion{background:rgba(143,184,255,.16);color:var(--op)}
-.badge.closed{background:rgba(139,227,160,.14);color:var(--ok)} .badge.open{background:rgba(255,255,255,.08);color:var(--dim)} .badge.wip{background:rgba(255,179,107,.16);color:var(--warn)}
+.badge.closed{background:rgba(139,227,160,.14);color:var(--ok)} .badge.open{background:rgba(255,255,255,.08);color:var(--dim)} .badge.wip{background:rgba(255,179,107,.16);color:var(--warn)} .badge.done{background:rgba(139,227,160,.2);color:var(--ok)}
 .dt-h .sp{flex:1}
 .dt-h .no{color:var(--dim);font-size:12.5px;margin-right:4px}
 /* The report's screenshot and text, with the facts beside them when the pane is wide (under them otherwise) */
@@ -653,7 +653,7 @@ function norm(i){ const b=i.body||'', m=i.meta||{}, s=m.sum||{}, labels=i.labels
     m.text=((b.match(/^> (.*)$/gm)||[]).map(l=>l.slice(2)).join('\n'))||null; }
   const tester=m.tester||(labels.find(l=>l.startsWith('tester:'))||'').slice(7), kind=labels.includes('opinion') ? 'opinion' : labels.includes('bug') ? 'bug' : m.kind||'bug';   // the label first: the dashboard switches it
   const text=m.text??b.replace(/<[^>]+>/g,'').slice(0,600), nick=i.nick||m.nick||'', at=+new Date(i.at), u=uaOf({ ua:s.ua||'' }), L=LVI[s.lvId]||LVBN[s.level]||null;
-  const state=i.state==='open' && labels.includes('wip') ? 'wip' : i.state;   // "in work" — an open issue with the label wip
+  const state=i.state!=='open' ? i.state : labels.includes('wip') ? 'wip' : labels.includes('done') ? 'done' : 'open';   // wip — in work; done — fixed, still open until a check closes it
   const r={ n:i.n, url:i.url, state, comments:i.comments||0, sig:[state,i.comments,i.up,i.title,i.nick].join('|'), m, s, tester, nick, who:nick||tester||'—', kind, text, at,
     ver:s.ver||(labels.find(l=>/^v\d/.test(l))||'').slice(1), lv:s.level||'', lvId:s.lvId||'', L, area:L ? L.a.name : s.area||'', ano:L ? L.no : s.n, icon:L ? L.a.icon : '',
     u, dev:u.key, cls:u.kind, fps:s.q && s.q.fps, errs:s.errs||[], hue:((s.level||'?').length*47+(L ? L.gi : 0)*23)%360 };
@@ -739,7 +739,7 @@ const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab
 const slide=k=>S.A.has('sl:'+k+':l') ? ' sl-l' : S.A.has('sl:'+k+':r') ? ' sl-r' : '';   // entrance animations for the next render only
 const mode=()=>{ const w=app.clientWidth; return w<820 ? 'n' : w<1280 ? 'm' : 'w'; };
 
-const STN={ open:'Открытые', wip:'В работе', closed:'Закрытые' }, STO={ open:0, wip:1, closed:2 };
+const STN={ open:'Открытые', wip:'В работе', done:'Выполнено', closed:'Закрытые' }, STO={ open:0, wip:1, done:2, closed:3 };
 const stOk=(r,f)=>f==='open' ? r.state!=='closed' : r.state===f;   // "open" — everything not closed, "in work" among them
 const lvLbl=k=>{ const r=REPS.find(x=>x.lv===k); return esc(k||'—')+(r && r.ano ? `<small>${esc(r.icon||r.area)} ${r.ano}</small>` : ''); };
 const lvOrd=k=>{ const r=REPS.find(x=>x.lv===k); return r && r.L ? r.L.gi : r ? 1e4+(r.area||'').length*100+(+r.ano||0) : 1e9; };
@@ -802,7 +802,7 @@ function row(r){
     <button class="row${r.state==='closed' ? ' closed' : ''}${S.sel===r ? ' on' : ''}${S.flash===r.n ? ' flash' : ''}" data-act="open" data-n="${r.n}" data-lp="rep">${thumb(r)}
     <span class="rm"><span class="r1"><i class="dot ${r.kind}"></i><b>${esc(r.who)}</b>${r.fresh ? '<span class="tag">новый</span>' : r.chg ? '<span class="tag chg">изменён</span>' : ''}${r.lv ? `<span class="lv">· ${esc(r.lv)}${r.s.sub ? ' → '+esc(r.s.sub) : ''}</span>` : ''}<span class="t" title="${full(r.at)}">${ago(r.at)}</span></span>
     <span class="r2">${esc(r.text||'(без текста)')}</span>
-    <span class="r3">${tagBits(tagsOf('r',r.n))}${r.state==='wip' ? '<span class="wp">⚙ в работе</span>' : ''}<span>#${r.n}</span>${r.ver ? `<span>v${esc(r.ver)}</span>` : ''}${r.dev ? `<span>${CLI[r.cls]} ${ico(osI(r.u.os))}${ico(brI(r.u.br))}${esc(r.dev)}</span>` : ''}${r.m.voice ? `<span>🎤 ${mmss(r.m.dur||0)}</span>` : ''}${r.errs.length ? `<span class="e">⚠ ${r.errs.length}</span>` : ''}${r.comments ? `<span>💬 ${r.comments}</span>` : ''}${r.fps && r.fps<35 ? `<span class="e">${r.fps} fps</span>` : ''}</span></span></button></div>`;
+    <span class="r3">${tagBits(tagsOf('r',r.n))}${r.state==='wip' ? '<span class="wp">⚙ в работе</span>' : r.state==='done' ? '<span class="wp dn">✓ выполнено</span>' : ''}<span>#${r.n}</span>${r.ver ? `<span>v${esc(r.ver)}</span>` : ''}${r.dev ? `<span>${CLI[r.cls]} ${ico(osI(r.u.os))}${ico(brI(r.u.br))}${esc(r.dev)}</span>` : ''}${r.m.voice ? `<span>🎤 ${mmss(r.m.dur||0)}</span>` : ''}${r.errs.length ? `<span class="e">⚠ ${r.errs.length}</span>` : ''}${r.comments ? `<span>💬 ${r.comments}</span>` : ''}${r.fps && r.fps<35 ? `<span class="e">${r.fps} fps</span>` : ''}</span></span></button></div>`;
 }
 function detail(r,sheet){
   if(!r) return `<div class="empty">${REPS.length ? 'Выберите отзыв в списке' : ''}</div>`;
@@ -814,9 +814,11 @@ function detail(r,sheet){
   const where=r.lv ? esc(r.lv)+(s.sub ? ' → '+esc(s.sub) : '') : '', wSub=[(r.icon||'')+' '+esc(r.area||''),r.ano ? '№'+r.ano : '',r.lvId ? `<code>${esc(r.lvId)}</code>` : ''].filter(x=>x.trim()).join(' · ');
   const acts=(replay ? `<a class="btn sm pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : DEMO && m.snap ? '<button class="btn sm pri" data-act="noop">▶ Открыть в игре</button>' : '')
     +`<button class="btn sm" data-act="state" data-v="${r.state==='closed' ? 'open' : 'closed'}"${r.state!=='closed' && r.kind==='bug' && r.tester ? ' title="Игрок получит сообщение «Баг исправлен»"' : ''}>${r.state==='closed' ? '↺ Открыть' : '✓ Закрыть'}</button>`
-    +`<button class="btn sm" data-act="state" data-v="${r.state==='wip' ? 'open' : 'wip'}" aria-pressed="${r.state==='wip'}" title="${r.state==='wip' ? 'Снять отметку «в работе»' : 'Отметить «в работе»'}">⚙ В работе</button>`;
+    +`<button class="btn sm" data-act="state" data-v="${r.state==='wip' ? 'open' : 'wip'}" aria-pressed="${r.state==='wip'}" title="${r.state==='wip' ? 'Снять отметку «в работе»' : 'Отметить «в работе»'}">⚙ В работе</button>`
+    +`<button class="btn sm" data-act="state" data-v="${r.state==='done' ? 'open' : 'done'}" aria-pressed="${r.state==='done'}" title="${r.state==='done' ? 'Снять отметку «выполнено»' : 'Исправлено, жду проверки — игроку ничего не уходит'}">✓ Выполнено</button>`;
+  const stL={ open:'открыт', wip:'⚙ в работе', done:'✓ выполнено', closed:'✓ закрыт' };
   return `<div class="dt${S.A.has('det') ? ' fresh' : ''}" style="padding-bottom:16px"><div class="dhd">
-    <div class="dt-h"><button class="badge btnk ${r.kind}" data-act="kind2" title="Сменить тип: ${r.kind==='bug' ? 'впечатление' : 'ошибка'}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'} ⇄</button><span class="badge ${r.state}">${r.state==='open' ? 'открыт' : r.state==='wip' ? '⚙ в работе' : '✓ закрыт'}</span>
+    <div class="dt-h"><button class="badge btnk ${r.kind}" data-act="kind2" title="Сменить тип: ${r.kind==='bug' ? 'впечатление' : 'ошибка'}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'} ⇄</button><span class="badge ${r.state}">${stL[r.state]||r.state}</span>
       <span class="no">#${r.n}</span>${acts}<span class="sp"></span>${r.url && !DEMO ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>` : ''}
       <button class="ib" data-act="step" data-d="-1" title="Предыдущий (↑ / K)">↑</button><button class="ib" data-act="step" data-d="1" title="Следующий (↓ / J)">↓</button><button class="ib" data-act="del" title="Удалить отзыв">🗑</button><button class="ib" data-act="menu" data-lp="rep" data-n="${r.n}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>
     <div class="who"><h2>${esc(r.who)}</h2>${r.cc ? flag(r.cc) : ''}<span class="dte" title="${full(r.at)}">${short(r.at)} · ${ago(r.at)}</span></div>${tagEdit('r',r.n)}</div>
@@ -976,7 +978,7 @@ function repView(){
   const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень, тег…" value="${esc(F.q)}">
     <select class="sel" id="grp" aria-label="Группировать">${[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']].map(([v,t])=>`<option value="${v}"${S.G===v ? ' selected' : ''}>${t}</option>`).join('')}</select>
     ${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : ''}</div>
-    <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${tagBar('r',F.tag)}${chipsF()}</div>`;
+    <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['done','<span class="lo">Выполнено</span><span class="sh">✓</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${tagBar('r',F.tag)}${chipsF()}</div>`;
   rowI=0; let list=''; VIS=S.G ? [] : L;
   if(!L.length) list=`<div class="empty">${REPS.length ? 'Ничего не найдено' : loadAt ? 'Отзывов пока нет' : failed ? '<span class="err">Не удалось загрузить: '+esc(failed)+'</span>' : 'Загрузка…'}</div>`;
   else if(!S.G) list=L.map(row).join('');
@@ -1019,6 +1021,7 @@ function menuFor(kind,el){
   if(kind==='rep'){ const r=REPS.find(x=>x.n===+el.dataset.n); if(!r) return null;
     it.push([r.state!=='closed' ? '✓' : '↺',r.state!=='closed' ? 'Закрыть' : 'Открыть снова',()=>setState(r)]);
     it.push(['⚙',r.state==='wip' ? 'Снять «в работе»' : 'В работу',()=>setState(r,r.state==='wip' ? 'open' : 'wip')]);
+    it.push(['✓',r.state==='done' ? 'Снять «выполнено»' : 'Выполнено',()=>setState(r,r.state==='done' ? 'open' : 'done')]);
     it.push(['⇄',r.kind==='bug' ? 'Сделать впечатлением' : 'Сделать ошибкой',()=>setKind(r)]);
     if(r.tester) it.push(['↩','Ответить',()=>{ openRep(r,true); S.focus='repText'; }]);
     it.push(['👤','Все отзывы '+r.who,()=>{ Object.assign(F,{ who:r.who, state:'' }); anim('list'); }]);
@@ -1089,7 +1092,7 @@ function aboutHtml(){
   return `<div class="dlg" data-act="abbg"><div class="box help" role="dialog" aria-label="Сводка беты"><div class="hh">${CUBE.replace('<svg','<svg style="width:26px;height:26px"')}<h4>Data Cube · бета</h4><button class="ib" id="abX" data-act="abx" aria-label="Закрыть">✕</button></div>
     <div class="ab">${c('Опубликована','v'+esc(gver),verNote,'abVer')}${c('У игроков',vk[0] ? 'v'+esc(vk[0]) : '—',vk.length>1 ? vk.slice(0,4).map(v=>'v'+esc(v)+' · '+vers[v]).join(', ') : '')}
       ${c('Игроков',TS.length,(N.on ? '● '+N.on+' играют сейчас · ' : '')+pl24+' за сутки')}${c('Наиграно за сутки',hm(m24),ss24.length+' '+nf(ss24.length,'сессия','сессии','сессий'))}
-      ${c('Открыто',`<span style="color:var(--bug)">🐞 ${ob}</span> · <span style="color:var(--op)">💬 ${open.length-ob}</span>`,STN.wip+': '+open.filter(r=>r.state==='wip').length)}${c('Новых отзывов',today+' сегодня',wk+' за неделю')}
+      ${c('Открыто',`<span style="color:var(--bug)">🐞 ${ob}</span> · <span style="color:var(--op)">💬 ${open.length-ob}</span>`,STN.wip+': '+open.filter(r=>r.state==='wip').length+' · '+STN.done+': '+open.filter(r=>r.state==='done').length)}${c('Новых отзывов',today+' сегодня',wk+' за неделю')}
       ${c('Сбои',ERR ? eNew.length+' в v'+esc(nv||'—') : '—',ERR ? eDay+' за сутки · '+ERR.length+' видов всего' : 'нет данных D1')}${c('Застряли',stuck,'не играют '+STUCK_D+'+ дня')}</div>
     ${KEY ? `<div class="share"><span>Ссылка для доступа</span><input id="shareUrl" readonly value="${esc(accessUrl())}"><div class="row2"><button type="button" class="btn sm pri" data-act="share">Копировать</button></div><small>С ключом. У того, кому отправите, страница откроется сразу, ключ сохранится в его браузере.</small></div>` : ''}
     <p>${loadAt ? 'Данные обновлены '+agoL(loadAt)+'.' : ''}${unseen ? ' Непрочитанных отзывов: '+unseen+'.' : ''}${DEMO ? ' Демо-данные.' : ''}</p></div></div>`;
@@ -1281,13 +1284,13 @@ function pvEnd(sh,dy,v){
 const pvEdge=(sh,dy)=>dy>0 ? sh.scrollTop<=0 : sh.scrollTop+sh.clientHeight>=sh.scrollHeight-1;
 function stepRep(d){ const r=repNb(d); if(!r) return; if(S.sheet==='rep') anim(d>0 ? 'pv-u' : 'pv-d');
   openRep(r,true); render(); app.querySelector(`.row[data-n="${r.n}"]`)?.scrollIntoView({ block:'nearest' }); }
-/* to: 'open', 'wip' (open with the label wip) or 'closed'; without it — close an open report, reopen a closed one */
+/* to: 'open', 'wip' (label wip), 'done' (label done, still open — no message to the tester) or 'closed'; without it — close an open report, reopen a closed one */
 async function setState(r,to){
   to=to||(r.state==='closed' ? 'open' : 'closed'); const was=r.state; if(to===was) return;
   try{ await api(`/issue/${r.n}`,{ state:to }); const i=RAW.find(x=>x.n===r.n);
-    if(i){ i.state=to==='closed' ? 'closed' : 'open'; i.labels=(i.labels||[]).filter(l=>l!=='wip').concat(to==='wip' ? ['wip'] : []); }
+    if(i){ i.state=to==='closed' ? 'closed' : 'open'; i.labels=(i.labels||[]).filter(l=>l!=='wip'&&l!=='done').concat(to==='wip'||to==='done' ? [to] : []); }
     model(); const nr=REPS.find(x=>x.n===r.n)||r; nr.chg=false; S.flash=r.n;
-    toast(to==='closed' ? (r.kind==='bug' && r.tester ? 'Закрыт — '+r.who+' получит «Баг исправлен»' : 'Закрыт') : to==='wip' ? 'В работе' : was==='wip' ? 'Снято «в работе»' : 'Открыт снова');
+    toast(to==='closed' ? (r.kind==='bug' && r.tester ? 'Закрыт — '+r.who+' получит «Баг исправлен»' : 'Закрыт') : to==='wip' ? 'В работе' : to==='done' ? 'Выполнено' : was==='wip' ? 'Снято «в работе»' : was==='done' ? 'Снято «выполнено»' : 'Открыт снова');
     if(nr.tester) repLoad(nr); }
   catch(e){ toast('Не удалось: '+e.message); }
 }
@@ -1910,7 +1913,7 @@ async function demoApi(path,body){
   m=path.match(/^\/issue\/(\d+)\/reply$/); if(m){ const a=DD.reps[m[1]]||(DD.reps[m[1]]=[]); if(body) a.push({ text:body.text, at:new Date().toISOString(), wait:true, shot:!!(body.shots && body.shots.length || body.shot), shots:(body.shots||[]).length||(body.shot?1:0), voice:body.audio ? 'webm' : null, dur:body.audio && body.audio.dur || 0 }); return { replies:a, fixed:false }; }
   m=path.match(/^\/issue\/(\d+)\/delete$/); if(m){ DD.list=DD.list.filter(x=>x.n!==+m[1]); return { ok:true, how:'deleted' }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m && body.kind){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.labels=i.labels.filter(l=>l!=='bug' && l!=='opinion').concat(body.kind); i.meta.kind=body.kind; } return { ok:true }; }
-  m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip').concat(body.state==='wip' ? ['wip'] : []); } return { ok:true }; }
+  m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip'&&l!=='done').concat(body.state==='wip'||body.state==='done' ? [body.state] : []); } return { ok:true }; }
   m=path.match(/^\/testers\/(\w+)$/); if(m){ const t=DD.testers.find(x=>x.id===body.id); if(m[1]==='rename') t.nick=body.to; if(m[1]==='ban') t.ban=body.on; if(m[1]==='delete') DD.testers.splice(DD.testers.indexOf(t),1); return { ok:true, nick:t && t.nick }; }
   throw new Error('demo: '+path);
 }

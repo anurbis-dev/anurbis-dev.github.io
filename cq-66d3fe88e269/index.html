@@ -249,7 +249,7 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 #levels.list .lva canvas{ width:40px; height:40px; display:block; -webkit-user-drag:none; pointer-events:none; }
 #levels.list .lvp{ position:relative; flex:0 0 108px; width:108px; height:72px; max-width:108px; min-width:72px; border-radius:6px; overflow:hidden; align-self:center;
   background:rgba(255,255,255,.12); }
-#levels.list .lvp canvas{ width:100%; height:100%; display:block; object-fit:cover; -webkit-user-drag:none; }
+#levels.list .lvp canvas{ width:100%; height:100%; display:block; object-fit:cover; -webkit-user-drag:none; pointer-events:none; }
 #levels.list .lv:not(.done) .lvp canvas{ display:none; }
 #levels.list .lvw{ position:absolute; top:3px; right:3px; z-index:1; margin:0; pointer-events:none;
   font-size:15px; line-height:1; font-style:normal; text-shadow:0 1px 2px rgba(24,10,48,.7); }
@@ -1093,7 +1093,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.23';
+const VERSION = '2.16.24';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -11935,6 +11935,7 @@ function surface(x,z,ref){
   if(o) return o.t + obOn(k,o.t);                                    // a low object up there (def.otop, a boulder that came to rest on the block)
   const wt=water[k] && ref>=wlk(k)-.3;                                // hanging / overlay water is a slab at wl, land under it is separate
   const sl=!wt && slopes[k]; if(sl && !sl.bridge) return sl.b+sl.r/2;
+  if(deep[k] && !floats()) return null;                                // no bed: a cube that sinks falls through, lip and shore included — the same hole as a pit
   let t=wt ? wlk(k) : th(x,z); const pc=pieceCellAt(x,z,.45,ref);    // a crate or a pushed object sunk in the water still stands on it (below)
   if(pc) t = t===null ? pc.top : Math.max(t,pc.top);
   if(t===null) return null;
@@ -12092,7 +12093,7 @@ function colInfo(x,z,L,ref){
   const sb=slopes[k];                                               // a bridge: its deck for a leap that reaches it, else the ground under it (the deck is a ceiling there)
   if(sb && sb.bridge){ const s=surface(x,z,ref); if(ref!==undefined && ref>=sb.lo-.5) return { top:s }; if(L!==undefined && ovhBlocks(x,z,L)) return { top:Infinity }; return { top:s===null?-Infinity:s }; }
   const s=surface(x,z,ref);
-  if(o && s!==o.t && (L!==undefined && ovhBlocks(x,z,L) || s!==null && s>o.b-1+.01)) return { top:Infinity };   // standing there would put the cube into the roof (a plug under a tunnel's rock)
+  if(o && s!==o.t && !(s>o.t+.01) && (L!==undefined && ovhBlocks(x,z,L) || s!==null && s>o.b-1+.01)) return { top:Infinity };   // inside the roof — a plug under a tunnel's rock. Above the slab (a bush, a crate on it) is a landing, not a wall
   return { top:s===null?-Infinity:s };
 }
 const roofFits=(k,y)=>{ const b=brk[k]; return !!(b && b.roof && !b.broken && y!=null && y+1<=b.top+.02); };   // a crate that fits under the boards is not stopped by the niche
@@ -18978,7 +18979,9 @@ function doLeap(dx,dz){
     dist=d; land=c; tops[d]=c.top; if(c.top>-Infinity) solid=[d,c];
     const ar=slopes[K(x,z)], arc=!!(ar && !ar.bridge && ar.seg && ar.seg.arc && !ovhOn(K(x,z),L+climb)); slOv[d]=ar && !ar.bridge && !ovhOn(K(x,z),L+climb) ? ar : null; peaks[d]=slOv[d] ? Math.max(ar.b,ar.b+ar.r) : c.top; obIn[d]=!arc && !!lowOb(K(x,z));
     if(geyCell(x,z)) break;                                            // a playing geyser on the way: the leap comes down into its column (geyCatch)
-    if(c.top>L+STEPUP && !(d<maxD && (big || obRoll(obst[K(x,z)])) && lowOb(K(x,z))) && !(d<maxD && arc && peaks[d]<=L+climb+.01)) break;   // fly over a bush (and a rock — when charged), over a curved ramp the jump clears
+    const ob=obst[K(x,z)], hop=d<maxD && (big || obRoll(ob)) && lowOb(K(x,z));   // fly over a bush (and a rock — when charged)
+    const row=hop && !big && obRoll(ob) && obRoll(obst[K(x+dx,z+dz)]);   // the next cell is the same kind of rolloff: come down on this one and tumble across, don't arc over the row
+    if(c.top>L+STEPUP && !(hop && !row) && !(d<maxD && arc && peaks[d]<=L+climb+.01)) break;   // over a curved ramp the jump clears
   }
   if(stick) return leapStick(dx,dz,stick[0],stick[1]);
   if(!dist){ leapUsed=false; P.bClimb=bc; SND.bump(); { const bx=P.x+dx, bz=P.z+dz, bk=K(bx,bz); if((obBase(bk,bx,bz)??Infinity)<=L+climb+.01) shakeObst(bk,dx,dz); } startAirBump(dx,dz); return; }   // blocked leap: the same ground bump pose, plus a plant sways if the jump reaches its foot (not one on top of a high wall)
@@ -19373,7 +19376,7 @@ function afterLand(dx,dz,mode){ const brake=mode==='brake'; if(brake) mode='soft
       P.pos.set(P.x,wlk(k)+FLOAT_Y,P.z); root.position.copy(P.pos);
       return settle(k,false);
     }
-    if(deep[k]){ if(plunge) waterColumn(P.x,P.z,1.1); return drown(); }   // bottomless water — sinks
+    if(deep[k]){ if(plunge) waterColumn(P.x,P.z,1.1); splash(P.x,P.z,1.2); moodHide(); return fallDeath(); }   // bottomless — a pit, not a stop on the skin
     if(!P.under){ SND.splash(plunge?1+air*.25:.55); splash(P.x,P.z,1); if(plunge) waterColumn(P.x,P.z,.9); } else SND.land(false,'water');   // lake with a bottom: concrete and rubber walk on the bottom
     P.under=true; if(P.mud>0) P.mud=0;
     if(!whang[k] && t!==null && t<wlk(k)-.01) return waterSink(t,()=>afterLand(null,null,'soft'));   // deep water: down to the bed
@@ -19901,6 +19904,7 @@ function motionNow(){
 /* The fall to the death plane and past it is one motion: the speed, path and spin the cube had (MV), gravity g up to VMAX,
    above the islands' bottom a column in the way stops the drift; below BOT a tumble eases in (a spinning cube keeps its spin) */
 function fallDeath(v0){
+  moodHide();                                                          // an idle mark would sit on the lip and read as a stop
   { const w=wpFall(root.position.y-HALF,null); if(w) return wpDropInto(w,v0); }   // a floating hatch or pad over the void takes the cube in
   const m=motionNow();
   state='fall'; queue=[]; holdDir=null; chargeV=0; P.on=null; P.wall=null; P.ceil=false; P.float=false; P.fly=false; P.st=null; P.void=true; SND.death('void',P.mat);
@@ -23040,11 +23044,11 @@ document.addEventListener('pointerdown',()=>{ aEat=cEat=false; },true);
    the main thread busy — "the first tap doesn't go through, the second does". A finger that goes down and up on the same spot (under
    TAP_MOVE px; a drag captures the pointer elsewhere and isn't a tap) clicks its target at once, and the browser's own click that may
    follow is swallowed (tapEat: until the next pointerdown, at most TAP_EAT ms). Mouse and keyboard click as usual; sliders are left
-   alone; the game's canvas keeps its own gestures. A target hidden or made inert meanwhile gets no click.
+   alone; the game's canvas keeps its own gestures (a canvas inside a button does not — a list thumbnail is one, and its tap must open the card). A target hidden or made inert meanwhile gets no click.
    The section icons slide out of the menu button: a tap where an icon is heading (its layout box, without the slide's transform) is that
    icon's, not a tap outside that would close the menu (miAt) */
 const TAP_MOVE=10, TAP_EAT=800; let tapD=null, tapEat=0;
-const tapOn=t=>t && t.closest && !t.closest('input,label,canvas') && (t.closest('#menu') || t.closest('button'));
+const tapOn=t=>t && t.closest && !t.closest('input,label') && !(t.closest('canvas') && !t.closest('button')) && (t.closest('#menu') || t.closest('button'));
 document.addEventListener('pointerdown',e=>{ tapEat=0; const t=e.target;
   tapD=e.pointerType!=='mouse' && e.isPrimary && tapOn(t) ? { id:e.pointerId, x:e.clientX, y:e.clientY, t, m:!!t.closest('#menu') } : null; },true);
 document.addEventListener('pointercancel',()=>{ tapD=null; },true);
@@ -28457,12 +28461,14 @@ function warmDraw(){
   scene.traverse(o=>{ if(!o.visible && !o.isLight){ o.visible=true; shown.push(o); } if(o.frustumCulled){ o.frustumCulled=false; cull.push(o); } });
   scene.traverseVisible(o=>{ if(o.isLight && !lit.has(o)){ o.visible=false; dark.push(o); } });   // a light under a shown group stays off: the light count keys the programs
   const su=softUntil, sw=seeOWarm();                                  // the see-through copies get their programs now, not at the first cut
+  const seeK0=SEE.seeK.value.x; let seeWarm=false;
   const rp=root.position, rx=rp.x, ry=rp.y, rz=rp.z, u=reactMat.uniforms, lk=u.lk.value, sk=u.sk.value;
   cam.updateMatrixWorld(); rp.copy(new V3(0,0,-4).applyMatrix4(cam.matrixWorld)); root.updateMatrixWorld(true);
   u.lk.value=u.sk.value=1;                                            // reactMesh otherwise discards every fragment — the driver would finish the program on the first life/star
   const starRest=starLitWarm(), pass=()=>{ renderer.compile(scene,cam); renderer.shadowMap.needsUpdate=true; renderer.render(scene,cam); };
-  try{ pass(); cubeSkinWarm(pass); softUntil=time+1; softPass(true); }
-  finally{ u.lk.value=lk; u.sk.value=sk; starRest(); rp.set(rx,ry,rz);
+  try{ if(W>0 && D>0){ seeTex(); SEE.seeK.value.x=1; if(SEE.seeG.value.z<.5) SEE.seeG.value.z=1; seeWarm=true; }   // mask sample + discard, once behind the curtain — not on the first wall that dissolves in play
+    pass(); cubeSkinWarm(pass); softUntil=time+1; softPass(true); }
+  finally{ u.lk.value=lk; u.sk.value=sk; starRest(); rp.set(rx,ry,rz); if(seeWarm) SEE.seeK.value.x=seeK0;
     softUntil=su; for(const o of shown) o.visible=false; for(const o of cull) o.frustumCulled=true; for(const o of dark) o.visible=true; seeOWarm(sw); }
 }
 async function warm(){
@@ -29455,6 +29461,7 @@ function frameLift(dur){
   const ch=card.offsetHeight+24, top=64, avail=Math.max(160,innerHeight-ch-top);
   const r=Math.max(P.rad+1.2,(P.top-P.bot)*.62), z=Math.min(ZMAX,VIEW*avail/(innerHeight*r*1.25),VIEW*innerWidth/(innerHeight*r*1.25));
   const u=2*VIEW/z/innerHeight, tg=new V3(P.c.x,F.h+(P.bot+P.top)/2+.6,P.c.z).addScaledVector(screenUp(),-(ch-top)/2*u);
+  F.fitZ=z;                                                            // the zoom that fits this island: pulling back only to here must not drop it
   flyTo(tg,z,dur);
 }
 function unlift(){ if(!LIFTED) return; LIFTED.dir=-1; LIFTED=null; hideCard(); SND.mapDrop();
@@ -29706,7 +29713,7 @@ let last=0, AMB=-1;
 function mapFrame(now){
   const dt=Math.min(.05,last?(now-last)/1000:0), t=now/1000; last=now;
   tlStep(dt); camUpdate(dt);
-  if(LIFTED&&!C.fly&&LIFTED.t>=1&&C.zoom<=LIFTED.P.A.z*1.05){ BACK=null; unlift(); }   // zoomed out to the area's distance: the piece goes back by itself
+  if(LIFTED&&!C.fly&&LIFTED.t>=1&&LIFTED.fitZ&&C.zoom<=LIFTED.fitZ*.92&&C.zoom<=LIFTED.P.A.z*1.05){ BACK=null; unlift(); }   // the player zoomed out to the area: the piece goes back. The fit on lift is not that zoom
   liftStep(dt); riseStep(dt); waveStep(dt); hoverPick();
   DIM.v+=((LIFTED&&LIFTED.dir>0||LORE?1:0)-DIM.v)*Math.min(1,dt*4);
   for(const [m,c] of DIMS) m.color.set(c).multiplyScalar(1-.74*DIM.v);
