@@ -1093,7 +1093,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.26';
+const VERSION = '2.16.27';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -22335,10 +22335,11 @@ function seeWalls(){
 }
 const seeIn=()=>camSee && (!!T.cave || seeWalls()>=seeN);
 function seeMask(){                                                   // the cells to dissolve: hit by the cube's rays to the camera, joined through high cells in front
+  if(!SEE_RAY) seeTex();
   const c=root.position, hx=-Math.sin(az), hz=-Math.cos(az), ce=Math.cos(el), dx=ce*Math.sin(az), dy=Math.sin(el), dz=ce*Math.cos(az), lo=P.l+.5;
   const tall=(x,z)=>{ const h=th(x,z); return h!==null && h>=lo || ovhsOf(K(x,z)).some(o=>o.t>=lo); };
   const front=(x,z)=>{ const wx=x-c.x, wz=z-c.z, al=wx*hx+wz*hz; return al<-.3 && Math.abs(wx*hz-wz*hx)<=seeR; };
-  const M=new Uint8Array(W*D), q=[];
+  const M=SEE_RAY, q=[]; M.fill(0);
   const n=P.wall;
   for(const [ox,oy,oz] of CAM_PTS){ if(n && ox*n[0]+oz*n[1]<0 || P.ceil && oy>0) continue;   // the face pressed to a wall / ceiling (as camHide)
    for(let t=.3;t<80;t+=.15){ const x=c.x+ox+dx*t, y=c.y+oy+dy*t, z=c.z+oz+dz*t; if(y>camTop) break;
@@ -22349,9 +22350,11 @@ function seeMask(){                                                   // the cel
       if(!M[i] && tall(nx,nz) && front(nx,nz)){ M[i]=255; q.push(nx,nz); } } }
   SEE_MT.set(M); seeAct=true;
 }
+let SEE_RAY=null;                                                   // seeMask's scratch: one buffer for the level, not a fresh array every time the cut turns on
 function seeTex(){                                                    // the mask texture, the level's size
-  const tx=SEE.seeM.value; if(tx && tx.image.width===W && tx.image.height===D) return; if(tx) tx.dispose();
-  SEE_MK=new Uint8Array(W*D); SEE_MT=new Uint8Array(W*D); const t=new THREE.DataTexture(SEE_MK,W,D,THREE.LuminanceFormat); t.unpackAlignment=1; SEE.seeM.value=t; SEE.seeG.value.set(W,D,1,0);
+  const tx=SEE.seeM.value; if(!(tx && tx.image.width===W && tx.image.height===D)){ if(tx) tx.dispose();
+    SEE_MK=new Uint8Array(W*D); SEE_MT=new Uint8Array(W*D); const t=new THREE.DataTexture(SEE_MK,W,D,THREE.LuminanceFormat); t.unpackAlignment=1; SEE.seeM.value=t; SEE.seeG.value.set(W,D,1,0); }
+  if(!SEE_RAY || SEE_RAY.length!==W*D) SEE_RAY=new Uint8Array(W*D);
 }
 function seeFade(){                                                   // every cell toward its target; seeK.x — the strongest shown (0 — nothing cut)
   if(!seeAct) return; const up=Math.ceil(SEE_IN*dt*255), dn=Math.ceil(SEE_OUT*dt*255); let ch=false, mx=0, act=false;
@@ -22383,9 +22386,19 @@ function seeOEach(f){ for(const k in obst) f(obst[k].mesh); propsList.forEach(p=
 function seeOWarm(back){                                              // warmDraw: every root wears its ready copies for the compile and the draw, then its own again
   if(back){ for(const [o,a] of back) o.material=a; return; }
   const r=[], seen=new Set();
-  seeOEach(m=>{ if(!m || !m.parent || seen.has(m)) return; seen.add(m); seeOPrep(m);
+  seeOEach(m=>{ if(!m || !m.parent || seen.has(m)) return; seen.add(m); seeOPrep(m); SEE_BOX.setFromObject(m);   // the first cut's bounds, while the curtain is up
     m.traverse(o=>{ const d=o.userData; if(o.isMesh && d.seeOC && o.material===d.seeOA){ r.push([o,d.seeOA]); o.material=d.seeOC; } }); });
   return r;
+}
+/* The curtain draw has to take the discard, not only compile it: a mask of zeros never discards, and the first real cut then stalls the frame.
+   Arms a full cut (mask, the floor line, every object's seeO) and returns the restore — the level must not be left dissolved. */
+function seeWarmArm(){
+  if(!(W>0 && D>0)) return null;
+  seeTex();
+  const tx=SEE.seeM.value, mk=SEE_MK.slice(), k0=SEE.seeK.value.x, p=SEE.seeP.value.clone(), prev=[];
+  seeOEach(m=>{ const u=m && SEE_PRE.get(m); if(!u) return; prev.push(u, u.value); u.value=1; });
+  SEE_MK.fill(255); tx.needsUpdate=true; SEE.seeK.value.x=1; if(SEE.seeG.value.z<.5) SEE.seeG.value.z=1; SEE.seeP.value.set(0,-20,0);
+  return ()=>{ SEE_MK.set(mk); tx.needsUpdate=true; SEE.seeK.value.x=k0; SEE.seeP.value.copy(p); for(let i=0;i<prev.length;i+=2) prev[i].value=prev[i+1]; };
 }
 function seeObjOff(m,e){
   if(e.ms) for(const o of e.ms) if(o.material===o.userData.seeOC) o.material=o.userData.seeOA;   // the copies stay on the mesh for the next cut
@@ -28463,15 +28476,15 @@ function warmDraw(){
   scene.traverse(o=>{ if(!o.visible && !o.isLight){ o.visible=true; shown.push(o); } if(o.frustumCulled){ o.frustumCulled=false; cull.push(o); } });
   scene.traverseVisible(o=>{ if(o.isLight && !lit.has(o)){ o.visible=false; dark.push(o); } });   // a light under a shown group stays off: the light count keys the programs
   const su=softUntil, sw=seeOWarm();                                  // the see-through copies get their programs now, not at the first cut
-  const seeK0=SEE.seeK.value.x; let seeWarm=false;
+  const seeBack=seeWarmArm();                                         // a real discard (full mask, seeO), restored before the curtain opens
   const rp=root.position, rx=rp.x, ry=rp.y, rz=rp.z, u=reactMat.uniforms, lk=u.lk.value, sk=u.sk.value;
   cam.updateMatrixWorld(); rp.copy(new V3(0,0,-4).applyMatrix4(cam.matrixWorld)); root.updateMatrixWorld(true);
   u.lk.value=u.sk.value=1;                                            // reactMesh otherwise discards every fragment — the driver would finish the program on the first life/star
   const starRest=starLitWarm(), pass=()=>{ renderer.compile(scene,cam); renderer.shadowMap.needsUpdate=true; renderer.render(scene,cam); };
-  try{ if(W>0 && D>0){ seeTex(); SEE.seeK.value.x=1; if(SEE.seeG.value.z<.5) SEE.seeG.value.z=1; seeWarm=true; }   // mask sample + discard, once behind the curtain — not on the first wall that dissolves in play
-    pass(); cubeSkinWarm(pass); softUntil=time+1; softPass(true); }
-  finally{ u.lk.value=lk; u.sk.value=sk; starRest(); rp.set(rx,ry,rz); if(seeWarm) SEE.seeK.value.x=seeK0;
-    softUntil=su; for(const o of shown) o.visible=false; for(const o of cull) o.frustumCulled=true; for(const o of dark) o.visible=true; seeOWarm(sw); }
+  try{ pass(); cubeSkinWarm(pass); softUntil=time+1; softPass(true); }
+  finally{ u.lk.value=lk; u.sk.value=sk; starRest(); rp.set(rx,ry,rz); if(seeBack) seeBack();
+    softUntil=su; for(const o of shown) o.visible=false; for(const o of cull) o.frustumCulled=true; for(const o of dark) o.visible=true; seeOWarm(sw);
+    if(seeBack && !glLost){ renderer.shadowMap.needsUpdate=true; renderer.render(scene,cam); } }   // the discarded frame must not be the one the curtain opens on
 }
 async function warm(){
   try{ if(!glLost) warmDraw(); }catch(e){ console.error(e); }       // dummy stars, cube skins, USE_MAP and reactMesh (drawn, not discarded) compile here
