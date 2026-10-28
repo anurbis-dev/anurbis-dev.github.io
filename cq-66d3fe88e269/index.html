@@ -1093,7 +1093,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.25';
+const VERSION = '2.16.26';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -18236,7 +18236,7 @@ function shakeObst(k,dx,dz){
   if(o && o.beast) return beastBump(o.beast);       // a beast starts
   if(!o||!o.mesh||!SHAKY.includes(o.type)) return;
   dropLoot(k); hushCricket(k); if(o.type==='T') flushTree(k);
-  const m=o.mesh, [x,z]=k.split(',').map(Number), h=terr[z][x], hg=m.userData.h||.8;
+  const m=o.mesh, [x,z]=k.split(',').map(Number), hg=m.userData.h||.8, h=obBase(k,x,z)??m.position.y;   // a bush on a slab has no terrain cell: terr would put the leaves at NaN
   const q0=m.userData.q0||(m.userData.q0=m.quaternion.clone());
   const ax1=new V3(dz,0,-dx), ax2=new V3(dx,0,dz), side=(Math.random()-.5)*.9, A=.07+.12/Math.sqrt(hg), w=8.5/Math.sqrt(hg+.3), dec=2.6/(.5+hg*.4);
   const dur=Math.min(4,.6+hg*.8), qa=new Q(), qb=new Q(); m.userData.shakeId=(m.userData.shakeId||0)+1; const id=m.userData.shakeId;
@@ -18304,7 +18304,7 @@ function bushOff(k,dx,dz){
    a star or a life flies to it in an arc and is counted; stone corners (g) settle on the cube. Lives can go above three */
 function dropLoot(k){
   const o=obst[k], lk=o && o.lk || k, L=loot[lk]; if(!L || L.done) return; L.done=true;   // a pushed object carries its loot (keyed by its first cell, lk)
-  const [x,z]=k.split(',').map(Number), y0=(th(x,z)??0)+(o && o.mesh ? clamp((o.mesh.userData.h||.6)*.8,.4,2.4) : .5);
+  const [x,z]=k.split(',').map(Number), base=obBase(k,x,z)??(o&&o.mesh?o.mesh.position.y:0), y0=base+(o && o.mesh ? clamp((o.mesh.userData.h||.6)*.8,.4,2.4) : .5);
   flyLoot(L.kind, lk, x, y0, z);
 }
 function flyLoot(kind, id, x, y0, z){
