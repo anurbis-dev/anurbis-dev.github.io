@@ -1093,7 +1093,7 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.24';
+const VERSION = '2.16.25';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -11935,7 +11935,6 @@ function surface(x,z,ref){
   if(o) return o.t + obOn(k,o.t);                                    // a low object up there (def.otop, a boulder that came to rest on the block)
   const wt=water[k] && ref>=wlk(k)-.3;                                // hanging / overlay water is a slab at wl, land under it is separate
   const sl=!wt && slopes[k]; if(sl && !sl.bridge) return sl.b+sl.r/2;
-  if(deep[k] && !floats()) return null;                                // no bed: a cube that sinks falls through, lip and shore included — the same hole as a pit
   let t=wt ? wlk(k) : th(x,z); const pc=pieceCellAt(x,z,.45,ref);    // a crate or a pushed object sunk in the water still stands on it (below)
   if(pc) t = t===null ? pc.top : Math.max(t,pc.top);
   if(t===null) return null;
@@ -18426,7 +18425,8 @@ function tryRoll(dx,dz,src,m){
     if(!movShove(cr,dx,dz)){ if(cr.ob) shakeObst(k,dx,dz); return bump(dx,dz); }   // an object that can't go — sways as before
     SND.push();
   } else {
-    const top=surface(nx,nz);
+    const bedLip=P.under && !floats() && !!deep[k];                    // the bed ends: bottomless water ahead is a lip, the same one as a pit
+    const top=bedLip ? null : surface(nx,nz);
     if(top!==null){
       const eB=edgeH(nx,nz,[-dx,-dz]);
       if(eB>eA+STEPUP){
@@ -19284,6 +19284,7 @@ function arcFly(E){
 /* ---------- Landings, sliding ---------- */
 function onArrive(x,z,dx,dz,mode,eFrom){
   P.x=x; P.z=z;
+  if(P.under && deep[K(x,z)] && !floats()) return drown();             // a confirmed step off the bed into bottomless water: sink from this pose, don't climb onto the skin
   if(P.mat==='paper' && eFrom!=null){ const w=windAt(x,z,eFrom), s=w && surface(x,z,eFrom); if(w && (s===null || s<eFrom-STEPUP)){ P.l=eFrom; return windRide(w); } }
   const br=slopes[K(x,z)] && slopes[K(x,z)].bridge && eFrom!=null ? eFrom : undefined;   // onto a deck cell: seen from the edge it was entered by (a steep deck is above the old level)
   const top=surface(x,z,br);
@@ -19376,7 +19377,7 @@ function afterLand(dx,dz,mode){ const brake=mode==='brake'; if(brake) mode='soft
       P.pos.set(P.x,wlk(k)+FLOAT_Y,P.z); root.position.copy(P.pos);
       return settle(k,false);
     }
-    if(deep[k]){ if(plunge) waterColumn(P.x,P.z,1.1); splash(P.x,P.z,1.2); moodHide(); return fallDeath(); }   // bottomless — a pit, not a stop on the skin
+    if(deep[k]){ if(plunge) waterColumn(P.x,P.z,1.1); return drown(); }   // no bed: the old sink. The emotion mark is put out inside drown, so the stop at the end of it doesn't read as a pause
     if(!P.under){ SND.splash(plunge?1+air*.25:.55); splash(P.x,P.z,1); if(plunge) waterColumn(P.x,P.z,.9); } else SND.land(false,'water');   // lake with a bottom: concrete and rubber walk on the bottom
     P.under=true; if(P.mud>0) P.mud=0;
     if(!whang[k] && t!==null && t<wlk(k)-.01) return waterSink(t,()=>afterLand(null,null,'soft'));   // deep water: down to the bed
@@ -19936,6 +19937,7 @@ function crash(){
   after(.9, respawn);
 }
 function drown(){
+  moodHide();                                                          // an idle mark would sit still and show that the sink has stopped
   dead(); SND.death(P.mat==='paper'?'soak':'sink',P.mat);
   splash(P.x,P.z,1.4);
   if(P.mat==='paper'){ toast(loc('Soaked'),loc('Paper doesn\'t float for long')); paperApart(); return after(1.1, respawn); }
