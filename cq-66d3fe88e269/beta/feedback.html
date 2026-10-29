@@ -88,26 +88,23 @@ a{color:var(--gold)}
 button.st:hover{background:var(--card)}
 button.st[aria-pressed=true]{background:var(--card);box-shadow:inset 0 -2px 0 var(--gold)}
 
-/* Toolbar */
+/* Toolbar: one row. Search takes the space up to the next control; charts, grouping and the filter sit on the right. Chips wrap under the row. */
 .flt{flex:none;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:7px max(12px,env(safe-area-inset-right,0px)) 7px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--bg2)}
-/* One row: search, grouping, filter. Charts sit at the end. Chips wrap under the row. */
 .f1{flex:1 1 100%;min-width:0;display:flex;gap:6px;flex-wrap:nowrap;align-items:center}
-.f2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.f1 .sel{flex:0 1 132px;min-width:0;width:132px;max-width:132px}
-.f1 .sp{flex:1}
+.fr{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none}
+.f1 .sel{flex:none;width:132px;max-width:132px}
 .fdrop{position:relative;flex:none;z-index:30}
 .fdrop>.ib{background:transparent;border-color:transparent;color:var(--dim2)}
 .fdrop>.ib:hover{background:var(--card);color:var(--txt)}
 .fdrop>.ib[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
 .fdrop>.ib[aria-pressed=true]:hover{background:var(--gold);color:var(--gold-ink)}
-.fpop{position:absolute;left:0;top:calc(100% + 4px);z-index:40;width:min(260px,78vw);max-height:min(360px,calc(100dvh - 180px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
-@container app (max-width:640px){ .fpop{left:auto;right:0} }
+.fpop{position:absolute;right:0;top:calc(100% + 4px);z-index:40;width:min(260px,78vw);max-height:min(360px,calc(100dvh - 180px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
 .fsec+.fsec{border-top:1px solid var(--line2);margin-top:4px;padding-top:4px}
 .fsec h5{margin:4px 8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800}
 .fpop button{display:block;width:100%;border:0;background:none;border-radius:8px;padding:6px 8px;text-align:left;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fpop button:hover{background:var(--card2)}
 .fpop button[aria-pressed=true]{background:var(--gold);color:var(--gold-ink)}
-.srch{flex:1 1 140px;min-width:0;max-width:480px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:13px}
+.srch{flex:1 1 auto;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:13px}
 .sel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:4px 6px;font-size:12.5px;max-width:160px}
 .chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center;width:100%}
 .chips:empty{display:none}
@@ -136,6 +133,9 @@ body.spl-on{cursor:col-resize;user-select:none}
 .fold{border-bottom:1px solid var(--line);background:#170f2d}
 .fold.in{animation:fold .35s var(--ease)}
 .fold.out{animation:fold .25s var(--ease) reverse forwards}
+/* Narrow layout: the chart cards stay one row and slide sideways, instead of stacking down the list */
+.fold .ana{display:flex;flex-wrap:nowrap;align-items:flex-start;overflow-x:auto;scroll-snap-type:x proximity}
+.fold .ana>.card{flex:0 0 min(320px,86cqw);scroll-snap-align:start}
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;min-width:0}
 .card h3{margin:0;font:600 14px var(--f-disp);display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap}
 .card h3 small{font:700 11.5px var(--f-body);color:var(--dim)}
@@ -744,7 +744,7 @@ const S={ wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }
   F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
   toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, ff:false, A:new Set(),
-  lsort:'ord', lq:'', ltag:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, etag:'', pstuck:'', ptag:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, saving:false, tagAdd:'', rshot:{}, rvoice:{}, rec:false, rdrop:false };
+  lsort:'ord', lq:'', ltag:'', lkind:'', lst:'', lwho:'', lcause:'', lsel:null, esort:'new', eq:'', est:'', edev:'', esel:null, etag:'', pstuck:'', ptag:'', pcls:'', pst:'', pnick:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, saving:false, tagAdd:'', rshot:{}, rvoice:{}, rec:false, rdrop:false };
 const anim=(...a)=>a.forEach(x=>S.A.add(x));
 const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab:['rep','pl','lv','err'] };   // swipeable tab sets: S[key] holds the current one
 const slide=k=>S.A.has('sl:'+k+':l') ? ' sl-l' : S.A.has('sl:'+k+':r') ? ' sl-r' : '';   // entrance animations for the next render only
@@ -779,18 +779,57 @@ function tagSuggest(){ const inp=$('tagIn'); if(!inp) return; const q=inp.value.
 function tagEdit(kind,id){ const a=tagsOf(kind,id), on=S.tagAdd===kind+':'+id;
   return `<div class="tgs"><span class="tlbl">Теги</span>${a.map(t=>`<span class="chip"><span>${esc(t)}</span><button data-act="untag" data-k="${kind}" data-id="${esc(id)}" data-t="${esc(t)}" aria-label="Убрать тег">×</button></span>`).join('')}${on ? `<input class="tgin" id="tagIn" data-k="${kind}" data-id="${esc(String(id))}" placeholder="тег и Enter" maxlength="24">` : `<button class="chip add" data-act="tagadd" data-k="${kind}" data-id="${esc(String(id))}">+ тег</button>`}</div>`; }
 const FILT=`<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M3.2 4.2h13.6L11.2 10v5.2l-2.4-1.1V10L3.2 4.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-function fPop(){
-  const F=S.F, opt=(act,v,label,on)=>`<button data-act="${act}" data-v="${esc(v)}" aria-pressed="${on}">${label}</button>`;
-  const sec=(t,html)=>html ? `<div class="fsec"><h5>${t}</h5>${html}</div>` : '';
-  const kind=[['bug','🐞 Ошибка'],['opinion','💬 Впечатление']].map(([v,t])=>opt('kind',v,t,F.kind===v)).join('');
-  const st=[['open','Открытые'],['wip','В работе'],['done','Выполнено'],['closed','Закрытые']].map(([v,t])=>opt('stf',v,t,F.state===v)).join('');
-  const whos=[...new Set(REPS.map(r=>r.who).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
-  const tags=[...new Set(REPS.flatMap(repTags))].sort((a,b)=>a.localeCompare(b,'ru'));
-  return `<div class="fpop">${sec('Тип',kind)}${sec('Статус',st)}${sec('Игрок',whos.map(w=>opt('fwho',w,esc(w),F.who===w)).join(''))}${sec('Тег',tags.map(t=>`<button data-act="tfil" data-t="${esc(t)}" aria-pressed="${F.tag===t}">${esc(t)}</button>`).join(''))}</div>`;
+const byRu=(a,b)=>String(a).localeCompare(String(b),'ru');
+const tagItems=fn=>[...new Set(fn())].filter(Boolean).sort(byRu).map(t=>[t,t]);
+/* One filter menu for every tab. A section with nothing chosen means “all”; choosing the active item again clears it. Empty sections are left out. */
+function fSecs(){
+  const F=S.F, tab=S.tab;
+  if(tab==='pl'){
+    const cls=Object.keys(CLS).filter(k=>TS.some(t=>t.devs.some(d=>d.u.kind===k)));
+    return [
+      { t:'Тип', k:'pcls', cur:S.pcls, items:cls.map(k=>[k,CLS[k]]) },
+      { t:'Статус', k:'pst', cur:S.pst, items:[['live','Сейчас играют'],['stuck','Застряли'],['ban','Забанены']] },
+      { t:'Игрок', k:'pnick', cur:S.pnick, items:[...new Set(TS.map(t=>t.nick).filter(Boolean))].sort(byRu).map(n=>[n,n]) },
+      { t:'Тег', k:'ptag', cur:S.ptag, items:tagItems(()=>TS.flatMap(plTags)) }]; }
+  if(tab==='lv') return [
+    { t:'Тип', k:'lkind', cur:S.lkind, items:[['bug','🐞 Есть ошибки'],['opinion','💬 Есть впечатления']] },
+    { t:'Статус', k:'lst', cur:S.lst, items:[['stuck','Застряли'],['slow','FPS ниже 35']] },
+    { t:'Игрок', k:'lwho', cur:S.lwho, items:TS.filter(t=>t.lvN || t.cur).map(t=>[t.id,t.nick]).sort((a,b)=>byRu(a[1],b[1])) },
+    { t:'Тег', k:'ltag', cur:S.ltag, items:tagItems(()=>LVM.flatMap(lvTags)) }];
+  if(tab==='err'){
+    const dev=[...new Set((ERR||[]).flatMap(e=>Object.keys(e.devs||{}).filter(k=>(e.devs[k]||0)>0 && CLS[k])))];
+    return [
+      { t:'Тип', k:'edev', cur:S.edev, items:dev.sort(byRu).map(k=>[k,CLS[k]]) },
+      { t:'Статус', k:'est', cur:S.est, items:[['new','В новой версии'],['day','За сутки']] },
+      { t:'Тег', k:'etag', cur:S.etag, items:tagItems(()=>(ERR||[]).flatMap(errTags)) }]; }
+  return [
+    { t:'Тип', k:'kind', cur:F.kind, items:[['bug','🐞 Ошибка'],['opinion','💬 Впечатление']] },
+    { t:'Статус', k:'state', cur:F.state, items:[['open','Открытые'],['wip','В работе'],['done','Выполнено'],['closed','Закрытые']] },
+    { t:'Игрок', k:'who', cur:F.who, items:[...new Set(REPS.map(r=>r.who).filter(Boolean))].sort(byRu).map(w=>[w,w]) },
+    { t:'Тег', k:'tag', cur:F.tag, items:tagItems(()=>REPS.flatMap(repTags)) }];
 }
-function tagBar(kind,cur){ const set=kind==='r' ? new Set(REPS.flatMap(repTags)) : kind==='u' ? new Set(TS.flatMap(plTags)) : kind==='l' ? new Set(LVM.flatMap(lvTags)) : kind==='e' ? new Set((ERR||[]).flatMap(errTags)) : new Set(Object.values(TAGS[kind]||{}).flat());
-  if(!set.size) return '';
-  return `<div class="tbar">${[...set].sort((a,b)=>a.localeCompare(b,'ru')).map(t=>`<button class="chip${cur===t ? ' on' : ''}" data-act="tfil" data-k="${kind}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`; }
+function fSet(k,v){
+  const F=S.F, on=cur=>cur===v ? '' : v;
+  if(k==='kind') F.kind=on(F.kind);
+  else if(k==='state'){ F.state=on(F.state); LSs('cube-fb-state',F.state); }
+  else if(k==='who'){ F.who=on(F.who); F.not.who=F.not.who.filter(x=>x!==v); }
+  else if(k==='tag') F.tag=on(F.tag);
+  else if(k in S) S[k]=on(S[k]);
+}
+function fPop(){
+  const sec=s=>s.items.length ? `<div class="fsec"><h5>${s.t}</h5>${s.items.map(([v,l])=>`<button data-act="fset" data-k="${s.k}" data-v="${esc(v)}" aria-pressed="${s.cur===v}">${esc(l)}</button>`).join('')}</div>` : '';
+  return `<div class="fpop">${fSecs().map(sec).join('')}</div>`;
+}
+function fChips(){
+  return fSecs().filter(s=>s.cur && s.k!=='kind' && s.k!=='state').map(s=>{ const lab=(s.items.find(i=>i[0]===s.cur)||[])[1]||s.cur;
+    return `<span class="chip"><span>${esc(s.t==='Тег' ? '#'+lab : lab)}</span><button data-act="fset" data-k="${s.k}" data-v="${esc(s.cur)}" aria-label="Убрать фильтр">×</button></span>`; }).join('');
+}
+/* Search fills the row; charts (only while they are not the left column), grouping and the filter align to the right. */
+function toolBar(o){
+  const fon=fSecs().some(s=>s.cur), ana=o.charts!==false && mode()!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : '';
+  const sort=o.sort ? `<select class="sel" id="${o.sortId}" aria-label="${o.sortLabel||'Группировать'}">${o.sort.map(([v,t])=>`<option value="${esc(v)}"${o.sortVal===v ? ' selected' : ''}>${t}</option>`).join('')}</select>` : '';
+  return `<div class="flt"><div class="f1"><input class="srch" id="${o.id}" type="search" placeholder="${o.ph}" value="${esc(o.val)}"><span class="fr">${ana}${sort}<span class="fdrop"><button class="ib" data-act="ffilt" aria-pressed="${fon}" aria-expanded="${S.ff}" title="Фильтр" aria-label="Фильтр">${FILT}</button>${S.ff ? fPop() : ''}</span></span></div>${o.chips||''}</div>`;
+}
 const FLAGS={ err:['ошибки консоли',r=>r.errs.length>0], fps:['FPS ниже 35',r=>r.fps && r.fps<35], voice:['с голосом',r=>!!r.m.voice] };
 const match=(r,...sk)=>{ const F=S.F, q=F.q.trim().toLowerCase(), s=k=>sk.includes(k);
   const tg=repTags(r);
@@ -866,8 +905,12 @@ const chipsF=()=>{ const F=S.F, c=[];
   if(F.flag) c.push(['flag','⚑ '+FLAGS[F.flag][0]]); if(F.day!=null) c.push(['day',dayLbl(F.day)]); if(F.tag) c.push(['tag','#'+F.tag]);
   for(const d of ['lv','ver','dev','who']){ if(F[d]) c.push([d,(d==='lv' ? '📍 ' : d==='who' ? '👤 ' : d==='ver' ? 'v' : '')+F[d]]); F.not[d].forEach(k=>c.push([d,'≠ '+(d==='ver' ? 'v' : '')+k,k])); }
   return `<span class="chips">${c.map(([d,t,k])=>`<span class="chip${k!=null ? ' not' : ''}"><span>${esc(t)}</span><button data-act="unf" data-d="${d}"${k!=null ? ` data-k="${esc(k)}"` : ''} aria-label="Убрать фильтр">×</button></span>`).join('')}${c.length>1 ? '<button class="clr" data-act="unall">сбросить всё</button>' : ''}</span>`; };
-const segH=(act,cur,list)=>`<div class="seg sm">${list.map(([v,t])=>`<button data-act="${act}" data-v="${v}" aria-pressed="${cur===v}">${t}</button>`).join('')}</div>`;
-const plMatch=t=>{ const q=S.pq.trim().toLowerCase(), tg=plTags(t); if(S.ptag && !tg.includes(S.ptag)) return false;
+const plStuck=t=>!!(t.n && t.cur && !t.done.has(t.cur) && Date.now()-t.last>STUCK_D*DAY);
+const plMatch=t=>{ const q=S.pq.trim().toLowerCase(), tg=plTags(t);
+  if(S.ptag && !tg.includes(S.ptag)) return false;
+  if(S.pcls && !t.devs.some(d=>d.u.kind===S.pcls)) return false;
+  if(S.pst==='live' && !t.live || S.pst==='ban' && !t.ban || S.pst==='stuck' && !plStuck(t)) return false;
+  if(S.pnick && t.nick!==S.pnick) return false;
   return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...tg,...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
 function plSorted(){ const s=S.psort, day=S.pday==null ? null : DAYS-1-S.pday;
   return TS.filter(t=>plMatch(t) && (day==null || t.ss.some(x=>dayOf(x.s)===day)) && (!S.pstuck || t.cur===S.pstuck && !t.done.has(t.cur) && Date.now()-t.last>STUCK_D*DAY)).sort(s==='time' ? (a,b)=>b.tot-a.tot : s==='lv' ? (a,b)=>b.lvN-a.lvN || b.stars-a.stars : s==='at' ? (a,b)=>b.at-a.at
@@ -992,11 +1035,8 @@ function repView(){
     <button class="st" data-act="quick" data-v="opinion" aria-pressed="${qa('opinion')}"><b style="color:var(--op)" data-n="${oo}">${oo}</b><span>впечатлений</span>${spark(perDay(REPS.filter(r=>r.kind==='opinion'),14,()=>1,r=>r.at),'#8fb8ff')}</button>
     <button class="st" ${fl('err')}><b data-n="${open.filter(FLAGS.err[1]).length}">${open.filter(FLAGS.err[1]).length}</b><span>с ошибками консоли</span><span>открытых</span></button>
     <button class="st" ${fl('fps')}><b data-n="${open.filter(FLAGS.fps[1]).length}">${open.filter(FLAGS.fps[1]).length}</b><span>FPS ниже 35</span><span>открытых</span></button></div>`;
-  const fon=!!(F.kind || F.state || F.who || F.tag);
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень, тег…" value="${esc(F.q)}">
-    <select class="sel" id="grp" aria-label="Группировать">${[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']].map(([v,t])=>`<option value="${v}"${S.G===v ? ' selected' : ''}>${t}</option>`).join('')}</select>
-    <span class="fdrop"><button class="ib" data-act="ffilt" aria-pressed="${fon}" aria-expanded="${S.ff}" title="Фильтр" aria-label="Фильтр">${FILT}</button>${S.ff ? fPop() : ''}</span>
-    ${md!=='w' ? '<span class="sp"></span><button class="ib" data-act="ana" aria-pressed="'+S.ana+'" title="Графики и срез">📊</button>' : ''}</div>${chipsF()}</div>`;
+  const tool=toolBar({ id:'q', val:F.q, ph:'Поиск: текст, игрок, уровень, тег…', sortId:'grp', sortVal:S.G,
+    sort:[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']], chips:chipsF() });
   rowI=0; let list=''; VIS=S.G ? [] : L;
   if(!L.length) list=`<div class="empty">${REPS.length ? 'Ничего не найдено' : loadAt ? 'Отзывов пока нет' : failed ? '<span class="err">Не удалось загрузить: '+esc(failed)+'</span>' : 'Загрузка…'}</div>`;
   else if(!S.G) list=L.map(row).join('');
@@ -1017,9 +1057,9 @@ function plView(){
     <div class="st"><b>${hmS(N.ms)}</b><span>наиграно</span>${spark(perDay(N.ss,14,s=>(s.e-s.s)/MIN,s=>s.s),'#ffd66b')}</div>
     <div class="st"><b data-n="${N.n}">${N.n}</b><span>${nf(N.n,'сессия','сессии','сессий')}</span><span>ср. ${hm(N.avg)}</span></div>
     <div class="st"><b data-n="${N.devs}">${N.devs}</b><span>устройств</span><span>${N.cc} ${nf(N.cc,'страна','страны','стран')}</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="pq" type="search" placeholder="Ник, устройство, страна, тег…" value="${esc(S.pq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div><div class="f2">${segH('psort',S.psort,[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']])}
-</div>
-    ${tagBar('u',S.ptag)}<span class="chips">${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}${S.ptag ? `<span class="chip"><span>#${esc(S.ptag)}</span><button data-act="tfil" data-k="u" data-t="${esc(S.ptag)}" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
+  const tool=toolBar({ id:'pq', val:S.pq, ph:'Ник, устройство, страна, тег…', sortId:'psort', sortLabel:'Сортировка', sortVal:S.psort,
+    sort:[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']],
+    chips:`<span class="chips">${fChips()}${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}</span>` });
   rowI=0;
   const rows=L.map(t=>{ const rp=REPS.filter(r=>r.tester===t.id);
     return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.pl===t ? ' on' : ''}${t.ban ? ' ban' : ''}" data-act="pl" data-id="${esc(t.id)}" data-lp="pl">
@@ -1076,20 +1116,20 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
   <h5>Список</h5><ul><li><b>Тап</b> по строке — карточка отзыва или игрока.</li><li><b>Свайп строки вправо</b> — закрыть отзыв (или открыть снова).</li>
     <li><b>Свайп влево или долгий тап</b> — меню: ответить, все отзывы игрока или уровня, скрыть уровень, копировать. На компьютере — правая кнопка мыши.</li>
     <li>Список группируется по уровню, дню, версии, игроку, устройству, статусу — выбор рядом с поиском. Заголовок группы сворачивает её, <b>Shift+клик</b> — сворачивает или разворачивает все группы, долгий тап — «только это», «исключить».</li>
-    <li><b>Фильтр</b> справа от поиска: тип, статус, игрок, тег. Повторный выбор снимает пункт. Пока в секции ничего не выбрано, она показывает всё.</li>
+    <li><b>Фильтр</b> справа: тип, статус, игрок, тег — на отзывах, игроках, уровнях и сбоях. Повторный выбор снимает пункт. Пока в секции ничего не выбрано, она показывает всё.</li>
     <li><b>В работе</b> и <b>Выполнено</b> — отметки в меню отзыва (⋯). Фильтр «Открытые» показывает и их.</li></ul>
   <h5>Карточка</h5><ul><li><b>Свайп вбок</b>, ручка сверху или ✕ — закрыть.</li><li><b>Вверх или вниз</b>, когда карточка прокручена до края, — следующая или предыдущая по списку.</li><li>Клавиши <b>↑ ↓</b> (или J, K) — то же на компьютере.</li></ul>
   <h5>Сводка и графики</h5><ul><li>Цифры сводки — быстрые фильтры, повторный тап снимает.</li><li><b>Свайп по сводке</b> — соседняя вкладка: Отзывы, Игроки, Уровни, Сбои.</li>
     <li><b>📊</b> — графики и срез (на широком экране они всегда слева).</li><li>Число в шапке секции — общее количество по этому окну: у графика, у списка и у карточки, не только столбики.</li><li>Столбец дня — показать только этот день, повторный тап снимает.</li>
     <li><b>Срез:</b> тап по строке — только это, долгий тап — исключить (фильтр «≠» снимается крестиком). Клетка «уровень × версия» — оба фильтра сразу.</li>
     <li><b>Свайп по карточке с вкладками</b> — соседняя вкладка.</li></ul>
-  <h5>Уровни и сбои</h5><ul><li>Уровни сгруппированы по локациям — заголовок сворачивает, Shift+клик — все. Карта уровня по тапу — во весь экран.</li><li><b>Уровни</b> — статистика из самой игры: сколько дошли и прошли, гибели и их причины, где гибнут (красное на карте уровня), сколько бросили, FPS, отзывы. Сортировка — над списком.</li>
+  <h5>Уровни и сбои</h5><ul><li>Уровни сгруппированы по локациям — заголовок сворачивает, Shift+клик — все. Карта уровня по тапу — во весь экран.</li><li><b>Уровни</b> — статистика из самой игры: сколько дошли и прошли, гибели и их причины, где гибнут (красное на карте уровня), сколько бросили, FPS, отзывы. Сортировка — в строке поиска, справа.</li>
     <li><b>Застряли</b> — игроки, которые не играют ${STUCK_D}+ дня и стоят на непройденном уровне (на вкладке «Игроки» тап по строке — только они).</li>
     <li><b>Сбои</b> — ошибки, которые игра отправила сама, сгруппированные по тексту: сколько раз, у скольких игроков, в каких версиях и на каких уровнях.</li></ul>
   <h5>Панели</h5><ul><li>Границы между панелями тянутся мышью — ширина запоминается, двойной клик возвращает. Стрелки у края панели — там есть ещё, тап прокручивает.</li>
     <li>Колесо мыши плавно прокручивает панель под курсором; <b>средняя кнопка</b> — тянуть содержимое, как пальцем (отпустил в движении — докатывается).</li></ul>
   <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип. Закрыть, «в работе», «выполнено», GitHub и удаление — в меню ⋯. Карандаш в углу текста включает правку: клик снаружи сохраняет, если текст изменился. К ответу — иконка снимков (несколько или перетаскивание) и голос.</li>
-    <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). У отзывов тег фильтрует из меню фильтра; у игроков, уровней и сбоев — ряд над списком. Поиск тоже ищет по тегам.</li>
+    <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). Тег фильтрует из меню фильтра на каждой вкладке. Поиск тоже ищет по тегам.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
     <li>Кубик в левом верхнем углу — сводка: версия беты, что происходит, и ссылка с ключом для другого человека.</li></ul>
@@ -1135,7 +1175,12 @@ function syncFields(){
   if(ae.id==='q') S.F.q=ae.value; else if(ae.id==='pq') S.pq=ae.value; else if(ae.id==='lq') S.lq=ae.value; else if(ae.id==='eq') S.eq=ae.value;
   else if(ae.id==='repText' && S.sel) S.draft[S.sel.n]=ae.value; else if(ae.id==='editText') S.editText=ae.value;
 }
-function bindGrp(){ const g=$('grp'); if(!g) return; g.onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); }; }
+function bindGrp(){
+  const g=$('grp'); if(g) g.onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); };
+  const p=$('psort'); if(p) p.onchange=e=>{ S.psort=e.target.value; LSs('cube-fb-tpsort',S.psort); anim('list'); render(); };
+  const l=$('lsort'); if(l) l.onchange=e=>{ S.lsort=e.target.value; anim('list'); render(); };
+  const s=$('esort'); if(s) s.onchange=e=>{ S.esort=e.target.value; anim('list'); render(); };
+}
 /* Quiet refresh: swap a region only when its markup changed. A focused field stays the same node, so the caret and an unfinished word survive. */
 /* Markup with the focused control's text and the tag suggestions taken out, so typing itself is not a change */
 function patchNorm(node,hot){
@@ -1431,7 +1476,7 @@ app.addEventListener('click',e=>{
   else if(a==='esort'){ S.esort=el.dataset.v; anim('list'); }
   else if(a==='lcause'){ S.lcause=S.lcause===el.dataset.k ? '' : el.dataset.k; anim('list'); }
   else if(a==='unlcause'){ S.lcause=''; anim('list'); }
-  else if(a==='enew'){ S.enew=!S.enew; anim('list'); }
+  else if(a==='enew'){ S.est=S.est==='new' ? '' : 'new'; anim('list'); }
   else if(a==='pstuck'){ S.pstuck=S.pstuck===el.dataset.k ? '' : el.dataset.k; anim('list'); }
   else if(a==='unpstuck'){ S.pstuck=''; anim('list'); }
   else if(a==='lvrep'){ const l=LVMI[el.dataset.id]; Object.assign(F,{ lv:l.name, state:'', kind:'', flag:'', day:null, who:'', ver:'', dev:'' }); S.sel=null; anim('list'); setTab('rep'); }
@@ -1464,9 +1509,7 @@ app.addEventListener('click',e=>{
   else if(a==='noop'){ toast('В демо не работает'); return; }
   else if(a==='ana'){ toggleAna(); return; }
   else if(a==='ffilt') S.ff=!S.ff;
-  else if(a==='kind'){ F.kind=F.kind===el.dataset.v ? '' : el.dataset.v; anim('list'); }
-  else if(a==='stf'){ const v=el.dataset.v; F.state=F.state===v ? '' : v; LSs('cube-fb-state',F.state); anim('list'); }
-  else if(a==='fwho'){ const v=el.dataset.v; F.who=F.who===v ? '' : v; F.not.who=F.not.who.filter(x=>x!==v); anim('list'); }
+  else if(a==='fset'){ fSet(el.dataset.k,el.dataset.v); anim('list'); }
   else if(a==='quick'){ const v=el.dataset.v; if(F.kind===v && F.state==='open') F.kind=''; else { F.kind=v; F.state='open'; } anim('list'); }
   else if(a==='flag'){ F.flag=F.flag===el.dataset.v ? '' : el.dataset.v; anim('list'); }
   else if(a==='grp' || a==='lgrp'){ const p=a==='grp' ? S.G+':' : 'area:', k=p+el.dataset.k;
@@ -1696,7 +1739,10 @@ function lvModel(){
   if(S.lsel) S.lsel=LVMI[S.lsel.id]||null;
 }
 const LSORT={ ord:(a,b)=>a.gi-b.gi, die:(a,b)=>b.dpp-a.dpp, quit:(a,b)=>b.quitRate-a.quitRate, bug:(a,b)=>b.bugRate-a.bugRate || b.bugs-a.bugs, fps:(a,b)=>(a.fps??999)-(b.fps??999) };
-const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>{ const tg=lvTags(l); return (!S.ltag || tg.includes(S.ltag)) && (!q || l.hay.includes(q) || tagHas(tg,q)) && (!S.lcause || l.t && l.t.causes[S.lcause]); }).sort(LSORT[S.lsort]||LSORT.ord); };
+const lvShown=()=>{ const q=S.lq.trim().toLowerCase(); return LVM.filter(l=>{ const tg=lvTags(l), who=S.lwho && TSI[S.lwho];
+  return (!S.ltag || tg.includes(S.ltag)) && (!q || l.hay.includes(q) || tagHas(tg,q)) && (!S.lcause || l.t && l.t.causes[S.lcause])
+    && (S.lkind!=='bug' || l.bugs) && (S.lkind!=='opinion' || l.ops) && (S.lst!=='stuck' || l.stuck.length) && (S.lst!=='slow' || l.fps!=null && l.fps<35)
+    && (!who || who.done.has(l.id) || who.cur===l.id); }).sort(LSORT[S.lsort]||LSORT.ord); };
 let VISL=[], VISE=[];
 const fpsCol=v=>v==null ? 'inherit' : v<30 ? 'var(--bug)' : v<45 ? 'var(--warn)' : 'var(--ok)';
 function lvRow(l){
@@ -1785,9 +1831,9 @@ function lvView(){
     <div class="st"><b data-n="${dt}">${dt}</b><span>${nf(dt,'гибель','гибели','гибелей')}</span><span>${qt} ${nf(qt,'раз','раза','раз')} бросили</span></div>
     <div class="st"><b data-n="${stuck}" style="color:${stuck ? 'var(--warn)' : 'inherit'}">${stuck}</b><span>застряли</span><span>не играют ${STUCK_D}+ дня</span></div>
     <div class="st"><b data-n="${slow}" style="color:${slow ? 'var(--bug)' : 'inherit'}">${slow}</b><span>${nf(slow,'уровень','уровня','уровней')}</span><span>FPS ниже 35</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="lq" type="search" placeholder="Уровень или тег…" value="${esc(S.lq)}">${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики">📊</button>` : ''}</div>
-    <div class="f2">${segH('lsort',S.lsort,[['ord','По порядку'],['die','Гибели'],['quit','Бросают'],['bug','Ошибки'],['fps','FPS']])}</div>
-    ${tagBar('l',S.ltag)}<span class="chips">${S.lcause ? `<span class="chip"><span>💀 ${esc(dcName(S.lcause))}</span><button data-act="unlcause" aria-label="Убрать фильтр">×</button></span>` : ''}</span></div>`;
+  const tool=toolBar({ id:'lq', val:S.lq, ph:'Уровень или тег…', sortId:'lsort', sortLabel:'Сортировка', sortVal:S.lsort,
+    sort:[['ord','По порядку'],['die','Гибели'],['quit','Бросают'],['bug','Ошибки'],['fps','FPS']],
+    chips:`<span class="chips">${fChips()}${S.lcause ? `<span class="chip"><span>💀 ${esc(dcName(S.lcause))}</span><button data-act="unlcause" aria-label="Убрать фильтр">×</button></span>` : ''}</span>` });
   rowI=0; VISL=[];
   const g=new Map(); for(const l of L){ if(!g.has(l.a)) g.set(l.a,[]); g.get(l.a).push(l); }
   const areas=[...g.keys()].sort((a,b)=>Math.min(...g.get(a).map(l=>l.gi))-Math.min(...g.get(b).map(l=>l.gi)));
@@ -1804,7 +1850,9 @@ function lvView(){
 /* Crashes: errors the game sent by itself, grouped by message */
 const ESORT={ new:(a,b)=>b.last-a.last, n:(a,b)=>b.n-a.n, pl:(a,b)=>b.players-a.players || b.n-a.n };
 const eNewest=()=>{ const v=(ERR||[]).flatMap(e=>e.vers); return v.sort((a,b)=>b.localeCompare(a,undefined,{ numeric:true }))[0]||''; };
-const errShown=()=>{ const q=S.eq.trim().toLowerCase(), nv=eNewest(); return (ERR||[]).filter(e=>{ const tg=errTags(e); return (!q || (e.m+' '+e.s).toLowerCase().includes(q) || tagHas(tg,q) || Object.keys(e.lv||{}).some(id=>((LVMI[id]||{}).name||id).toLowerCase().includes(q))) && (!S.etag || tg.includes(S.etag)) && (!S.enew || e.vers.includes(nv)); }).sort(ESORT[S.esort]||ESORT.new); };
+const errShown=()=>{ const q=S.eq.trim().toLowerCase(), nv=eNewest(); return (ERR||[]).filter(e=>{ const tg=errTags(e);
+  return (!q || (e.m+' '+e.s).toLowerCase().includes(q) || tagHas(tg,q) || Object.keys(e.lv||{}).some(id=>((LVMI[id]||{}).name||id).toLowerCase().includes(q))) && (!S.etag || tg.includes(S.etag))
+    && (!S.edev || (e.devs||{})[S.edev]>0) && (S.est!=='new' || e.vers.includes(nv)) && (S.est!=='day' || Date.now()-e.last<DAY); }).sort(ESORT[S.esort]||ESORT.new); };
 function errRow(e){
   const nv=eNewest(), lv=Object.entries(e.lv||{}).sort((a,b)=>b[1]-a[1])[0];
   return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.esel===e ? ' on' : ''}" data-act="ero" data-k="${esc(e.key)}">
@@ -1828,11 +1876,11 @@ function errDetail(e,sheet){
 function errView(){
   const md=mode(), L=errShown(), all=ERR||[], nv=eNewest(), tot=all.reduce((a,e)=>a+e.n,0), pl=new Set(all.flatMap(e=>e.pids||[])).size || Math.max(0,...all.map(e=>e.players)), inNew=all.filter(e=>e.vers.includes(nv)).length, day=all.filter(e=>Date.now()-e.last<DAY).length;
   const strip=`<div class="strip" data-tabs="tab"><div class="st"><b data-n="${all.length}">${all.length}</b><span>${nf(all.length,'вид сбоя','вида сбоев','видов сбоев')}</span><span>${tot} ${nf(tot,'раз','раза','раз')} всего</span></div>
-    <button class="st" data-act="enew" aria-pressed="${S.enew}"><b data-n="${inNew}" style="color:${inNew ? 'var(--bug)' : 'inherit'}">${inNew}</b><span>в v${esc(nv||'—')}</span><span>новая версия</span></button>
+    <button class="st" data-act="enew" aria-pressed="${S.est==='new'}"><b data-n="${inNew}" style="color:${inNew ? 'var(--bug)' : 'inherit'}">${inNew}</b><span>в v${esc(nv||'—')}</span><span>новая версия</span></button>
     <div class="st"><b data-n="${day}">${day}</b><span>за сутки</span><span>видов</span></div>
     <div class="st"><b data-n="${pl}">${pl}</b><span>${nf(pl,'игрок','игрока','игроков')}</span><span>столкнулись (макс.)</span></div></div>`;
-  const tool=`<div class="flt"><div class="f1"><input class="srch" id="eq" type="search" placeholder="Текст ошибки, файл, тег уровня…" value="${esc(S.eq)}"></div>
-    <div class="f2">${segH('esort',S.esort,[['new','Свежие'],['n','Частые'],['pl','Игроков']])}</div>${tagBar('e',S.etag)}</div>`;
+  const tool=toolBar({ id:'eq', val:S.eq, ph:'Текст ошибки, файл, тег уровня…', charts:false, sortId:'esort', sortLabel:'Сортировка', sortVal:S.esort,
+    sort:[['new','Свежие'],['n','Частые'],['pl','Игроков']], chips:`<span class="chips">${fChips()}</span>` });
   rowI=0; VISE=L;
   const none=!ERR ? `<div class="empty">${DEMO || tpAt ? 'Сбоев пока нет данных: они появятся, когда воркер подключён к D1.' : 'Загрузка…'}</div>` : `<div class="empty">${all.length ? 'Ничего не найдено' : 'Сбоев нет 🎉'}</div>`;
   const en=L.reduce((a,e)=>a+e.n,0), head=lsum(L.length,all.length,L.length ? `${en} ${nf(en,'раз','раза','раз')}` : '',1);
