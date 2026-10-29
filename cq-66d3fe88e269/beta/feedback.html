@@ -469,7 +469,8 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .dlg p{margin:0;color:var(--dim);font-size:13px}
 .dlg .box.letter{width:min(640px,100%);max-height:92%;overflow:auto}
 .dlg .box.letter textarea{min-height:92px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
-.dlg .box.letter .ltframe{width:100%;height:460px;border:0;border-radius:12px;background:#fff}
+.dlg .box.letter .ltwrap{height:min(460px,52vh);overflow-y:auto;border-radius:12px;background:#06262b}   /* the letter is as tall as its text and does not scroll itself: this box does, with the page's own arrows */
+.dlg .box.letter .ltframe{display:block;width:100%;height:460px;border:0}
 .dlg .box.letter input{width:100%}
 .ltt{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .ltt .btn[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
@@ -1246,7 +1247,7 @@ function letterDlg(){
     ${L.ready===false ? '<p class="err">Отправка ещё не подключена. Нужен секрет MAIL_KEY (Resend) — beta/worker/set-mail.bat. Предпросмотр работает.</p>' : ''}
     ${last ? `<p>Прошлое письмо: v${esc(last.ver)} · ${ago(last.at)} · ушло ${last.sent}${last.fail ? ', не ушло '+last.fail : ''}</p>` : ''}
     <div class="ltt"><button type="button" class="btn sm" data-act="ltedit" aria-pressed="${L.edit}">Поправить текст</button></div>
-    ${L.html ? '<iframe class="ltframe" id="ltFrame" sandbox="" title="Как выглядит письмо"></iframe>' : L.busy ? '<p>…</p>' : ''}
+    ${L.html ? '<div class="ltwrap" id="ltWrap"><iframe class="ltframe" id="ltFrame" sandbox="allow-same-origin" scrolling="no" title="Как выглядит письмо"></iframe></div>' : L.busy ? '<p>…</p>' : ''}
     ${L.edit ? `<input id="ltVer" value="${esc(L.ver)}" placeholder="Версия, например 2.16.30" autocomplete="off" maxlength="24">
     <textarea id="ltItems" maxlength="6000" placeholder="Один пункт — одна строка. Первое предложение станет заголовком пункта">${esc(L.items.join('\n'))}</textarea>
     <div class="row2"><button type="button" class="btn" data-act="ltprev"${L.busy ? ' disabled' : ''}>Обновить письмо</button></div>` : ''}
@@ -1378,14 +1379,16 @@ function render(opt){
   bindGrp();
   if($('askF')) $('askF').onsubmit=e=>{ e.preventDefault(); const v=$('askIn') ? $('askIn').value.trim() : true, er=ASKF && ASKF(v); if(typeof er==='string'){ $('askErr').textContent=er; return; } S.ask=null; render(); };
   if($('ltF')) $('ltF').onsubmit=e=>{ e.preventDefault(); };
-  const lf=$('ltFrame'); if(lf && S.letter && S.letter.html) lf.srcdoc=S.letter.html;
+  const lf=$('ltFrame'); if(lf && S.letter && S.letter.html){   // no scripts run in it; same-origin only lets us read its height, so the frame never needs a scrollbar of its own
+    lf.onload=()=>{ try{ lf.style.height=lf.contentDocument.documentElement.scrollHeight+'px'; }catch(e){} moSoon(); };
+    lf.srcdoc=S.letter.html; }
   app.querySelectorAll('.dims [aria-pressed=true]').forEach(b=>{ const d=b.parentNode; if(b.offsetLeft<d.scrollLeft || b.offsetLeft+b.offsetWidth>d.scrollLeft+d.clientWidth) d.scrollLeft=b.offsetLeft-12; });
   if(A.has('num')) countUp();
   S.A=new Set(); S.flash=0; moSoon();
 }
 /* No scrollbars: every scroller shows an arrow at an edge with more content past it; a tap on it scrolls most of a page that way.
    The arrows live in one layer over the app (rebuilt with it), placed over their scroller */
-const MO_SEL='.scr,.sheet>.in,.dims,.xt,.dlg .box.help', MO_SVG='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const MO_SEL='.scr,.sheet>.in,.dims,.xt,.dlg .box.help,.dlg .box.letter,.ltwrap', MO_SVG='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 let moQ=0, moEls=new WeakMap();
 const moSoon=()=>{ if(!moQ) moQ=requestAnimationFrame(()=>{ moQ=0; moAll(); }); };
 function moAll(){
