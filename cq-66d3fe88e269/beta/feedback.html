@@ -52,8 +52,8 @@ a{color:var(--gold)}
 .seg button[aria-pressed=true]{background:var(--gold);color:var(--gold-ink);font-weight:800}
 .seg.sm button{padding:3px 8px;font-size:12.5px}
 
-#stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:stretch;overflow:auto}
-.app{position:relative;width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;container:app/inline-size}
+#stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:stretch;overflow:hidden}
+.app{position:relative;width:100%;height:100%;min-height:0;max-height:100%;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;container:app/inline-size}
 
 /* Header */
 .hd{flex:none;display:flex;align-items:center;gap:8px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(90deg,#221741,#33245f);border-bottom:1px solid var(--line)}
@@ -79,7 +79,7 @@ a{color:var(--gold)}
 @container app (max-width:520px){ .live{display:none} }
 
 /* Strip: a number and its label on one line, tappable as a filter */
-.strip{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.strip{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 @container app (max-width:600px){ .strip{grid-template-columns:repeat(2,minmax(0,1fr))} }
 .st{background:var(--bg2);padding:6px 10px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;border:0;text-align:left;min-width:0;transition:background .15s}
 .st b{font:600 19px/1.1 var(--f-disp);font-variant-numeric:tabular-nums;grid-row:1/3;min-width:1ch}
@@ -90,13 +90,24 @@ button.st[aria-pressed=true]{background:var(--card);box-shadow:inset 0 -2px 0 va
 
 /* Toolbar */
 .flt{flex:none;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:7px max(12px,env(safe-area-inset-right,0px)) 7px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--bg2)}
-/* Toolbar: row 1 — search, grouping, charts (never wraps); row 2 — the switches (moves under row 1 when narrow) */
-.f1{flex:1 1 320px;min-width:0;display:flex;gap:6px;align-items:center}
+/* One row: search, grouping, filter. Charts sit at the end. Chips wrap under the row. */
+.f1{flex:1 1 100%;min-width:0;display:flex;gap:6px;flex-wrap:nowrap;align-items:center}
 .f2{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.f1 .sel{flex:0 1 auto;min-width:0;max-width:130px}
-.sh{display:none}
-@container app (max-width:360px){ .lo{display:none} .sh{display:inline} }
-.srch{flex:1 1 120px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:13px}
+.f1 .sel{flex:0 1 132px;min-width:0;width:132px;max-width:132px}
+.f1 .sp{flex:1}
+.fdrop{position:relative;flex:none;z-index:30}
+.fdrop>.ib{background:transparent;border-color:transparent;color:var(--dim2)}
+.fdrop>.ib:hover{background:var(--card);color:var(--txt)}
+.fdrop>.ib[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.fdrop>.ib[aria-pressed=true]:hover{background:var(--gold);color:var(--gold-ink)}
+.fpop{position:absolute;left:0;top:calc(100% + 4px);z-index:40;width:min(260px,78vw);max-height:min(360px,calc(100dvh - 180px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
+@container app (max-width:640px){ .fpop{left:auto;right:0} }
+.fsec+.fsec{border-top:1px solid var(--line2);margin-top:4px;padding-top:4px}
+.fsec h5{margin:4px 8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800}
+.fpop button{display:block;width:100%;border:0;background:none;border-radius:8px;padding:6px 8px;text-align:left;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpop button:hover{background:var(--card2)}
+.fpop button[aria-pressed=true]{background:var(--gold);color:var(--gold-ink)}
+.srch{flex:1 1 140px;min-width:0;max-width:480px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:13px}
 .sel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:4px 6px;font-size:12.5px;max-width:160px}
 .chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center;width:100%}
 .chips:empty{display:none}
@@ -132,8 +143,8 @@ body.spl-on{cursor:col-resize;user-select:none}
 /* The section's total, next to the title — the same number the bars add up to */
 .hn{font:800 12px/1.5 var(--f-body);font-variant-numeric:tabular-nums;color:var(--txt);background:rgba(255,255,255,.08);border-radius:99px;padding:0 7px;letter-spacing:0;text-transform:none;flex:none}
 .sub .hn{margin-right:auto}
-.lsum{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line2);background:#1a1231;font-size:12.5px}
-.lsum.stk{position:sticky;top:0;z-index:2}
+.lsum{display:flex;align-items:center;gap:8px;padding:0 12px;height:32px;border-bottom:1px solid var(--line2);background:#1a1231;font-size:12.5px;position:sticky;top:0;z-index:3}
+.list:has(> .lsum) .gh{top:32px}
 .lsum b{font-size:13px}
 .lsum .sp{flex:1}
 .lsum small{color:var(--dim);font-weight:700;font-size:11.5px}
@@ -732,7 +743,7 @@ const wdLoad=()=>{ try{ return { ...WD0, ...JSON.parse(LSg('cube-fb2-w','{}')) }
 const S={ wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }[location.hash]||'rep', sel:null, pl:null, sheet:null, menu:null, ask:null,
   F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
-  toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, A:new Set(),
+  toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, ff:false, A:new Set(),
   lsort:'ord', lq:'', ltag:'', lcause:'', lsel:null, esort:'new', eq:'', enew:false, esel:null, etag:'', pstuck:'', ptag:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, saving:false, tagAdd:'', rshot:{}, rvoice:{}, rec:false, rdrop:false };
 const anim=(...a)=>a.forEach(x=>S.A.add(x));
 const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab:['rep','pl','lv','err'] };   // swipeable tab sets: S[key] holds the current one
@@ -767,6 +778,16 @@ function tagSuggest(){ const inp=$('tagIn'); if(!inp) return; const q=inp.value.
   box.innerHTML=hits.map(t=>`<button type="button" data-act="tagsug" data-t="${esc(t)}">${esc(t)}</button>`).join(''); }
 function tagEdit(kind,id){ const a=tagsOf(kind,id), on=S.tagAdd===kind+':'+id;
   return `<div class="tgs"><span class="tlbl">Теги</span>${a.map(t=>`<span class="chip"><span>${esc(t)}</span><button data-act="untag" data-k="${kind}" data-id="${esc(id)}" data-t="${esc(t)}" aria-label="Убрать тег">×</button></span>`).join('')}${on ? `<input class="tgin" id="tagIn" data-k="${kind}" data-id="${esc(String(id))}" placeholder="тег и Enter" maxlength="24">` : `<button class="chip add" data-act="tagadd" data-k="${kind}" data-id="${esc(String(id))}">+ тег</button>`}</div>`; }
+const FILT=`<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M3.2 4.2h13.6L11.2 10v5.2l-2.4-1.1V10L3.2 4.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+function fPop(){
+  const F=S.F, opt=(act,v,label,on)=>`<button data-act="${act}" data-v="${esc(v)}" aria-pressed="${on}">${label}</button>`;
+  const sec=(t,html)=>html ? `<div class="fsec"><h5>${t}</h5>${html}</div>` : '';
+  const kind=[['bug','🐞 Ошибка'],['opinion','💬 Впечатление']].map(([v,t])=>opt('kind',v,t,F.kind===v)).join('');
+  const st=[['open','Открытые'],['wip','В работе'],['done','Выполнено'],['closed','Закрытые']].map(([v,t])=>opt('stf',v,t,F.state===v)).join('');
+  const whos=[...new Set(REPS.map(r=>r.who).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const tags=[...new Set(REPS.flatMap(repTags))].sort((a,b)=>a.localeCompare(b,'ru'));
+  return `<div class="fpop">${sec('Тип',kind)}${sec('Статус',st)}${sec('Игрок',whos.map(w=>opt('fwho',w,esc(w),F.who===w)).join(''))}${sec('Тег',tags.map(t=>`<button data-act="tfil" data-t="${esc(t)}" aria-pressed="${F.tag===t}">${esc(t)}</button>`).join(''))}</div>`;
+}
 function tagBar(kind,cur){ const set=kind==='r' ? new Set(REPS.flatMap(repTags)) : kind==='u' ? new Set(TS.flatMap(plTags)) : kind==='l' ? new Set(LVM.flatMap(lvTags)) : kind==='e' ? new Set((ERR||[]).flatMap(errTags)) : new Set(Object.values(TAGS[kind]||{}).flat());
   if(!set.size) return '';
   return `<div class="tbar">${[...set].sort((a,b)=>a.localeCompare(b,'ru')).map(t=>`<button class="chip${cur===t ? ' on' : ''}" data-act="tfil" data-k="${kind}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`; }
@@ -812,15 +833,11 @@ function detail(r,sheet){
     return `<div class="r">${p.text ? esc(p.text) : ''}${shots.map(s=>`<img class="rshot" data-act="zoom" src="${s}" alt="">`).join('')}${voice ? `<audio controls preload="none" src="${voice}"></audio>` : ''}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`; }).join('')
     +(r.fixed ? `<span class="note">🔔 «Баг исправлен» — ${r.fixed.wait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : '') : '';
   const where=r.lv ? esc(r.lv)+(s.sub ? ' → '+esc(s.sub) : '') : '', wSub=[(r.icon||'')+' '+esc(r.area||''),r.ano ? '№'+r.ano : '',r.lvId ? `<code>${esc(r.lvId)}</code>` : ''].filter(x=>x.trim()).join(' · ');
-  const acts=(replay ? `<a class="btn sm pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : DEMO && m.snap ? '<button class="btn sm pri" data-act="noop">▶ Открыть в игре</button>' : '')
-    +`<button class="btn sm" data-act="state" data-v="${r.state==='closed' ? 'open' : 'closed'}"${r.state!=='closed' && r.kind==='bug' && r.tester ? ' title="Игрок получит сообщение «Баг исправлен»"' : ''}>${r.state==='closed' ? '↺ Открыть' : '✓ Закрыть'}</button>`
-    +`<button class="btn sm" data-act="state" data-v="${r.state==='wip' ? 'open' : 'wip'}" aria-pressed="${r.state==='wip'}" title="${r.state==='wip' ? 'Снять отметку «в работе»' : 'Отметить «в работе»'}">⚙ В работе</button>`
-    +`<button class="btn sm" data-act="state" data-v="${r.state==='done' ? 'open' : 'done'}" aria-pressed="${r.state==='done'}" title="${r.state==='done' ? 'Снять отметку «выполнено»' : 'Исправлено, жду проверки — игроку ничего не уходит'}">✓ Выполнено</button>`;
+  const play=replay ? `<a class="btn sm pri" href="${replay}" target="_blank" rel="noopener">▶ Открыть в игре</a>` : DEMO && m.snap ? '<button class="btn sm pri" data-act="noop">▶ Открыть в игре</button>' : '';
   const stL={ open:'открыт', wip:'⚙ в работе', done:'✓ выполнено', closed:'✓ закрыт' };
   return `<div class="dt${S.A.has('det') ? ' fresh' : ''}" style="padding-bottom:16px"><div class="dhd">
     <div class="dt-h"><button class="badge btnk ${r.kind}" data-act="kind2" title="Сменить тип: ${r.kind==='bug' ? 'впечатление' : 'ошибка'}">${r.kind==='bug' ? '🐞 Ошибка' : '💬 Впечатление'} ⇄</button><span class="badge ${r.state}">${stL[r.state]||r.state}</span>
-      <span class="no">#${r.n}</span>${acts}<span class="sp"></span>${r.url && !DEMO ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">GitHub${r.comments ? ' · 💬 '+r.comments : ''}</a>` : ''}
-      <button class="ib" data-act="step" data-d="-1" title="Предыдущий (↑ / K)">↑</button><button class="ib" data-act="step" data-d="1" title="Следующий (↓ / J)">↓</button><button class="ib" data-act="del" title="Удалить отзыв">🗑</button><button class="ib" data-act="menu" data-lp="rep" data-n="${r.n}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>
+      <span class="no">#${r.n}</span>${play}<span class="sp"></span><button class="ib" data-act="menu" data-lp="rep" data-n="${r.n}" title="Действия">⋯</button>${sheet ? '<button class="ib" data-act="close" title="Закрыть (Esc)">✕</button>' : ''}</div>
     <div class="who"><h2>${esc(r.who)}</h2>${r.cc ? flag(r.cc) : ''}<span class="dte" title="${full(r.at)}">${short(r.at)} · ${ago(r.at)}</span></div>${tagEdit('r',r.n)}</div>
     <div class="dtm"><div class="dtl">
       ${m.shot ? (DEMO ? `<div class="shot ph" style="--h:${r.hue}">${CUBE}</div>` : `<img class="shot" data-act="zoom" src="${media(m.id,'shot.jpg')}" alt="Снимок экрана">`) : ''}
@@ -975,10 +992,11 @@ function repView(){
     <button class="st" data-act="quick" data-v="opinion" aria-pressed="${qa('opinion')}"><b style="color:var(--op)" data-n="${oo}">${oo}</b><span>впечатлений</span>${spark(perDay(REPS.filter(r=>r.kind==='opinion'),14,()=>1,r=>r.at),'#8fb8ff')}</button>
     <button class="st" ${fl('err')}><b data-n="${open.filter(FLAGS.err[1]).length}">${open.filter(FLAGS.err[1]).length}</b><span>с ошибками консоли</span><span>открытых</span></button>
     <button class="st" ${fl('fps')}><b data-n="${open.filter(FLAGS.fps[1]).length}">${open.filter(FLAGS.fps[1]).length}</b><span>FPS ниже 35</span><span>открытых</span></button></div>`;
+  const fon=!!(F.kind || F.state || F.who || F.tag);
   const tool=`<div class="flt"><div class="f1"><input class="srch" id="q" type="search" placeholder="Поиск: текст, игрок, уровень, тег…" value="${esc(F.q)}">
     <select class="sel" id="grp" aria-label="Группировать">${[['','Без групп'],['lv','По уровням'],['day','По дням'],['ver','По версиям'],['who','По игрокам'],['dev','По устройствам'],['state','По статусу']].map(([v,t])=>`<option value="${v}"${S.G===v ? ' selected' : ''}>${t}</option>`).join('')}</select>
-    ${md!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : ''}</div>
-    <div class="f2">${segH('kind',F.kind,[['','Все'],['bug','🐞'],['opinion','💬']])}${segH('stf',F.state,[['open','<span class="lo">Открытые</span><span class="sh">Откр.</span>'],['wip','<span class="lo">В работе</span><span class="sh">⚙</span>'],['done','<span class="lo">Выполнено</span><span class="sh">✓</span>'],['closed','<span class="lo">Закрытые</span><span class="sh">Закр.</span>'],['','Все']])}</div>${tagBar('r',F.tag)}${chipsF()}</div>`;
+    <span class="fdrop"><button class="ib" data-act="ffilt" aria-pressed="${fon}" aria-expanded="${S.ff}" title="Фильтр" aria-label="Фильтр">${FILT}</button>${S.ff ? fPop() : ''}</span>
+    ${md!=='w' ? '<span class="sp"></span><button class="ib" data-act="ana" aria-pressed="'+S.ana+'" title="Графики и срез">📊</button>' : ''}</div>${chipsF()}</div>`;
   rowI=0; let list=''; VIS=S.G ? [] : L;
   if(!L.length) list=`<div class="empty">${REPS.length ? 'Ничего не найдено' : loadAt ? 'Отзывов пока нет' : failed ? '<span class="err">Не удалось загрузить: '+esc(failed)+'</span>' : 'Загрузка…'}</div>`;
   else if(!S.G) list=L.map(row).join('');
@@ -1029,6 +1047,7 @@ function menuFor(kind,el){
     if(r.lv) it.push(['⊘','Скрыть уровень «'+r.lv+'»',()=>notF('lv',r.lv)]);
     it.push(['⧉','Копировать ссылку',()=>copy(location.origin+location.pathname+'#'+r.n,'Ссылка скопирована')]);
     if(r.text) it.push(['❝','Копировать текст',()=>copy(r.text,'Текст скопирован')]);
+    if(r.url && !DEMO) it.push(['↗','GitHub'+(r.comments ? ' · '+r.comments : ''),()=>window.open(r.url,'_blank','noopener')]);
     it.push(['🗑','Удалить отзыв',()=>delRep(r),1]);
     return { t:'#'+r.n+' · '+r.who, it }; }
   if(kind==='pl'){ const t=TSI[el.dataset.id]; if(!t) return null;
@@ -1043,6 +1062,7 @@ function menuFor(kind,el){
 }
 function openMenu(kind,el,x,y){
   const m=menuFor(kind,el); if(!m) return;
+  S.ff=false;
   const rc=app.getBoundingClientRect(); MENU=m.it.map(i=>i[2]);
   S.menu={ t:m.t, it:m.it.map(i=>[i[0],i[1],i[3]]), x:x-rc.left, y:y-rc.top, bot:mode()==='n' }; render();
 }
@@ -1056,7 +1076,8 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
   <h5>Список</h5><ul><li><b>Тап</b> по строке — карточка отзыва или игрока.</li><li><b>Свайп строки вправо</b> — закрыть отзыв (или открыть снова).</li>
     <li><b>Свайп влево или долгий тап</b> — меню: ответить, все отзывы игрока или уровня, скрыть уровень, копировать. На компьютере — правая кнопка мыши.</li>
     <li>Список группируется по уровню, дню, версии, игроку, устройству, статусу — выбор рядом с поиском. Заголовок группы сворачивает её, <b>Shift+клик</b> — сворачивает или разворачивает все группы, долгий тап — «только это», «исключить».</li>
-    <li><b>В работе</b> — отметка открытого отзыва (кнопка в шапке карточки или меню); фильтр «Открытые» показывает и их.</li></ul>
+    <li><b>Фильтр</b> справа от поиска: тип, статус, игрок, тег. Повторный выбор снимает пункт. Пока в секции ничего не выбрано, она показывает всё.</li>
+    <li><b>В работе</b> и <b>Выполнено</b> — отметки в меню отзыва (⋯). Фильтр «Открытые» показывает и их.</li></ul>
   <h5>Карточка</h5><ul><li><b>Свайп вбок</b>, ручка сверху или ✕ — закрыть.</li><li><b>Вверх или вниз</b>, когда карточка прокручена до края, — следующая или предыдущая по списку.</li><li>Клавиши <b>↑ ↓</b> (или J, K) — то же на компьютере.</li></ul>
   <h5>Сводка и графики</h5><ul><li>Цифры сводки — быстрые фильтры, повторный тап снимает.</li><li><b>Свайп по сводке</b> — соседняя вкладка: Отзывы, Игроки, Уровни, Сбои.</li>
     <li><b>📊</b> — графики и срез (на широком экране они всегда слева).</li><li>Число в шапке секции — общее количество по этому окну: у графика, у списка и у карточки, не только столбики.</li><li>Столбец дня — показать только этот день, повторный тап снимает.</li>
@@ -1067,8 +1088,8 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li><b>Сбои</b> — ошибки, которые игра отправила сама, сгруппированные по тексту: сколько раз, у скольких игроков, в каких версиях и на каких уровнях.</li></ul>
   <h5>Панели</h5><ul><li>Границы между панелями тянутся мышью — ширина запоминается, двойной клик возвращает. Стрелки у края панели — там есть ещё, тап прокручивает.</li>
     <li>Колесо мыши плавно прокручивает панель под курсором; <b>средняя кнопка</b> — тянуть содержимое, как пальцем (отпустил в движении — докатывается).</li></ul>
-  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип, 🗑 — удалить отзыв. Карандаш в углу текста включает правку: клик снаружи сохраняет, если текст изменился. К ответу — иконка снимков (несколько или перетаскивание) и голос.</li>
-    <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). Ряд тегов над каждым списком, включая сбои, фильтрует; поиск тоже ищет по тегам.</li>
+  <h5>Отзыв, уровень, игрок</h5><ul><li>Значок типа в шапке отзыва (🐞 / 💬 ⇄) меняет тип. Закрыть, «в работе», «выполнено», GitHub и удаление — в меню ⋯. Карандаш в углу текста включает правку: клик снаружи сохраняет, если текст изменился. К ответу — иконка снимков (несколько или перетаскивание) и голос.</li>
+    <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). У отзывов тег фильтрует из меню фильтра; у игроков, уровней и сбоев — ряд над списком. Поиск тоже ищет по тегам.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
     <li>Кубик в левом верхнем углу — сводка: версия беты, что происходит, и ссылка с ключом для другого человека.</li></ul>
@@ -1367,7 +1388,7 @@ function admin(t,a){
   if(a==='delete') ask({ t:'Удалить аккаунт '+t.nick+'?', p:'Прогресс в облаке, статистика и сообщения сотрутся, ник освободится. Отзывы останутся.', ok:'Удалить', dng:1 },()=>run(body));
 }
 function plRep(t){ Object.assign(S.F,{ who:t.nick, state:'', kind:'', flag:'', day:null, lv:'', ver:'', dev:'' }); S.pl=null; S.sel=null; anim('list'); setTab('rep'); }
-const setTab=t=>{ if(S.tab!==t) anim('list','num','bars'); S.tab=t; S.sheet=null; S.all=false; title();
+const setTab=t=>{ if(S.tab!==t) anim('list','num','bars'); S.tab=t; S.sheet=null; S.ff=false; S.all=false; title();
   if(history.replaceState) history.replaceState(null,'',location.pathname+location.search+({ pl:'#testers', lv:'#levels', err:'#crashes' }[t]||(S.sel ? '#'+S.sel.n : '')));
   if(t!=='rep' && !useWatch && Date.now()-tpAt>30e3) load(true,true); };
 const closeSheet=()=>{ const sh=app.querySelector('.sheet'); if(!sh){ S.sheet=null; render(); return; }
@@ -1384,7 +1405,9 @@ app.addEventListener('pointerdown',e=>{ editAway=!!(S.edit && !S.saving && !e.ta
 app.addEventListener('click',e=>{
   if(lpUp || Date.now()-eatClick<450){ lpUp=false; e.preventDefault(); e.stopPropagation(); return; }
   if(editAway){ editAway=false; leaveEdit(); }
-  const el=e.target.closest('[data-act]'); if(!el){ if(S.edit && !S.saving && !editChanged()) render(); return; } const a=el.dataset.act, F=S.F;
+  const inF=e.target.closest && e.target.closest('.fdrop');
+  const shutF=S.ff && !inF; if(shutF) S.ff=false;
+  const el=e.target.closest('[data-act]'); if(!el){ if(shutF || S.edit && !S.saving && !editChanged()) render(); return; } const a=el.dataset.act, F=S.F;
   if(a==='bg'){ if(e.target===el) closeSheet(); return; }
   if(a==='mnbg'){ if(e.target===el){ S.menu=null; render(); } return; }
   if(a==='askbg'){ if(e.target===el){ S.ask=null; render(); } return; }
@@ -1440,8 +1463,10 @@ app.addEventListener('click',e=>{
     if(cur) S[cur]=S[cur]===t ? '' : t; else F.tag=F.tag===t ? '' : t; anim('list'); }
   else if(a==='noop'){ toast('В демо не работает'); return; }
   else if(a==='ana'){ toggleAna(); return; }
-  else if(a==='kind'){ F.kind=el.dataset.v; anim('list'); }
-  else if(a==='stf'){ F.state=el.dataset.v; LSs('cube-fb-state',F.state); anim('list'); }
+  else if(a==='ffilt') S.ff=!S.ff;
+  else if(a==='kind'){ F.kind=F.kind===el.dataset.v ? '' : el.dataset.v; anim('list'); }
+  else if(a==='stf'){ const v=el.dataset.v; F.state=F.state===v ? '' : v; LSs('cube-fb-state',F.state); anim('list'); }
+  else if(a==='fwho'){ const v=el.dataset.v; F.who=F.who===v ? '' : v; F.not.who=F.not.who.filter(x=>x!==v); anim('list'); }
   else if(a==='quick'){ const v=el.dataset.v; if(F.kind===v && F.state==='open') F.kind=''; else { F.kind=v; F.state='open'; } anim('list'); }
   else if(a==='flag'){ F.flag=F.flag===el.dataset.v ? '' : el.dataset.v; anim('list'); }
   else if(a==='grp' || a==='lgrp'){ const p=a==='grp' ? S.G+':' : 'area:', k=p+el.dataset.k;
@@ -1618,7 +1643,7 @@ app.addEventListener('touchend',tEnd); app.addEventListener('touchcancel',tEnd);
 
 addEventListener('keydown',e=>{
   if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); else if(e.target.id==='editText' && S.sel) leaveEdit(); return; }
-  if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
+  if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.ff){ S.ff=false; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
   if(e.target.matches('input,textarea,select')){ if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape'){ if(S.sheet) closeSheet(); }
   else if(e.key==='ArrowDown' || e.key==='j' || e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); const d=e.key==='ArrowDown' || e.key==='j' ? 1 : -1; if(S.tab==='rep') stepRep(d); else if(S.tab==='lv') stepLv(d); else if(S.tab==='err') stepErr(d); else if(S.pl) stepPl(d); }
