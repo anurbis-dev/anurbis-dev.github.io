@@ -467,6 +467,18 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .help .hh{display:flex;align-items:center;gap:8px}
 .help .hh h4{flex:1}
 .dlg p{margin:0;color:var(--dim);font-size:13px}
+.dlg .box.letter{width:min(640px,100%);max-height:92%;overflow:auto}
+.dlg .box.letter textarea{min-height:92px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+.dlg .box.letter .ltframe{width:100%;height:440px;border:0;border-radius:12px;background:#120c22}
+.mbox{display:grid;gap:6px;margin:10px 0}
+.tog{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;font-weight:700}
+.tog i{width:34px;height:20px;border-radius:99px;background:#3a2d62;position:relative;flex:none}
+.tog i::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#9d91c4;transition:transform .15s}
+.tog.on{border-color:var(--gold)}
+.tog.on i{background:#6a5420}
+.tog.on i::after{transform:translateX(14px);background:var(--gold)}
+.tog:disabled{opacity:.45;cursor:default}
+.em{color:var(--gold);font-size:12px;margin-left:2px}
 .dlg input{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
 .dlg .row2{display:flex;gap:8px;justify-content:flex-end}
 
@@ -594,8 +606,9 @@ function feedTester(p){
   if(!p || !p.id) return;
   let t=TRAW.find(x=>x.id===p.id);
   if(!t){ t={ id:p.id, nick:p.nick||'—', at:p.at||Date.now(), cc:p.cc||null, ban:false, save:false, stats:null, live:null, prog:null, cfg:null, ver:null, wins:{} }; TRAW.unshift(t); }
-  for(const k of ['nick','cc','at','ver','prog']) if(p[k]!==undefined) t[k]=p[k];
+  for(const k of ['nick','cc','at','ver','prog','email']) if(p[k]!==undefined) t[k]=p[k];
   if('ban' in p) t.ban=!!p.ban; if('save' in p) t.save=!!p.save; if('live' in p) t.live=p.live;
+  if('mreply' in p) t.mreply=!!p.mreply; if('mver' in p) t.mver=!!p.mver;
   if(p.stats){ if(!t.stats) t.stats={ n:0, ms:0, devs:{}, ss:[], ...p.stats }; else Object.assign(t.stats,p.stats); }
   if(p.sess && t.stats){ t.stats.ss=t.stats.ss||[]; if(!t.stats.ss.some(s=>s.s===p.sess.s)) t.stats.ss.unshift(p.sess); }
   if(p.nick!==undefined) for(const i of RAW){ const tid=(i.meta&&i.meta.tester)||((i.labels||[]).find(l=>l.startsWith('tester:'))||'').slice(7); if(tid===p.id) i.nick=p.nick; }
@@ -680,7 +693,8 @@ function tModel(t){
   for(const e of prog) for(const [id,v] of Object.entries(e.lv||{})) if(v.n>0) done.add(id);
   const cur=prog[0] && prog[0].cur, far=Math.max(-1,...[...done].map(id=>LVI[id] ? LVI[id].gi : -1));
   const ss=(st.ss||[]).filter(x=>x && x.s), fin=Math.max(0,(st.n||0)-(t.live ? 1 : 0));
-  return { raw:t, id:t.id, nick:t.nick, cc:(t.live && t.live.cc)||st.cc||t.cc||'', at:t.at||0, ban:!!t.ban, save:!!t.save, live:t.live||null, stats:!!t.stats,
+  return { raw:t, id:t.id, nick:t.nick, email:t.email||'', mreply:t.mreply!==false && t.mreply!==0, mver:t.mver!==false && t.mver!==0,
+    cc:(t.live && t.live.cc)||st.cc||t.cc||'', at:t.at||0, ban:!!t.ban, save:!!t.save, live:t.live||null, stats:!!t.stats,
     devs, ss, ms, liveMs, tot:ms+liveMs, n:st.n||0, avg:fin ? ms/fin : 0, last:t.live ? now : st.last||0, first:st.first||0, ccs:st.ccs||{},
     prog, done, cur, far, lvN:done.size, stars:Math.max(0,...prog.map(e=>e.stars||0)), wins:t.wins||{}, cfg:t.cfg||null, ver:t.ver||(devs[0] && devs[0].ver)||'' };
 }
@@ -743,7 +757,7 @@ async function repLoad(r){
 /* ==================== State ==================== */
 const WD0={ side:360, list:420 };   // panel widths (px) the dividers start from
 const wdLoad=()=>{ try{ return { ...WD0, ...JSON.parse(LSg('cube-fb2-w','{}')) }; }catch(e){ return { ...WD0 }; } };
-const S={ wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }[location.hash]||'rep', sel:null, pl:null, sheet:null, menu:null, ask:null,
+const S={ wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }[location.hash]||'rep', sel:null, pl:null, sheet:null, menu:null, ask:null, letter:null,
   F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
   toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, ff:false, fshut:new Set(), A:new Set(),
@@ -832,7 +846,7 @@ function fChips(){
 function toolBar(o){
   const fon=fSecs().some(s=>s.cur), ana=o.charts!==false && mode()!=='w' ? `<button class="ib" data-act="ana" aria-pressed="${S.ana}" title="Графики и срез">📊</button>` : '';
   const sort=o.sort ? `<select class="sel" id="${o.sortId}" aria-label="${o.sortLabel||'Группировать'}">${o.sort.map(([v,t])=>`<option value="${esc(v)}"${o.sortVal===v ? ' selected' : ''}>${t}</option>`).join('')}</select>` : '';
-  return `<div class="flt"><div class="f1"><input class="srch" id="${o.id}" type="search" placeholder="${o.ph}" value="${esc(o.val)}"><span class="fr">${ana}${sort}<span class="fdrop"><button class="ib" data-act="ffilt" aria-pressed="${fon}" aria-expanded="${S.ff}" title="Фильтр" aria-label="Фильтр">${FILT}</button>${S.ff ? fPop() : ''}</span></span></div>${o.chips||''}</div>`;
+  return `<div class="flt"><div class="f1"><input class="srch" id="${o.id}" type="search" placeholder="${o.ph}" value="${esc(o.val)}"><span class="fr">${o.extra||''}${ana}${sort}<span class="fdrop"><button class="ib" data-act="ffilt" aria-pressed="${fon}" aria-expanded="${S.ff}" title="Фильтр" aria-label="Фильтр">${FILT}</button>${S.ff ? fPop() : ''}</span></span></div>${o.chips||''}</div>`;
 }
 const FLAGS={ err:['ошибки консоли',r=>r.errs.length>0], fps:['FPS ниже 35',r=>r.fps && r.fps<35], voice:['с голосом',r=>!!r.m.voice] };
 const match=(r,...sk)=>{ const F=S.F, q=F.q.trim().toLowerCase(), s=k=>sk.includes(k);
@@ -915,7 +929,7 @@ const plMatch=t=>{ const q=S.pq.trim().toLowerCase(), tg=plTags(t);
   if(S.pcls && !t.devs.some(d=>d.u.kind===S.pcls)) return false;
   if(S.pst==='live' && !t.live || S.pst==='ban' && !t.ban || S.pst==='stuck' && !plStuck(t)) return false;
   if(S.pnick && t.nick!==S.pnick) return false;
-  return !q || [t.nick,t.id,t.cc,t.cc && ccName(t.cc),...tg,...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
+  return !q || [t.nick,t.email,t.id,t.cc,t.cc && ccName(t.cc),...tg,...t.devs.map(d=>[d.u.name,d.u.os,d.u.br,d.gpu].join(' '))].join(' ').toLowerCase().includes(q); };
 function plSorted(){ const s=S.psort, day=S.pday==null ? null : DAYS-1-S.pday;
   return TS.filter(t=>plMatch(t) && (day==null || t.ss.some(x=>dayOf(x.s)===day)) && (!S.pstuck || t.cur===S.pstuck && !t.done.has(t.cur) && Date.now()-t.last>STUCK_D*DAY)).sort(s==='time' ? (a,b)=>b.tot-a.tot : s==='lv' ? (a,b)=>b.lvN-a.lvN || b.stars-a.stars : s==='at' ? (a,b)=>b.at-a.at
     : s==='nick' ? (a,b)=>a.nick.localeCompare(b.nick,'ru') : (a,b)=>b.last-a.last || b.at-a.at); }
@@ -925,6 +939,12 @@ function plStats(){
     played:TS.filter(t=>t.n).length, devs:TS.reduce((a,t)=>a+t.devs.length,0), cc:new Set(TS.map(t=>t.cc).filter(Boolean)).size, wk:TS.filter(t=>t.last>Date.now()-7*DAY).length };
 }
 /* A tester's card: activity, progress map, expeditions, devices, reports, account actions */
+function mailBox(t){
+  const tog=(k,on,label)=>`<button type="button" class="tog${on ? ' on' : ''}" data-act="mopt" data-k="${k}" data-id="${esc(t.id)}"${t.email ? '' : ' disabled'}><i></i>${label}</button>`;
+  return `<div class="mbox"><div class="sub">Присылать на почту <em>${t.email ? esc(t.email) : 'не указана'}</em></div>
+    ${tog('reply',t.mreply,'Ответы на отзывы')}${tog('ver',t.mver,'Уведомление о новой версии')}
+    ${t.email ? '' : '<span class="note">Включится, когда игрок укажет почту. Адрес никуда больше не уходит.</span>'}</div>`;
+}
 function plBody(t){
   const days=perDay(t.ss,21,s=>(s.e-s.s)/MIN,s=>s.s), mx=Math.max(1,...days), rp=REPS.filter(r=>r.tester===t.id), b=rp.filter(r=>r.kind==='bug').length, curL=t.cur && LVI[t.cur];
   const LI=lvInfo();
@@ -947,6 +967,7 @@ function plBody(t){
     ${plCfg(t)}
     ${t.prog.length || ORD.length ? `<div class="sub">Прогресс <em>${t.lvN} ${nf(t.lvN,'уровень пройден','уровня пройдено','уровней пройдено')} · ★ ${t.stars}${t.prog.length ? ' · '+t.prog.length+' '+nf(t.prog.length,'экспедиция','экспедиции','экспедиций') : ''}${t.save ? ' · ☁' : ''}</em></div><div>${prog}</div>` : ''}
     ${t.devs.length ? `<div class="sub">Устройства <b class="hn">${t.devs.length}</b><em>${t.devs.reduce((a,d)=>a+(d.n||0),0)} сес. · ${hm(t.devs.reduce((a,d)=>a+(d.ms||0),0))}</em></div><div class="dl">${t.devs.map(d=>`<div><b>${CLI[d.u.kind]} ${esc(d.u.name)}</b><small>${[uaH(d.u),esc([d.sw ? d.sw+'×'+d.sh : '',d.gpu].filter(Boolean).join(' · '))].filter(Boolean).join(' · ')}</small><small>${d.n||0} сес. · ${hm(d.ms)}${d.last ? ' · '+ago(d.last) : ''}${live===d.id ? ' · <span class="lvb">сейчас</span>' : ''}${d.pwa ? ' · PWA' : ''}</small></div>`).join('')}</div>` : ''}
+    ${mailBox(t)}
     <div class="pa">${rp.length ? `<button class="lnk" data-act="plrep" data-id="${esc(t.id)}">Отзывы: 🐞 ${b} · 💬 ${rp.length-b} →</button>` : '<span class="note">Отзывов нет</span>'}<span class="sp"></span>
       <button class="ib" data-act="adm" data-a="rename" data-id="${esc(t.id)}" title="Переименовать">✎</button><button class="ib" data-act="adm" data-a="pin" data-id="${esc(t.id)}" title="Новый PIN">🔑</button>
       <button class="ib" data-act="adm" data-a="ban" data-id="${esc(t.id)}" title="${t.ban ? 'Разбанить' : 'Забанить: без отзывов, синхронизации и входа'}">${t.ban ? '✓' : '⛔'}</button><button class="ib" data-act="adm" data-a="delete" data-id="${esc(t.id)}" title="Удалить аккаунт">🗑</button></div>`;
@@ -1061,13 +1082,13 @@ function plView(){
     <div class="st"><b>${hmS(N.ms)}</b><span>наиграно</span>${spark(perDay(N.ss,14,s=>(s.e-s.s)/MIN,s=>s.s),'#ffd66b')}</div>
     <div class="st"><b data-n="${N.n}">${N.n}</b><span>${nf(N.n,'сессия','сессии','сессий')}</span><span>ср. ${hm(N.avg)}</span></div>
     <div class="st"><b data-n="${N.devs}">${N.devs}</b><span>устройств</span><span>${N.cc} ${nf(N.cc,'страна','страны','стран')}</span></div></div>`;
-  const tool=toolBar({ id:'pq', val:S.pq, ph:'Ник, устройство, страна, тег…', sortId:'psort', sortLabel:'Сортировка', sortVal:S.psort,
+  const tool=toolBar({ id:'pq', val:S.pq, ph:'Ник, почта, устройство, страна, тег…', extra:'<button class="ib" data-act="letter" title="Письмо о новой версии">✉</button>', sortId:'psort', sortLabel:'Сортировка', sortVal:S.psort,
     sort:[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']],
     chips:`<span class="chips">${fChips()}${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}</span>` });
   rowI=0;
   const rows=L.map(t=>{ const rp=REPS.filter(r=>r.tester===t.id);
     return `<div class="sw" style="--i:${rowI++}"><button class="prow${S.pl===t ? ' on' : ''}${t.ban ? ' ban' : ''}" data-act="pl" data-id="${esc(t.id)}" data-lp="pl">
-      <span class="p1">${t.ban ? '⛔' : ''}<b>${esc(t.nick)}</b>${flag(t.cc)}${tagBits(tagsOf('u',t.id))}${t.live ? `<span class="lvb">играет ${hm(t.liveMs)}</span>` : ''}
+      <span class="p1">${t.ban ? '⛔' : ''}<b>${esc(t.nick)}</b>${t.email ? `<span class="em" title="${esc(t.email)}">✉</span>` : ''}${flag(t.cc)}${tagBits(tagsOf('u',t.id))}${t.live ? `<span class="lvb">играет ${hm(t.liveMs)}</span>` : ''}
         <span class="t">${t.live ? '' : t.last ? ago(t.last) : 'не играл'}</span></span>
       <span class="p2"><span class="tb"><i style="width:${t.tot/mx*100}%"></i></span><span class="m"><b>${hm(t.tot)}</b> · ${t.n} сес. · ур. <b>${t.lvN}</b> · ★${t.stars}${rp.length ? ' · 🐞'+rp.filter(r=>r.kind==='bug').length+' 💬'+rp.filter(r=>r.kind!=='bug').length : ''}</span></span></button></div>`; }).join('');
   const fold=md!=='w' && S.ana ? foldHtml(plAna()) : '';
@@ -1136,6 +1157,7 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
     <li>Кнопка «+ тег» в карточке отзыва, игрока и уровня ставит тег (Enter). Тег фильтрует из меню фильтра на каждой вкладке. Поиск тоже ищет по тегам.</li>
     <li>На уровне: тап по причине гибели — её клетки на карте ярче; наведите на красную клетку — какие гибели там.</li>
     <li>У игрока прогресс — по экспедициям (тап по заголовку разворачивает). Кубик уровня — подсказка сразу, тап — карта уровня со звёздами: залитая — собрана, контур — осталась.</li>
+    <li><b>Присылать на почту</b> — два переключателя у игрока, у которого почта уже есть: ответы на отзывы и письмо о новой версии. ✉ над списком игроков пишет это письмо: что сделано и на что смотреть при тесте.</li>
     <li>Кубик в левом верхнем углу — сводка: версия беты, что происходит, и ссылка с ключом для другого человека.</li></ul>
   <h5>Клавиши</h5><ul><li><b>/</b> — поиск, <b>G</b> — графики, <b>R</b> — обновить, <b>Esc</b> — закрыть окно или карточку.</li></ul></div></div>`;
 /* The logo's summary: the published beta's version and what is going on now */
@@ -1160,6 +1182,7 @@ function aboutHtml(){
       ${c('Открыто',`<span style="color:var(--bug)">🐞 ${ob}</span> · <span style="color:var(--op)">💬 ${open.length-ob}</span>`,STN.wip+': '+open.filter(r=>r.state==='wip').length+' · '+STN.done+': '+open.filter(r=>r.state==='done').length)}${c('Новых отзывов',today+' сегодня',wk+' за неделю')}
       ${c('Сбои',ERR ? eNew.length+' в v'+esc(nv||'—') : '—',ERR ? eDay+' за сутки · '+ERR.length+' видов всего' : 'нет данных D1')}${c('Застряли',stuck,'не играют '+STUCK_D+'+ дня')}</div>
     ${KEY ? `<div class="share"><span>Ссылка для доступа</span><input id="shareUrl" readonly value="${esc(accessUrl())}"><div class="row2"><button type="button" class="btn sm pri" data-act="share">Копировать</button></div><small>С ключом. У того, кому отправите, страница откроется сразу, ключ сохранится в его браузере.</small></div>` : ''}
+    <div class="row2"><button type="button" class="btn sm" data-act="letter">✉ Письмо о новой версии</button></div>
     <p>${loadAt ? 'Данные обновлены '+agoL(loadAt)+'.' : ''}${unseen ? ' Непрочитанных отзывов: '+unseen+'.' : ''}${DEMO ? ' Демо-данные.' : ''}</p></div></div>`;
 }
 /* An in-page prompt / confirm: works where the browser's own dialogs are blocked */
@@ -1168,6 +1191,43 @@ const ask=(o,fn)=>{ S.ask=o; ASKF=fn; S.focus=o.input!=null ? 'askIn' : 'askOk';
 const askHtml=()=>{ const a=S.ask; return `<div class="dlg" data-act="askbg"><form class="box" id="askF"><h4>${esc(a.t)}</h4>${a.p ? `<p>${esc(a.p)}</p>` : ''}
   ${a.input!=null ? `<input id="askIn" value="${esc(a.input)}" placeholder="${esc(a.ph||'')}" autocomplete="off"${a.num ? ' inputmode="numeric"' : ''}>` : ''}<span class="err" id="askErr"></span>
   <div class="row2"><button type="button" class="btn" data-act="askno">Отмена</button><button class="btn ${a.dng ? 'dng' : 'pri'}" id="askOk">${esc(a.ok||'OK')}</button></div></form></div>`; };
+function letterRead(){
+  if(!S.letter) return; const v=$('ltVer'), s=$('ltSum'), f=$('ltFocus');
+  if(v) S.letter.ver=v.value; if(s) S.letter.sum=s.value; if(f) S.letter.focus=f.value;
+}
+function letterOpen(){
+  S.about=false; const n=TS.filter(t=>t.email && t.mver && !t.ban).length;
+  S.letter={ ver:(BVER && BVER!=='…' && BVER!=='—' && BVER!=='') ? BVER : '', sum:'', focus:'', html:'', busy:false, n, ready:null, last:null };
+  S.focus='ltSum';
+  if(!DEMO) api('/mail/version').then(d=>{ if(!S.letter) return; S.letter.ready=!!d.ready; S.letter.last=d.last||null; if(!S.letter.ver && d.last && d.last.ver) S.letter.ver=d.last.ver; render(); }).catch(()=>{});
+  render();
+}
+function letterDlg(){
+  const L=S.letter, n=TS.filter(t=>t.email && t.mver && !t.ban).length, last=L.last;
+  return `<div class="dlg" data-act="ltbg"><form class="box letter" id="ltF"><div class="hh"><h4>Письмо о новой версии</h4><button type="button" class="ib" data-act="ltx" aria-label="Закрыть">✕</button></div>
+    <p>Уйдёт игрокам, у которых есть почта и включено «уведомление о новой версии»: <b>${n}</b>. В письме — что сделано и на что смотреть, проверяя эти правки.</p>
+    ${L.ready===false ? '<p class="err">Отправка ещё не подключена. Нужен секрет MAIL_KEY (Resend) — beta/worker/set-mail.bat. Предпросмотр работает.</p>' : ''}
+    ${last ? `<p>Прошлое письмо: v${esc(last.ver)} · ${ago(last.at)} · ушло ${last.sent}${last.fail ? ', не ушло '+last.fail : ''}</p>` : ''}
+    <input id="ltVer" value="${esc(L.ver)}" placeholder="Версия, например 2.16.30" autocomplete="off" maxlength="24">
+    <textarea id="ltSum" maxlength="4000" placeholder="Что сделано — коротко, абзацами">${esc(L.sum)}</textarea>
+    <textarea id="ltFocus" maxlength="2000" placeholder="На что обратить внимание — каждый пункт с новой строки">${esc(L.focus)}</textarea>
+    ${L.html ? '<iframe class="ltframe" id="ltFrame" sandbox="" title="Как выглядит письмо"></iframe>' : ''}
+    <div class="row2"><button type="button" class="btn" data-act="ltx">Закрыть</button><button type="button" class="btn" data-act="ltprev"${L.busy ? ' disabled' : ''}>Как выглядит</button><button type="button" class="btn pri" id="ltSend" data-act="ltsend"${L.busy || !n || L.ready===false ? ' disabled' : ''}>Отправить ${n}</button></div></form></div>`;
+}
+async function letterPreview(){
+  letterRead(); const L=S.letter; if(!L || L.busy) return; L.busy=true; render();
+  try{ const d=await api('/mail/version',{ preview:1, ver:L.ver.trim(), summary:L.sum, focus:L.focus }); L.html=d.html||''; L.busy=false; render(); }
+  catch(e){ L.busy=false; render(); toast(e.message==='ver' ? 'Версия: буквы, цифры, точки' : e.message==='empty' ? 'Напишите, что сделано или на что смотреть' : 'Не удалось: '+e.message); }
+}
+async function letterSend(){
+  letterRead(); const L=S.letter; if(!L || L.busy) return;
+  const n=TS.filter(t=>t.email && t.mver && !t.ban).length; if(!n){ toast('Некому отправлять'); return; }
+  L.busy=true; render();
+  try{ const d=await api('/mail/version',{ ver:L.ver.trim(), summary:L.sum, focus:L.focus });
+    L.busy=false; L.last={ ver:L.ver.trim(), at:Date.now(), sent:d.sent, fail:d.fail }; L.ready=true;
+    toast(d.fail ? 'Ушло '+d.sent+', не ушло '+d.fail : 'Письмо ушло: '+d.sent); render(); }
+  catch(e){ L.busy=false; if(e.message==='mail') L.ready=false; render(); toast(e.message==='mail' ? 'Почта не подключена (MAIL_KEY)' : e.message==='ver' ? 'Версия: буквы, цифры, точки' : e.message==='empty' ? 'Напишите, что сделано или на что смотреть' : 'Не удалось: '+e.message); }
+}
 const copy=(t,msg)=>{ try{ navigator.clipboard.writeText(t).then(()=>toast(msg),()=>toast(t)); }catch(e){ toast(t); } };
 
 /* ==================== Render ==================== */
@@ -1178,6 +1238,7 @@ function syncFields(){
   const ae=document.activeElement; if(!ae || !app.contains(ae)) return;
   if(ae.id==='q') S.F.q=ae.value; else if(ae.id==='pq') S.pq=ae.value; else if(ae.id==='lq') S.lq=ae.value; else if(ae.id==='eq') S.eq=ae.value;
   else if(ae.id==='repText' && S.sel) S.draft[S.sel.n]=ae.value; else if(ae.id==='editText') S.editText=ae.value;
+  letterRead();
 }
 function bindGrp(){
   const g=$('grp'); if(g) g.onchange=e=>{ S.G=e.target.value; LSs('cube-fb2-g',S.G); anim('list'); render(); };
@@ -1263,6 +1324,7 @@ function render(opt){
   if(S.help) h+=helpHtml();
   if(S.about) h+=aboutHtml();
   if(S.ask) h+=askHtml();
+  if(S.letter) h+=letterDlg();
   if(stay) h=h.replace('class="dlg"','class="dlg stay"').replace('class="mn"','class="mn stay"');
   if(S.toast) h+=`<div class="toast">${esc(S.toast)}</div>`;
   if(opt && opt.patch && tryPatch(h)){ S.focus=null; S.flash=0; moSoon(); return; }
@@ -1276,6 +1338,8 @@ function render(opt){
   if(fid && $(fid)){ $(fid).focus({ preventScroll:true }); if(want && !$(fid).closest('.dlg')) $(fid).scrollIntoView({ block:'center', behavior:'smooth' }); try{ if(fid===aid && s0!=null) $(fid).setSelectionRange(s0,s1); }catch(e){} }
   bindGrp();
   if($('askF')) $('askF').onsubmit=e=>{ e.preventDefault(); const v=$('askIn') ? $('askIn').value.trim() : true, er=ASKF && ASKF(v); if(typeof er==='string'){ $('askErr').textContent=er; return; } S.ask=null; render(); };
+  if($('ltF')) $('ltF').onsubmit=e=>{ e.preventDefault(); };
+  const lf=$('ltFrame'); if(lf && S.letter && S.letter.html) lf.srcdoc=S.letter.html;
   app.querySelectorAll('.dims [aria-pressed=true]').forEach(b=>{ const d=b.parentNode; if(b.offsetLeft<d.scrollLeft || b.offsetLeft+b.offsetWidth>d.scrollLeft+d.clientWidth) d.scrollLeft=b.offsetLeft-12; });
   if(A.has('num')) countUp();
   S.A=new Set(); S.flash=0; moSoon();
@@ -1384,8 +1448,8 @@ async function replySend(r){
   const text=(S.draft[r.n]||'').trim(), shots=S.rshot[r.n]||[], voice=S.rvoice[r.n]||null;
   if(!text && !shots.length && !voice){ $('repText') && $('repText').focus(); return; }
   if(DEMO && (shots.length || voice)){ toast('В демо снимок и голос не уходят'); return; }
-  try{ await api(`/issue/${r.n}/reply`,{ text, shots, shot:shots[0]||null, audio:voice ? { data:voice.data, dur:voice.dur } : null }); r.comments++; delete S.draft[r.n]; delete S.rshot[r.n];
-    if(voice) URL.revokeObjectURL(voice.url); delete S.rvoice[r.n]; toast('Отправлено — '+r.who+' увидит в игре'); repLoad(r); }
+  try{ const d=await api(`/issue/${r.n}/reply`,{ text, shots, shot:shots[0]||null, audio:voice ? { data:voice.data, dur:voice.dur } : null }); r.comments++; delete S.draft[r.n]; delete S.rshot[r.n];
+    if(voice) URL.revokeObjectURL(voice.url); delete S.rvoice[r.n]; toast(d && d.mailed ? 'Отправлено — в игре и на почту' : d && d.mailed===false ? 'В игре да, на почту не ушло' : 'Отправлено — '+r.who+' увидит в игре'); repLoad(r); }
   catch(e){ toast('Не удалось: '+e.message); }
 }
 let REC=null;
@@ -1496,6 +1560,13 @@ app.addEventListener('click',e=>{
   else if(a==='share'){ const u=$('shareUrl'); if(u){ u.focus(); u.select(); } copy(u ? u.value : accessUrl(),'Ссылка с ключом скопирована'); return; }
   else if(a==='abx' || a==='abbg' && e.target===el){ S.about=false; render(); return; }
   else if(a==='abbg') return;
+  else if(a==='letter'){ letterOpen(); return; }
+  else if(a==='ltx' || (a==='ltbg' && e.target===el)){ S.letter=null; render(); return; }
+  else if(a==='ltbg') return;
+  else if(a==='ltprev'){ letterPreview(); return; }
+  else if(a==='ltsend'){ letterSend(); return; }
+  else if(a==='mopt'){ const t=TSI[el.dataset.id]; if(!t || !t.email) return; const ver=el.dataset.k==='ver', key=ver ? 'mver' : 'mreply', on=!t[key];
+    t.raw[key]=on; model(); api('/testers/mail',{ id:t.id, nick:t.nick, [ver ? 'ver' : 'reply']:on }).catch(err=>{ t.raw[key]=!on; model(); toast('Не удалось: '+err.message); }); }
   else if(a==='dcause'){ S.dc=S.dc===el.dataset.k ? '' : el.dataset.k; }
   else if(a==='xp'){ const k=el.dataset.k; S.xo.has(k) ? S.xo.delete(k) : S.xo.add(k); }
   else if(a==='pmap'){ const t=TSI[el.dataset.t], e=t && t.prog[+el.dataset.x]; if(!e) return; $('lb').querySelector('img').hidden=true; $('lb').querySelector('.lbm').innerHTML=starMap(el.dataset.id,t,e); $('lb').hidden=false; tipHide(); return; }
@@ -1700,7 +1771,7 @@ app.addEventListener('touchend',tEnd); app.addEventListener('touchcancel',tEnd);
 
 addEventListener('keydown',e=>{
   if((e.ctrlKey || e.metaKey) && e.key==='Enter'){ if(e.target.id==='repText' && S.sel) replySend(S.sel); else if(e.target.id==='editText' && S.sel) leaveEdit(); return; }
-  if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.ff){ S.ff=false; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
+  if(e.key==='Escape'){ if(!$('lb').hidden){ $('lb').hidden=true; return; } if(S.ask){ S.ask=null; render(); return; } if(S.letter){ S.letter=null; render(); return; } if(S.menu){ S.menu=null; render(); return; } if(S.ff){ S.ff=false; render(); return; } if(S.help){ S.help=false; render(); return; } if(S.about){ S.about=false; render(); return; } }
   if(e.target.matches('input,textarea,select')){ if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape'){ if(S.sheet) closeSheet(); }
   else if(e.key==='ArrowDown' || e.key==='j' || e.key==='ArrowUp' || e.key==='k'){ e.preventDefault(); const d=e.key==='ArrowDown' || e.key==='j' ? 1 : -1; if(S.tab==='rep') stepRep(d); else if(S.tab==='lv') stepLv(d); else if(S.tab==='err') stepErr(d); else if(S.pl) stepPl(d); }
@@ -1956,7 +2027,7 @@ function demoData(){   // the same shapes as the worker (beta/worker/TELEMETRY.m
     ss.sort((a,b)=>b.s-a.s); const ms=ss.reduce((a,x)=>a+x.e-x.s,0), far=Math.min(ids.length-1,Math.round(ms/H*2.4+ri(0,2)));
     const live=i===1 || i===6 ? { s:NOW-(i===1 ? 7 : 23)*MIN, l:NOW, dev:dv[0].d.id, cc } : null;
     const lvs={}; ids.slice(0,far).forEach(x=>{ const g=ri(1,8); lvs[x]={ n:ri(1,3), at:NOW-ri(0,join)*DAY, best:ri(25,300), got:g, ids:SID[x] ? SID[x].filter(()=>R()<.6) : [] }; lvs[x].got=lvs[x].ids.length||g; });
-    testers.push({ id, nick, at:NOW-join*DAY, cc, ban:nick==='Olya', save:far>0, stats:ss.length ? { n:ss.length+(live ? 1 : 0), ms, first:ss[ss.length-1].s, last:ss[0].e, cc, ccs:{ [cc]:ss.length }, devs, ss } : null, ver:ss.length ? verAt(ss[0].s) : '', cfg:ss.length ? { q:pick(['auto','auto','high','low']), lang, mus:pick([0,.4,.6,.8]), sfx:pick([.6,.8,1]), amb:pick([.3,.5,.7]), cam:R()<.8, fs:R()<.4, pwa:R()<.2 } : null,
+    testers.push({ id, nick, at:NOW-join*DAY, cc, ban:nick==='Olya', save:far>0, email:i%3 ? nick.toLowerCase().replace(/[^a-z0-9]/g,'')+'@example.com' : '', mreply:i%5!==0, mver:i%4!==0, stats:ss.length ? { n:ss.length+(live ? 1 : 0), ms, first:ss[ss.length-1].s, last:ss[0].e, cc, ccs:{ [cc]:ss.length }, devs, ss } : null, ver:ss.length ? verAt(ss[0].s) : '', cfg:ss.length ? { q:pick(['auto','auto','high','low']), lang, mus:pick([0,.4,.6,.8]), sfx:pick([.6,.8,1]), amb:pick([.3,.5,.7]), cam:R()<.8, fs:R()<.4, pwa:R()<.2 } : null,
       live, prog:far ? [{ nm:i%3, c:NOW-join*DAY, at:ss.length ? ss[0].e : NOW, time:Math.round(ms/1000*.8), cur:ids[far], stars:Math.round(far*3.1), lv:lvs }] : null });
     for(let j=0, k=Math.round(act*6*R()+(ss.length ? 1 : 0)); j<k && ss.length; j++){
       const se=pick(ss), at=se.s+R()*(se.e-se.s), kind=R()<.62 ? 'bug' : 'opinion', lid=ids[Math.max(0,far-ri(0,4))], dd=devs[se.d], u=UA.find(u=>u[0]===dd.ua), fps=ri(u[5][0],u[5][1]);
@@ -2001,7 +2072,13 @@ async function demoApi(path,body){
   m=path.match(/^\/issue\/(\d+)\/delete$/); if(m){ DD.list=DD.list.filter(x=>x.n!==+m[1]); return { ok:true, how:'deleted' }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m && body.kind){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.labels=i.labels.filter(l=>l!=='bug' && l!=='opinion').concat(body.kind); i.meta.kind=body.kind; } return { ok:true }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip'&&l!=='done').concat(body.state==='wip'||body.state==='done' ? [body.state] : []); } return { ok:true }; }
-  m=path.match(/^\/testers\/(\w+)$/); if(m){ const t=DD.testers.find(x=>x.id===body.id); if(m[1]==='rename') t.nick=body.to; if(m[1]==='ban') t.ban=body.on; if(m[1]==='delete') DD.testers.splice(DD.testers.indexOf(t),1); return { ok:true, nick:t && t.nick }; }
+  if(path==='/mail/version'){ if(!body) return { ready:false, last:DD.mailLast||null };
+    const ver=String(body.ver||'').trim(); if(!/^[\w.\-+]{1,24}$/.test(ver)) throw new Error('ver');
+    const summary=String(body.summary||'').trim(), focus=String(body.focus||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    if(!summary && !focus.length) throw new Error('empty');
+    const html='<!doctype html><body style="margin:0;background:#120c22;color:#f4eefe;font:16px/1.45 Segoe UI,sans-serif;padding:28px"><div style="max-width:560px;margin:0 auto;background:#2a1b4e;border-radius:18px;padding:22px"><div style="color:#ffd66b;letter-spacing:.14em;font-size:12px">DATA CUBE</div><h1 style="margin:6px 0 14px;font-size:22px">Новая версия '+ver+'</h1><p>Здравствуйте, Игрок.</p>'+(summary?'<div style="color:#ffd66b;font-size:13px;letter-spacing:.08em">ЧТО СДЕЛАНО</div><p>'+summary.replace(/</g,'')+'</p>':'')+(focus.length?'<div style="color:#ffd66b;font-size:13px;letter-spacing:.08em">НА ЧТО ОБРАТИТЬ ВНИМАНИЕ</div><ul>'+focus.map(s=>'<li>'+s.replace(/</g,'')+'</li>').join('')+'</ul>':'')+'<p style="font-size:12px;color:#c3b6e4">Почту никому не передаём.</p></div></body>';
+    if(body.preview) return { html }; const sent=DD.testers.filter(t=>t.email && t.mver!==false && !t.ban).length; DD.mailLast={ ver, at:Date.now(), sent, fail:0 }; return { ok:true, sent, fail:0, n:sent }; }
+  m=path.match(/^\/testers\/(\w+)$/); if(m){ const t=DD.testers.find(x=>x.id===body.id); if(m[1]==='rename') t.nick=body.to; if(m[1]==='ban') t.ban=body.on; if(m[1]==='mail'){ if('reply' in body) t.mreply=!!body.reply; if('ver' in body) t.mver=!!body.ver; return { ok:true, mreply:t.mreply!==false, mver:t.mver!==false }; } if(m[1]==='delete') DD.testers.splice(DD.testers.indexOf(t),1); return { ok:true, nick:t && t.nick }; }
   throw new Error('demo: '+path);
 }
 
