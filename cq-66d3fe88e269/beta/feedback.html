@@ -469,8 +469,8 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .dlg p{margin:0;color:var(--dim);font-size:13px}
 .dlg .box.letter{width:min(640px,100%);max-height:92%;overflow:auto}
 .dlg .box.letter textarea{min-height:92px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
-.dlg .box.letter .ltwrap{height:min(460px,52vh);overflow-y:auto;border-radius:12px;background:#06262b}   /* the letter is as tall as its text and does not scroll itself: this box does, with the page's own arrows */
-.dlg .box.letter .ltframe{display:block;width:100%;height:460px;border:0}
+.dlg .box.letter .ltwrap{height:min(460px,52vh);border-radius:12px;background:#06262b}   /* the letter is as tall as its text and does not scroll itself: this .scr box does, with the page's own arrows, wheel and drag */
+.dlg .box.letter .ltframe{display:block;width:100%;height:460px;border:0;pointer-events:none}   /* a frame takes the mouse for itself: through it the wheel, the middle button and the drag reach the box */
 .dlg .box.letter input{width:100%}
 .ltt{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .ltt .btn[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
@@ -1247,7 +1247,7 @@ function letterDlg(){
     ${L.ready===false ? '<p class="err">Отправка ещё не подключена. Нужен секрет MAIL_KEY (Resend) — beta/worker/set-mail.bat. Предпросмотр работает.</p>' : ''}
     ${last ? `<p>Прошлое письмо: v${esc(last.ver)} · ${ago(last.at)} · ушло ${last.sent}${last.fail ? ', не ушло '+last.fail : ''}</p>` : ''}
     <div class="ltt"><button type="button" class="btn sm" data-act="ltedit" aria-pressed="${L.edit}">Поправить текст</button></div>
-    ${L.html ? '<div class="ltwrap" id="ltWrap"><iframe class="ltframe" id="ltFrame" sandbox="allow-same-origin" scrolling="no" title="Как выглядит письмо"></iframe></div>' : L.busy ? '<p>…</p>' : ''}
+    ${L.html ? '<div class="scr ltwrap" id="ltWrap"><iframe class="ltframe" id="ltFrame" sandbox="allow-same-origin" scrolling="no" title="Как выглядит письмо"></iframe></div>' : L.busy ? '<p>…</p>' : ''}
     ${L.edit ? `<input id="ltVer" value="${esc(L.ver)}" placeholder="Версия, например 2.16.30" autocomplete="off" maxlength="24">
     <textarea id="ltItems" maxlength="6000" placeholder="Один пункт — одна строка. Первое предложение станет заголовком пункта">${esc(L.items.join('\n'))}</textarea>
     <div class="row2"><button type="button" class="btn" data-act="ltprev"${L.busy ? ' disabled' : ''}>Обновить письмо</button></div>` : ''}
@@ -1710,9 +1710,10 @@ document.addEventListener('wheel',e=>{
   g[ax]=Math.max(0,Math.min(scrMax(el,ax),(g[ax]??el[scrP(ax)])+d*k)); WH.set(el,g); if(!whRaf) whRaf=requestAnimationFrame(whStep);
 },{ passive:false });
 let MD=null, MDS=null;   // the middle-button drag, its coast after release
-addEventListener('mousedown',e=>{ if(e.button===1 && app.contains(e.target)) e.preventDefault(); },true);   // no browser autoscroll
+const mdBtn=e=>e.button===1 || e.button===0 && e.target.closest && !!e.target.closest('.ltwrap');   // drag to scroll: the middle button anywhere; the left one on the letter preview (it has nothing to click)
+addEventListener('mousedown',e=>{ if(mdBtn(e) && app.contains(e.target)) e.preventDefault(); },true);   // no browser autoscroll
 app.addEventListener('pointerdown',e=>{
-  if(e.button!==1 || e.pointerType!=='mouse') return;
+  if(!mdBtn(e) || e.pointerType!=='mouse') return;
   const ey=scrOf(e.target,'y'), ex=scrOf(e.target,'x'), el=ey||ex; if(!el) return;
   e.preventDefault(); WH.delete(el); MDS=null;
   MD={ el, id:e.pointerId, x:e.clientX, y:e.clientY, sx:el.scrollLeft, sy:el.scrollTop, vx:0, vy:0, lx:e.clientX, ly:e.clientY, lt:performance.now(), moved:false, ax:!!ex && (ex===el), ay:!!ey && (ey===el) };
