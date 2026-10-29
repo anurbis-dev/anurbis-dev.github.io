@@ -469,7 +469,10 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .dlg p{margin:0;color:var(--dim);font-size:13px}
 .dlg .box.letter{width:min(640px,100%);max-height:92%;overflow:auto}
 .dlg .box.letter textarea{min-height:92px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
-.dlg .box.letter .ltframe{width:100%;height:440px;border:0;border-radius:12px;background:#120c22}
+.dlg .box.letter .ltframe{width:100%;height:460px;border:0;border-radius:12px;background:#fff}
+.dlg .box.letter input{width:100%}
+.ltt{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.ltt .btn[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
 .mbox{display:grid;gap:6px;margin:10px 0}
 .tog{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;font-weight:700}
 .tog i{width:34px;height:20px;border-radius:99px;background:#3a2d62;position:relative;flex:none}
@@ -870,7 +873,7 @@ function header(){
     <button data-act="tab" data-v="pl" aria-pressed="${S.tab==='pl'}" title="Игроки"><span class="ti lt">👥</span><span class="tl">Игроки</span> <span class="c">${TS.length}</span>${on ? `<span class="lvd">● ${on}</span>` : ''}</button>
     <button data-act="tab" data-v="lv" aria-pressed="${S.tab==='lv'}" title="Уровни"><span class="ti">🗺</span><span class="tl">Уровни</span>${LVM.some(l=>l.stuck.length) ? `<span class="c" style="color:var(--warn)">⏸${LVM.reduce((a,l)=>a+l.stuck.length,0)}</span>` : ''}</button>
     <button data-act="tab" data-v="err" aria-pressed="${S.tab==='err'}" title="Сбои"><span class="ti">⚠</span><span class="tl">Сбои</span>${ERR && ERR.length ? `<span class="c" style="color:var(--bug)">${ERR.length}</span>` : ''}</button></div>
-    <span class="sp"></span><button class="ib inf" data-act="help" title="Как пользоваться" aria-label="Как пользоваться"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="6.2" r="1.15" fill="currentColor"/><path d="M10 9v5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><span class="live${failed ? ' off' : ''}" id="live">${lt}${DEMO ? ' · демо' : ''}</span><button class="ib" data-act="reload" title="Обновить (R)"${S.busy ? ' disabled' : ''}><span class="${S.busy ? 'spin' : ''}" style="display:inline-block">⟳</span></button></div>`;
+    <span class="sp"></span><button class="ib" data-act="letter" title="Письмо тестерам о новой версии" aria-label="Письмо тестерам о новой версии">✉</button><button class="ib inf" data-act="help" title="Как пользоваться" aria-label="Как пользоваться"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="6.2" r="1.15" fill="currentColor"/><path d="M10 9v5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><span class="live${failed ? ' off' : ''}" id="live">${lt}${DEMO ? ' · демо' : ''}</span><button class="ib" data-act="reload" title="Обновить (R)"${S.busy ? ' disabled' : ''}><span class="${S.busy ? 'spin' : ''}" style="display:inline-block">⟳</span></button></div>`;
 }
 const thumb=r=>r.m.shot && !DEMO ? `<span class="th"><img loading="lazy" src="${media(r.m.id,'shot.jpg')}" alt=""></span>`
   : `<span class="th${r.m.shot ? ' pic' : ''}" style="--h:${r.hue}">${r.m.shot ? CUBE : r.kind==='bug' ? '🐞' : '💬'}</span>`;
@@ -1082,7 +1085,7 @@ function plView(){
     <div class="st"><b>${hmS(N.ms)}</b><span>наиграно</span>${spark(perDay(N.ss,14,s=>(s.e-s.s)/MIN,s=>s.s),'#ffd66b')}</div>
     <div class="st"><b data-n="${N.n}">${N.n}</b><span>${nf(N.n,'сессия','сессии','сессий')}</span><span>ср. ${hm(N.avg)}</span></div>
     <div class="st"><b data-n="${N.devs}">${N.devs}</b><span>устройств</span><span>${N.cc} ${nf(N.cc,'страна','страны','стран')}</span></div></div>`;
-  const tool=toolBar({ id:'pq', val:S.pq, ph:'Ник, почта, устройство, страна, тег…', extra:'<button class="ib" data-act="letter" title="Письмо о новой версии">✉</button>', sortId:'psort', sortLabel:'Сортировка', sortVal:S.psort,
+  const tool=toolBar({ id:'pq', val:S.pq, ph:'Ник, почта, устройство, страна, тег…', sortId:'psort', sortLabel:'Сортировка', sortVal:S.psort,
     sort:[['last','Недавние'],['time','Время'],['lv','Прогресс'],['at','Новые']],
     chips:`<span class="chips">${fChips()}${S.pday!=null ? `<span class="chip"><span>играли ${dayShort(DAYS-1-S.pday)}</span><button data-act="unpday" aria-label="Убрать фильтр">×</button></span>` : ''}${S.pstuck ? `<span class="chip"><span>⏸ застряли: ${esc((LVMI[S.pstuck]||LVI[S.pstuck]||{}).name||S.pstuck)}</span><button data-act="unpstuck" aria-label="Убрать фильтр">×</button></span>` : ''}</span>` });
   rowI=0;
@@ -1191,42 +1194,81 @@ const ask=(o,fn)=>{ S.ask=o; ASKF=fn; S.focus=o.input!=null ? 'askIn' : 'askOk';
 const askHtml=()=>{ const a=S.ask; return `<div class="dlg" data-act="askbg"><form class="box" id="askF"><h4>${esc(a.t)}</h4>${a.p ? `<p>${esc(a.p)}</p>` : ''}
   ${a.input!=null ? `<input id="askIn" value="${esc(a.input)}" placeholder="${esc(a.ph||'')}" autocomplete="off"${a.num ? ' inputmode="numeric"' : ''}>` : ''}<span class="err" id="askErr"></span>
   <div class="row2"><button type="button" class="btn" data-act="askno">Отмена</button><button class="btn ${a.dng ? 'dng' : 'pri'}" id="askOk">${esc(a.ok||'OK')}</button></div></form></div>`; };
-function letterRead(){
-  if(!S.letter) return; const v=$('ltVer'), s=$('ltSum'), f=$('ltFocus');
-  if(v) S.letter.ver=v.value; if(s) S.letter.sum=s.value; if(f) S.letter.focus=f.value;
+/* The new-version letter is built from CHANGELOG.md (published next to version.json): the entries newer than the last letter, up to the beta's version.
+   The dashboard only picks the look (three templates, all rendered by the worker) and sends; the text can be fixed by hand if needed. */
+function clParse(md){
+  const out=[]; let cur=null;
+  for(const ln of String(md).split(/\r?\n/)){
+    const h=ln.match(/^##\s+(\d+(?:\.\d+)*)\s*[—-]\s*(\S+)?/); if(h){ cur={ v:h[1], date:h[2]||'', items:[] }; out.push(cur); continue; }
+    const m=ln.match(/^[-*]\s+(.+)/);
+    if(m && cur) cur.items.push(m[1].trim()); else if(cur && cur.items.length && /^\s+\S/.test(ln)) cur.items[cur.items.length-1]+=' '+ln.trim();
+  }
+  return out.filter(e=>e.items.length);
 }
-function letterOpen(){
-  S.about=false; const n=TS.filter(t=>t.email && t.mver && !t.ban).length;
-  S.letter={ ver:(BVER && BVER!=='…' && BVER!=='—' && BVER!=='') ? BVER : '', sum:'', focus:'', html:'', busy:false, n, ready:null, last:null };
-  S.focus='ltSum';
-  if(!DEMO) api('/mail/version').then(d=>{ if(!S.letter) return; S.letter.ready=!!d.ready; S.letter.last=d.last||null; if(!S.letter.ver && d.last && d.last.ver) S.letter.ver=d.last.ver; render(); }).catch(()=>{});
+const vCmp=(a,b)=>{ const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number); for(let i=0;i<Math.max(x.length,y.length);i++){ const d=(x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
+function letterEnts(md,lmd){   // the versions come from the changelog; the wording — from letters.md (plain language) where a version has it
+  const cl=clParse(md), lt=new Map(clParse(lmd).map(e=>[e.v,e]));
+  return (cl.length ? cl : [...lt.values()]).map(e=>lt.has(e.v) ? { ...e, items:lt.get(e.v).items } : e);
+}
+function letterPick(ents,last,cur){   // newest first; what is new since the last letter, never past the beta's own version
+  let ok=ents.filter(e=>!cur || vCmp(e.v,cur)<=0), fresh=last ? ok.filter(e=>vCmp(e.v,last)>0) : ok.slice(0,1);
+  if(!fresh.length) fresh=ok.slice(0,1);
+  const items=[], vs=[]; for(const e of fresh){ if(items.length && items.length+e.items.length>16) break; items.push(...e.items); vs.push(e.v); }
+  return vs.length ? { ver:vs[0], from:vs[vs.length-1], items:items.slice(0,16) } : null;
+}
+const LT_DEMO=[ 'Кубик отряхивается после воды. Быстрая дрожь, брызги и звук.', 'Рамка полного сбора светится золотом на карточке уровня. Такая же рамка — на карте.', 'Облачко помощи над зверем гаснет, если кубик утонул.' ];
+const ltRecip=()=>TS.filter(t=>t.email && t.mver && !t.ban).length;
+const ltTpl=()=>{ try{ return localStorage.getItem('cube-fb2-tpl')||'cube'; }catch(e){ return 'cube'; } };
+function letterRead(){
+  const L=S.letter; if(!L) return; const v=$('ltVer'), t=$('ltItems');
+  if(v) L.ver=v.value.trim(); if(t) L.items=t.value.split(/\n/).map(x=>x.trim()).filter(Boolean);
+}
+async function letterOpen(){
+  S.about=false;
+  const L=S.letter={ ver:'', from:'', items:[], tpl:ltTpl(), html:null, tpls:null, busy:true, ready:null, last:null, edit:false, note:'Собираю письмо из журнала изменений…' };
   render();
+  const cur=BVER && BVER!=='…' && BVER!=='—' ? BVER : '';
+  try{
+    const get=u=>DEMO ? Promise.resolve('') : fetch(u,{ cache:'no-store' }).then(r=>r.ok ? r.text() : '',()=>'');
+    const [info, md, lmd]=await Promise.all([ DEMO ? {ready:true,last:null} : api('/mail/version').catch(()=>({})), get('../CHANGELOG.md'), get('letters.md') ]);
+    if(S.letter!==L) return;
+    L.ready=!!info.ready; L.last=info.last||null;
+    const pick=DEMO ? { ver:'2.16.30', from:'2.16.30', items:LT_DEMO } : letterPick(letterEnts(md,lmd), L.last && L.last.ver, cur);
+    if(pick) Object.assign(L,pick);
+    L.note=pick ? '' : 'Не нашёл журнал изменений. Впишите версию и пункты вручную.'; if(!pick) L.edit=true;
+  }catch(e){ L.note='Не удалось собрать письмо: '+e.message; L.edit=true; }
+  L.busy=false; if(L.items.length) await letterPreview(); else render();
 }
 function letterDlg(){
-  const L=S.letter, n=TS.filter(t=>t.email && t.mver && !t.ban).length, last=L.last;
+  const L=S.letter, n=ltRecip(), last=L.last, names={ cube:'Куб', paper:'Бумага', log:'Журнал' };
+  const range=L.ver ? (L.from && L.from!==L.ver ? 'v'+esc(L.from)+' — v'+esc(L.ver) : 'v'+esc(L.ver)) : '';
   return `<div class="dlg" data-act="ltbg"><form class="box letter" id="ltF"><div class="hh"><h4>Письмо о новой версии</h4><button type="button" class="ib" data-act="ltx" aria-label="Закрыть">✕</button></div>
-    <p>Уйдёт игрокам, у которых есть почта и включено «уведомление о новой версии»: <b>${n}</b>. В письме — что сделано и на что смотреть, проверяя эти правки.</p>
+    ${L.items.length ? `<p>Собрано из журнала изменений: <b>${range}</b>, пунктов — ${L.items.length}. Получат: <b>${n}</b> (почта подтверждена, «уведомление о новой версии» включено).</p>` : ''}
+    ${L.note ? `<p class="${L.busy ? '' : 'err'}">${esc(L.note)}</p>` : ''}
     ${L.ready===false ? '<p class="err">Отправка ещё не подключена. Нужен секрет MAIL_KEY (Resend) — beta/worker/set-mail.bat. Предпросмотр работает.</p>' : ''}
     ${last ? `<p>Прошлое письмо: v${esc(last.ver)} · ${ago(last.at)} · ушло ${last.sent}${last.fail ? ', не ушло '+last.fail : ''}</p>` : ''}
-    <input id="ltVer" value="${esc(L.ver)}" placeholder="Версия, например 2.16.30" autocomplete="off" maxlength="24">
-    <textarea id="ltSum" maxlength="4000" placeholder="Что сделано — коротко, абзацами">${esc(L.sum)}</textarea>
-    <textarea id="ltFocus" maxlength="2000" placeholder="На что обратить внимание — каждый пункт с новой строки">${esc(L.focus)}</textarea>
-    ${L.html ? '<iframe class="ltframe" id="ltFrame" sandbox="" title="Как выглядит письмо"></iframe>' : ''}
-    <div class="row2"><button type="button" class="btn" data-act="ltx">Закрыть</button><button type="button" class="btn" data-act="ltprev"${L.busy ? ' disabled' : ''}>Как выглядит</button><button type="button" class="btn pri" id="ltSend" data-act="ltsend"${L.busy || !n || L.ready===false ? ' disabled' : ''}>Отправить ${n}</button></div></form></div>`;
+    <div class="ltt" role="group" aria-label="Оформление">${Object.keys(names).map(k=>`<button type="button" class="btn sm" data-act="lttpl" data-v="${k}" aria-pressed="${L.tpl===k}">${names[k]}</button>`).join('')}
+      <button type="button" class="btn sm" data-act="ltedit" aria-pressed="${L.edit}">Поправить текст</button></div>
+    ${L.html ? '<iframe class="ltframe" id="ltFrame" sandbox="" title="Как выглядит письмо"></iframe>' : L.busy ? '<p>…</p>' : ''}
+    ${L.edit ? `<input id="ltVer" value="${esc(L.ver)}" placeholder="Версия, например 2.16.30" autocomplete="off" maxlength="24">
+    <textarea id="ltItems" maxlength="6000" placeholder="Один пункт — одна строка. Первое предложение станет заголовком пункта">${esc(L.items.join('\n'))}</textarea>
+    <div class="row2"><button type="button" class="btn" data-act="ltprev"${L.busy ? ' disabled' : ''}>Обновить письмо</button></div>` : ''}
+    <div class="row2"><button type="button" class="btn" data-act="ltx">Закрыть</button><button type="button" class="btn pri" id="ltSend" data-act="ltsend"${L.busy || !n || !L.items.length || L.ready===false ? ' disabled' : ''}>Отправить ${n}</button></div></form></div>`;
 }
+const ltErr=e=>e.message==='ver' ? 'Версия: буквы, цифры, точки' : e.message==='empty' ? 'Нет ни одного пункта' : e.message==='mail' ? 'Почта не подключена (MAIL_KEY)' : 'Не удалось: '+e.message;
 async function letterPreview(){
-  letterRead(); const L=S.letter; if(!L || L.busy) return; L.busy=true; render();
-  try{ const d=await api('/mail/version',{ preview:1, ver:L.ver.trim(), summary:L.sum, focus:L.focus }); L.html=d.html||''; L.busy=false; render(); }
-  catch(e){ L.busy=false; render(); toast(e.message==='ver' ? 'Версия: буквы, цифры, точки' : e.message==='empty' ? 'Напишите, что сделано или на что смотреть' : 'Не удалось: '+e.message); }
+  letterRead(); const L=S.letter; if(!L || L.busy) return; L.busy=true; L.note=''; render();
+  try{ const d=await api('/mail/version',{ preview:1, ver:L.ver, from:L.from||L.ver, items:L.items }); L.html=d.html||null; L.tpls=d.tpls||null; L.busy=false; render(); }
+  catch(e){ L.busy=false; render(); toast(ltErr(e)); }
 }
 async function letterSend(){
   letterRead(); const L=S.letter; if(!L || L.busy) return;
-  const n=TS.filter(t=>t.email && t.mver && !t.ban).length; if(!n){ toast('Некому отправлять'); return; }
+  const n=ltRecip(); if(!n){ toast('Некому отправлять'); return; }
   L.busy=true; render();
-  try{ const d=await api('/mail/version',{ ver:L.ver.trim(), summary:L.sum, focus:L.focus });
-    L.busy=false; L.last={ ver:L.ver.trim(), at:Date.now(), sent:d.sent, fail:d.fail }; L.ready=true;
+  try{ const d=await api('/mail/version',{ ver:L.ver, from:L.from||L.ver, items:L.items, tpl:L.tpl });
+    L.busy=false; L.last={ ver:L.ver, at:Date.now(), sent:d.sent, fail:d.fail }; L.ready=true;
     toast(d.fail ? 'Ушло '+d.sent+', не ушло '+d.fail : 'Письмо ушло: '+d.sent); render(); }
-  catch(e){ L.busy=false; if(e.message==='mail') L.ready=false; render(); toast(e.message==='mail' ? 'Почта не подключена (MAIL_KEY)' : e.message==='ver' ? 'Версия: буквы, цифры, точки' : e.message==='empty' ? 'Напишите, что сделано или на что смотреть' : 'Не удалось: '+e.message); }
+  catch(e){ L.busy=false; if(e.message==='mail') L.ready=false; render(); toast(ltErr(e)); }
 }
 const copy=(t,msg)=>{ try{ navigator.clipboard.writeText(t).then(()=>toast(msg),()=>toast(t)); }catch(e){ toast(t); } };
 
@@ -1339,7 +1381,7 @@ function render(opt){
   bindGrp();
   if($('askF')) $('askF').onsubmit=e=>{ e.preventDefault(); const v=$('askIn') ? $('askIn').value.trim() : true, er=ASKF && ASKF(v); if(typeof er==='string'){ $('askErr').textContent=er; return; } S.ask=null; render(); };
   if($('ltF')) $('ltF').onsubmit=e=>{ e.preventDefault(); };
-  const lf=$('ltFrame'); if(lf && S.letter && S.letter.html) lf.srcdoc=S.letter.html;
+  const lf=$('ltFrame'); if(lf && S.letter && S.letter.html) lf.srcdoc=S.letter.html[S.letter.tpl]||S.letter.html.cube||'';
   app.querySelectorAll('.dims [aria-pressed=true]').forEach(b=>{ const d=b.parentNode; if(b.offsetLeft<d.scrollLeft || b.offsetLeft+b.offsetWidth>d.scrollLeft+d.clientWidth) d.scrollLeft=b.offsetLeft-12; });
   if(A.has('num')) countUp();
   S.A=new Set(); S.flash=0; moSoon();
@@ -1565,6 +1607,8 @@ app.addEventListener('click',e=>{
   else if(a==='ltbg') return;
   else if(a==='ltprev'){ letterPreview(); return; }
   else if(a==='ltsend'){ letterSend(); return; }
+  else if(a==='lttpl'){ letterRead(); S.letter.tpl=el.dataset.v; try{ localStorage.setItem('cube-fb2-tpl',el.dataset.v); }catch(e){} }
+  else if(a==='ltedit'){ letterRead(); S.letter.edit=!S.letter.edit; }
   else if(a==='mopt'){ const t=TSI[el.dataset.id]; if(!t || !t.email) return; const ver=el.dataset.k==='ver', key=ver ? 'mver' : 'mreply', on=!t[key];
     t.raw[key]=on; model(); api('/testers/mail',{ id:t.id, nick:t.nick, [ver ? 'ver' : 'reply']:on }).catch(err=>{ t.raw[key]=!on; model(); toast('Не удалось: '+err.message); }); }
   else if(a==='dcause'){ S.dc=S.dc===el.dataset.k ? '' : el.dataset.k; }
@@ -2072,12 +2116,12 @@ async function demoApi(path,body){
   m=path.match(/^\/issue\/(\d+)\/delete$/); if(m){ DD.list=DD.list.filter(x=>x.n!==+m[1]); return { ok:true, how:'deleted' }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m && body.kind){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.labels=i.labels.filter(l=>l!=='bug' && l!=='opinion').concat(body.kind); i.meta.kind=body.kind; } return { ok:true }; }
   m=path.match(/^\/issue\/(\d+)$/); if(m){ const i=DD.list.find(x=>x.n===+m[1]); if(i){ i.state=body.state==='closed' ? 'closed' : 'open'; i.labels=i.labels.filter(l=>l!=='wip'&&l!=='done').concat(body.state==='wip'||body.state==='done' ? [body.state] : []); } return { ok:true }; }
-  if(path==='/mail/version'){ if(!body) return { ready:false, last:DD.mailLast||null };
+  if(path==='/mail/version'){ if(!body) return { ready:true, last:DD.mailLast||null };
     const ver=String(body.ver||'').trim(); if(!/^[\w.\-+]{1,24}$/.test(ver)) throw new Error('ver');
-    const summary=String(body.summary||'').trim(), focus=String(body.focus||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
-    if(!summary && !focus.length) throw new Error('empty');
-    const html='<!doctype html><body style="margin:0;background:#120c22;color:#f4eefe;font:16px/1.45 Segoe UI,sans-serif;padding:28px"><div style="max-width:560px;margin:0 auto;background:#2a1b4e;border-radius:18px;padding:22px"><div style="color:#ffd66b;letter-spacing:.14em;font-size:12px">DATA CUBE</div><h1 style="margin:6px 0 14px;font-size:22px">Новая версия '+ver+'</h1><p>Здравствуйте, Игрок.</p>'+(summary?'<div style="color:#ffd66b;font-size:13px;letter-spacing:.08em">ЧТО СДЕЛАНО</div><p>'+summary.replace(/</g,'')+'</p>':'')+(focus.length?'<div style="color:#ffd66b;font-size:13px;letter-spacing:.08em">НА ЧТО ОБРАТИТЬ ВНИМАНИЕ</div><ul>'+focus.map(s=>'<li>'+s.replace(/</g,'')+'</li>').join('')+'</ul>':'')+'<p style="font-size:12px;color:#c3b6e4">Почту никому не передаём.</p></div></body>';
-    if(body.preview) return { html }; const sent=DD.testers.filter(t=>t.email && t.mver!==false && !t.ban).length; DD.mailLast={ ver, at:Date.now(), sent, fail:0 }; return { ok:true, sent, fail:0, n:sent }; }
+    const items=(body.items||[]).filter(Boolean); if(!items.length) throw new Error('empty');
+    const mk=(bg,card,tx,ac,ff)=>'<!doctype html><body style="margin:0;background:'+bg+';padding:28px;font:16px/1.45 '+ff+'"><div style="max-width:560px;margin:0 auto;background:'+card+';color:'+tx+';border-radius:14px;padding:24px"><div style="color:'+ac+';letter-spacing:.14em;font-size:12px">DATA CUBE</div><h1 style="margin:6px 0 14px;font-size:22px">Новая версия '+ver+'</h1>'+items.map((x,i)=>'<p><b style="color:'+ac+'">'+(i+1)+'.</b> '+x.replace(/</g,'&lt;')+'</p>').join('')+'</div></body>';
+    if(body.preview) return { html:{ cube:mk('#120c22','#2a1b4e','#f4eefe','#ffd66b','Segoe UI,sans-serif'), paper:mk('#efe7d8','#fffdf8','#3a3350','#d9731a','Georgia,serif'), log:mk('#06262b','#0d4850','#e3f7f4','#5eead4','Consolas,monospace') }, tpls:[{id:'cube',name:'Куб'},{id:'paper',name:'Бумага'},{id:'log',name:'Журнал'}] };
+    const sent=DD.testers.filter(t=>t.email && t.mver!==false && !t.ban).length; DD.mailLast={ ver, at:Date.now(), sent, fail:0 }; return { ok:true, sent, fail:0, n:sent }; }
   m=path.match(/^\/testers\/(\w+)$/); if(m){ const t=DD.testers.find(x=>x.id===body.id); if(m[1]==='rename') t.nick=body.to; if(m[1]==='ban') t.ban=body.on; if(m[1]==='mail'){ if('reply' in body) t.mreply=!!body.reply; if('ver' in body) t.mver=!!body.ver; return { ok:true, mreply:t.mreply!==false, mver:t.mver!==false }; } if(m[1]==='delete') DD.testers.splice(DD.testers.indexOf(t),1); return { ok:true, nick:t && t.nick }; }
   throw new Error('demo: '+path);
 }
