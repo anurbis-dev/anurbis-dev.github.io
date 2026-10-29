@@ -100,7 +100,10 @@ button.st[aria-pressed=true]{background:var(--card);box-shadow:inset 0 -2px 0 va
 .fdrop>.ib[aria-pressed=true]:hover{background:var(--gold);color:var(--gold-ink)}
 .fpop{position:absolute;right:0;top:calc(100% + 4px);z-index:40;width:min(260px,78vw);max-height:min(360px,calc(100dvh - 180px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
 .fsec+.fsec{border-top:1px solid var(--line2);margin-top:4px;padding-top:4px}
-.fsec h5{margin:4px 8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim2);font-weight:800}
+.fpop button.fh{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;border-radius:8px;padding:4px 8px;text-align:left;font:800 10.5px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--dim2)}
+.fpop button.fh:hover{background:var(--card2);color:var(--txt)}
+.fpop button.fh .ar{margin-left:auto;width:10px;transition:transform .2s var(--ease)}
+.fsec.shut .fh .ar{transform:rotate(-90deg)}
 .fpop button{display:block;width:100%;border:0;background:none;border-radius:8px;padding:6px 8px;text-align:left;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fpop button:hover{background:var(--card2)}
 .fpop button[aria-pressed=true]{background:var(--gold);color:var(--gold-ink)}
@@ -743,7 +746,7 @@ const wdLoad=()=>{ try{ return { ...WD0, ...JSON.parse(LSg('cube-fb2-w','{}')) }
 const S={ wd:wdLoad(), tab:{ '#testers':'pl', '#levels':'lv', '#crashes':'err' }[location.hash]||'rep', sel:null, pl:null, sheet:null, menu:null, ask:null,
   F:{ q:'', kind:'', state:LSg('cube-fb-state','open'), flag:'', day:null, lv:'', ver:'', dev:'', who:'', tag:'', not:{ lv:[], ver:[], dev:[], who:[] } },
   G:LSg('cube-fb2-g','lv'), shut:new Set(), dim:'lv', all:false, ana:LSg('cube-fb2-ana','0')==='1', pdim:'cls', psort:LSg('cube-fb-tpsort','last'), pq:'', pday:null,
-  toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, ff:false, A:new Set(),
+  toast:'', draft:{}, busy:false, booted:false, gate:false, flash:0, ff:false, fshut:new Set(), A:new Set(),
   lsort:'ord', lq:'', ltag:'', lkind:'', lst:'', lwho:'', lcause:'', lsel:null, esort:'new', eq:'', est:'', edev:'', esel:null, etag:'', pstuck:'', ptag:'', pcls:'', pst:'', pnick:'', about:false, dc:'', xo:new Set(), edit:0, editText:null, saving:false, tagAdd:'', rshot:{}, rvoice:{}, rec:false, rdrop:false };
 const anim=(...a)=>a.forEach(x=>S.A.add(x));
 const TABS={ dim:['lv','ver','dev','who','mx'], pdim:['cls','os','br','cc'], tab:['rep','pl','lv','err'] };   // swipeable tab sets: S[key] holds the current one
@@ -817,7 +820,8 @@ function fSet(k,v){
   else if(k in S) S[k]=on(S[k]);
 }
 function fPop(){
-  const sec=s=>s.items.length ? `<div class="fsec"><h5>${s.t}</h5>${s.items.map(([v,l])=>`<button data-act="fset" data-k="${s.k}" data-v="${esc(v)}" aria-pressed="${s.cur===v}">${esc(l)}</button>`).join('')}</div>` : '';
+  const sec=s=>{ if(!s.items.length) return ''; const shut=S.fshut.has(s.k);
+    return `<div class="fsec${shut ? ' shut' : ''}"><button type="button" class="fh" data-act="fsec" data-k="${s.k}" aria-expanded="${!shut}">${s.t}<span class="ar">▾</span></button>${shut ? '' : s.items.map(([v,l])=>`<button data-act="fset" data-k="${s.k}" data-v="${esc(v)}" aria-pressed="${s.cur===v}">${esc(l)}</button>`).join('')}</div>`; };
   return `<div class="fpop">${fSecs().map(sec).join('')}</div>`;
 }
 function fChips(){
@@ -1116,7 +1120,7 @@ const helpHtml=()=>`<div class="dlg" data-act="helpbg"><div class="box help" rol
   <h5>Список</h5><ul><li><b>Тап</b> по строке — карточка отзыва или игрока.</li><li><b>Свайп строки вправо</b> — закрыть отзыв (или открыть снова).</li>
     <li><b>Свайп влево или долгий тап</b> — меню: ответить, все отзывы игрока или уровня, скрыть уровень, копировать. На компьютере — правая кнопка мыши.</li>
     <li>Список группируется по уровню, дню, версии, игроку, устройству, статусу — выбор рядом с поиском. Заголовок группы сворачивает её, <b>Shift+клик</b> — сворачивает или разворачивает все группы, долгий тап — «только это», «исключить».</li>
-    <li><b>Фильтр</b> справа: тип, статус, игрок, тег — на отзывах, игроках, уровнях и сбоях. Повторный выбор снимает пункт. Пока в секции ничего не выбрано, она показывает всё.</li>
+    <li><b>Фильтр</b> справа: тип, статус, игрок, тег — на отзывах, игроках, уровнях и сбоях. Заголовок секции сворачивает её. Повторный выбор снимает пункт. Пока в секции ничего не выбрано, она показывает всё. Когда курсор уже был внутри меню и ушёл от него дальше чем на 25 пикселей, меню закрывается.</li>
     <li><b>В работе</b> и <b>Выполнено</b> — отметки в меню отзыва (⋯). Фильтр «Открытые» показывает и их.</li></ul>
   <h5>Карточка</h5><ul><li><b>Свайп вбок</b>, ручка сверху или ✕ — закрыть.</li><li><b>Вверх или вниз</b>, когда карточка прокручена до края, — следующая или предыдущая по списку.</li><li>Клавиши <b>↑ ↓</b> (или J, K) — то же на компьютере.</li></ul>
   <h5>Сводка и графики</h5><ul><li>Цифры сводки — быстрые фильтры, повторный тап снимает.</li><li><b>Свайп по сводке</b> — соседняя вкладка: Отзывы, Игроки, Уровни, Сбои.</li>
@@ -1508,7 +1512,8 @@ app.addEventListener('click',e=>{
     if(cur) S[cur]=S[cur]===t ? '' : t; else F.tag=F.tag===t ? '' : t; anim('list'); }
   else if(a==='noop'){ toast('В демо не работает'); return; }
   else if(a==='ana'){ toggleAna(); return; }
-  else if(a==='ffilt') S.ff=!S.ff;
+  else if(a==='ffilt'){ S.ff=!S.ff; S.ffin=false; }
+  else if(a==='fsec'){ const k=el.dataset.k; S.fshut.has(k) ? S.fshut.delete(k) : S.fshut.add(k); }
   else if(a==='fset'){ fSet(el.dataset.k,el.dataset.v); anim('list'); }
   else if(a==='quick'){ const v=el.dataset.v; if(F.kind===v && F.state==='open') F.kind=''; else { F.kind=v; F.state='open'; } anim('list'); }
   else if(a==='flag'){ F.flag=F.flag===el.dataset.v ? '' : el.dataset.v; anim('list'); }
@@ -1531,12 +1536,14 @@ app.addEventListener('click',e=>{
   else if(a==='adm'){ admin(TSI[el.dataset.id],el.dataset.a); return; }
   render();
 },true);
-/* The filter menu shuts once the cursor is more than 25px outside it (and its button) */
+/* After the cursor has been inside the filter menu, leaving it by more than 25px closes it. The icon does not count. */
 document.addEventListener('pointermove',e=>{
   if(!S.ff || e.pointerType==='touch') return;
-  const box=document.querySelector('.fdrop'); if(!box) return;
-  const r=box.getBoundingClientRect();
-  if(e.clientX<r.left-25 || e.clientX>r.right+25 || e.clientY<r.top-25 || e.clientY>r.bottom+25){ S.ff=false; render(); }
+  const pop=document.querySelector('.fpop'); if(!pop) return;
+  const r=pop.getBoundingClientRect(), x=e.clientX, y=e.clientY;
+  if(x>=r.left && x<=r.right && y>=r.top && y<=r.bottom){ S.ffin=true; return; }
+  if(!S.ffin) return;
+  if(x<r.left-25 || x>r.right+25 || y<r.top-25 || y>r.bottom+25){ S.ffin=false; S.ff=false; render(); }
 });
 app.addEventListener('input',e=>{ const id=e.target.id;
   if(id==='q'){ S.F.q=e.target.value; render({ patch:true }); } else if(id==='pq'){ S.pq=e.target.value; render({ patch:true }); } else if(id==='lq'){ S.lq=e.target.value; render({ patch:true }); } else if(id==='eq'){ S.eq=e.target.value; render({ patch:true }); }
