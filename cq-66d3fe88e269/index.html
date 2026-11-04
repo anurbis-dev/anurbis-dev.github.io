@@ -1175,7 +1175,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.33';
+const VERSION = '2.16.40';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -22093,22 +22093,29 @@ function stationStep(al,slide,dx,dz){
   go(to,()=>{ P.st=null; P.tilt.copy(to.tilt); P.q.copy(snapQ(P.q)); onArrive(ex,ez,dx,dz,slide?'slide':'roll',edge); },ang,true,top!==null && Math.abs(top-edge)<=STEPUP && !slopes[ek] && !ice[ek]);
 }
 const _bpQ=new Q(), _bpOff=new V3(), _bpPiv=new V3(), _bpAx=new V3();
-function bumpPose(dx,dz,amount,p0,t0,q0){                             // same pose as bump(): tilt over the bottom edge; p0 may be root.position
+function bumpPose(dx,dz,amount,p0,t0,q0,hit){                          // same pose as bump(): tilt over the bottom edge; p0 may be root.position
+  if(hit){                                                           // a hit on an incline: over the cube's own bottom edge (in the slope's frame), and further up a slope — the tree stays upright
+    _bpAx.set(dz,0,-dx); _bpQ.setFromAxisAngle(_bpAx,amount); _bpOff.set(dx*HALF,-HALF,dz*HALF);
+    _bpPiv.copy(_bpOff).applyQuaternion(_bpQ).negate().add(_bpOff).applyQuaternion(t0).add(p0);   // centre = p0 + t0·(e − bq·e)
+    root.position.copy(_bpPiv); pMesh.quaternion.copy(t0).multiply(_bpQ).multiply(q0); return; }
   _bpPiv.set(p0.x+dx*HALF, p0.y-HALF, p0.z+dz*HALF); _bpAx.set(dz,0,-dx);
   _bpQ.setFromAxisAngle(_bpAx,amount); _bpOff.copy(p0).sub(_bpPiv);
   root.position.copy(_bpOff).applyQuaternion(_bpQ).add(_bpPiv); pMesh.quaternion.copy(t0).multiply(_bpQ).multiply(q0); }
+function bumpAmp(dx,dz,t0){                                           // the bump angle: uphill the cube also takes up the slope's pitch, so its face visibly meets the upright obstacle
+  const A=lowRoof(P.x,P.z,P.l)?.04:.15; if(A<.1) return A;
+  _bpAx.set(0,1,0).applyQuaternion(t0); const s=_bpAx.x*dx+_bpAx.z*dz;
+  return s<-.01 ? A+Math.asin(Math.min(1,-s)) : A; }
 let airBump=null;                                                    // overlay of bump() while a jump is still in the air {dx,dz,t}
 function startAirBump(dx,dz){ airBump={ dx, dz, t:0 }; }
 function applyAirBump(){
   if(!airBump) return;
-  airBump.t+=dt; const u=Math.min(1,airBump.t/.2), A=lowRoof(P.x,P.z,P.l)?.04:.15;
-  bumpPose(airBump.dx,airBump.dz,Math.sin(u*Math.PI)*A,root.position,P.tilt,P.q); if(u>=1) airBump=null; }
+  airBump.t+=dt; const u=Math.min(1,airBump.t/.2), A=bumpAmp(airBump.dx,airBump.dz,P.tilt);
+  bumpPose(airBump.dx,airBump.dz,Math.sin(u*Math.PI)*A,root.position,P.tilt,P.q,true); if(u>=1) airBump=null; }
 function bump(dx,dz){                                                 // against an obstacle: a slight tilt over the bottom edge and back (not a shove); from where the cube really is, sunk in snow included
   resetWarm(); airBump=null;
   state='bump'; holdDir=null; SND.bump(); sinkVis=0;                    // (the pose below already includes the sink)
-  const A=lowRoof(P.x,P.z,P.l) ? .04 : .15;                            // under a low roof — barely: the edge would go into it
-  const p0=root.position.clone(), t0=P.tilt.clone(), q0=P.q.clone();
-  play(.2, k=>bumpPose(dx,dz,Math.sin(k*Math.PI)*A,p0,t0,q0),
+  const p0=root.position.clone(), t0=P.tilt.clone(), q0=P.q.clone(), A=bumpAmp(dx,dz,t0);   // under a low roof — barely: the edge would go into it
+  play(.2, k=>bumpPose(dx,dz,Math.sin(k*Math.PI)*A,p0,t0,q0,true),
     ()=>{ setMeshQ(); root.position.copy(p0); state='idle'; next(); });
 }
 /* Cliff edge. A short swipe and holding don't push the cube off the edge: it leans over the drop by 45°
@@ -22888,7 +22895,7 @@ function doLeap(dx,dz){
     if(geyCell(x,z)) break;                                            // a playing geyser on the way: the leap comes down into its column (geyCatch)
     const ob=obst[K(x,z)], hop=d<maxD && (big || obRoll(ob)) && lowOb(K(x,z));   // fly over a bush (and a rock — when charged)
     const row=hop && !big && obRoll(ob) && obRoll(obst[K(x+dx,z+dz)]);   // the next cell is the same kind of rolloff: come down on this one and tumble across, don't arc over the row
-    if(c.top>L+STEPUP && !(hop && !row) && !(d<maxD && arc && peaks[d]<=L+climb+.01)) break;   // over a curved ramp the jump clears
+    if(c.top>L+STEPUP && !(hop && !row) && !(d<maxD && (arc || big && slOv[d] && !slOv[d-1]) && peaks[d]<=L+climb+.01)) break;   // over a curved ramp the jump clears; a charged one also clears a plain slope, but not two in a row — it comes down on the second (it lands on the cell past it, or on the slope if nothing past is reachable)
   }
   if(stick) return leapStick(dx,dz,stick[0],stick[1]);
   if(!dist){ leapUsed=false; P.bClimb=bc; SND.bump(); { const bx=P.x+dx, bz=P.z+dz, bk=K(bx,bz); if((obBase(bk,bx,bz)??Infinity)<=L+climb+.01) shakeObst(bk,dx,dz); } startAirBump(dx,dz); return; }   // blocked leap: the same ground bump pose, plus a plant sways if the jump reaches its foot (not one on top of a high wall)
@@ -23226,7 +23233,7 @@ function fallTo(fromL,dx,dz,v0,L0=fromL){                              // L0 —
   { const w=wpFall(fromL,top); if(w) return wpDropInto(w,v0); }        // a floating hatch or pad on the way down takes the cube in
   if(top===null) return fallDeath(v0);
   const paper=P.mat==='paper';
-  if(paper){ P.spin=true; P.fly=false; }
+  if(paper){ if(!P.spin) spinK=0; P.spin=true; P.fly=false; }   // off a ledge: the tumble eases up from rest, as in a stream
   const ps=poseAt(P.x,P.z,top), p0=root.position.clone(), t0=P.tilt.clone(), qt=new Q();
   // onto a piece: the landing follows its height — a rising lift meets the cube on the way, a sinking one is chased down
   const pc=pieceCellAt(P.x,P.z,.75), mp=pc && Math.abs(pc.top-top)<.01 ? pc.p : null, low=mp && mp.moving ? Math.min(top,mp.to.y) : top,
@@ -23689,6 +23696,7 @@ function windBelow(x,z,fromL){
   return best;
 }
 function fallToWind({w,l}){
+  if(!P.spin){ spinK=0; P.q.copy(pMesh.quaternion).normalize(); P.tilt.identity(); P.spin=true; }   // the same tumble as any paper fall, easing up from rest
   const p0=root.position.clone(), y1=l+HALF, t0=P.tilt.clone(), qt=new Q(), I=new Q();
   play(Math.sqrt(2*Math.max(.01,p0.y-y1)/4), k=>{ root.position.set(lerp(p0.x,P.x,k), p0.y-(p0.y-y1)*k*k, lerp(p0.z,P.z,k)); qt.copy(t0).slerp(I,k); pMesh.quaternion.copy(qt).multiply(P.q); },
     ()=>{ P.l=l; P.tilt.identity(); windRide(w); });
@@ -23733,7 +23741,8 @@ function windCarry(w){
 function glideStep(nx,nz,done,dur,arc,out){
   state='fly'; P.target=[nx,nz];
   const p0=root.position.clone(), to=new V3(nx,P.l+HALF,nz);
-  play(dur||.34, k=>{ if(out) k=1-(1-k)*(1-k); if(arc) arc(k,root.position); else root.position.lerpVectors(p0,to,k); },
+  let off=null; if(arc){ off=new V3(); arc(0,off); off.subVectors(p0,off); }   // caught off the curve (a jump, a fall): the offset from the arc fades out, no snap onto it
+  play(dur||.34, k=>{ if(out) k=1-(1-k)*(1-k); if(arc){ arc(k,root.position); root.position.addScaledVector(off,(1-k)*(1-k)); } else root.position.lerpVectors(p0,to,k); },
     ()=>{ P.x=nx; P.z=nz; P.pos.copy(to); done(); });
   if(animOver>0 && anim){ anim.t=Math.min(anim.dur,animOver); anim.upd(anim.t/anim.dur); }   // leftover frame time — otherwise the stream stops for a frame on every cell
 }
@@ -23844,9 +23853,9 @@ function motionNow(){
 function paperVoid(v0){
   const yb=root.position.y-HALF; if(yb<=BOT+.01) return fallDeath(v0,true);
   { const wc=windBelow(P.x,P.z,yb); if(wc) return fallToWind(wc); }
-  state='fall'; queue=[]; holdDir=null; chargeV=0; P.on=null; P.wall=null; P.ceil=false; P.float=false; P.fly=false; P.st=null; P.spin=true; P.fallL=yb;
+  state='fall'; queue=[]; holdDir=null; chargeV=0; P.on=null; P.wall=null; P.ceil=false; P.float=false; P.fly=false; P.st=null; if(!P.spin) spinK=0; P.q.copy(pMesh.quaternion).normalize(); P.tilt.identity(); P.spin=true; P.fallL=yb;
   const p0=root.position.clone(), fp=paperProf(yb-BOT,v0);
-  play(fp.T, k=>{ const d=fp.d(k); P.fallL=yb-d; const h=ease(Math.min(1,k*fp.T/.35)); root.position.set(lerp(p0.x,P.x,h), p0.y-d, lerp(p0.z,P.z,h)); }, ()=>fallDeath(fp.v,true));
+  play(fp.T, k=>{ const d=fp.d(k); P.fallL=yb-d; const h=ease(Math.min(1,k*fp.T/.35)); root.position.set(lerp(p0.x,P.x,h), p0.y-d, lerp(p0.z,P.z,h)); setMeshQ(); }, ()=>fallDeath(fp.v,true));
 }
 function fallDeath(v0,hard){
   moodHide();                                                          // an idle mark would sit on the lip and read as a stop
@@ -25945,9 +25954,11 @@ buildShip();
 function setShip(i){ shipKind=i; LS.set('cube-ship',String(i)); buildShip(); }
 /* The ship's flight and beam live apart from level animations — loading a level doesn't cut them off */
 const _shq=new Q(), _shq2=new Q(), _shq3=new Q();
-const SH={ mat:null, fly:null, leave:null, a:0, aT:0, len:0, carry:false, yaw:0, pyaw:0, roll:0, ry:0, pitch:0, spin:3, spinA:0, dropK:0 };
+const SH={ mat:null, fly:null, leave:null, a:0, aT:0, len:0, carry:false, yaw:0, pyaw:0, roll:0, ry:0, pitch:0, spin:3, spinA:0, dropK:0, gk:0, cq:new Q() };
 /* The hull's own spin is always one way: SPIN_FLY in flight, slows down smoothly toward the hover point (not to zero), returns to flight speed on take-off */
-const SPIN_HOVER=.9, SPIN_FLY=5;
+const SHIP_CUBE=.25;                                                  // the cube's size while it is still inside the ship (shipPickup shrinks it to .25 as well)
+const SET_DOWN=.03;                                                   // the squat of a cube set down by the beam (it arrives at rest)
+const SPIN_HOVER=.9, SPIN_FLY=5, CARRY_LEVEL=9;                   // CARRY_LEVEL: how fast the carried tilt levels out once the flight is over (1/s)
 ship.rotation.order='YXZ';                                            // heading, roll around the long axis, pitch
 function updateShip(){
   updatePillar();
@@ -25957,15 +25968,13 @@ function updateShip(){
   else if(ship.visible){ SH.roll*=Math.exp(-dt*3); SH.pitch*=Math.exp(-dt*3); ship.rotation.set(SH.roll,SH.yaw,SH.pitch); }   // hovering — levels out
   SH.a+=(SH.aT-SH.a)*(1-Math.exp(-dt*5));                          // the beam fades in and out smoothly
   tractor.material.uniforms.a.value=SH.a; tractor.visible=SH.a>.01 && SH.len>.01; tractor.scale.set(BEAM_W,Math.max(.01,SH.len),BEAM_W);
-  if(SH.carry){ const sc=ship.scale.x;
-    if(state==='intro' && !SH.fly){                                 // on hover and during lowering: no extra tilt/twist
-      root.quaternion.identity();
-      root.position.copy(ship.position).add(_v.set(0,SH.hang*sc,0));
-      root.scale.setScalar(lerp(sc,1,ease(SH.dropK||0)));             // lowering: back to its own size by the release
-    }else{                                                           // in flight: keep the carried tilt
-      _shq.setFromAxisAngle(UP,SH.yaw); _shq2.setFromAxisAngle(UP,-SH.yaw); root.quaternion.copy(_shq).multiply(_shq3.setFromEuler(_eu.set(SH.roll,0,SH.pitch,'YXZ'))).multiply(_shq2);
-      root.position.copy(ship.position).add(_v.set(0,SH.hang*sc,0).applyQuaternion(root.quaternion)); root.scale.setScalar(sc);
-    } }
+  if(SH.carry){ const sc=ship.scale.x;                              // the carried tilt SH.cq is one continuous state: set from the flight, then eased out to level on hover — no snap when the flight ends
+    if(SH.fly){ _shq.setFromAxisAngle(UP,SH.yaw); _shq2.setFromAxisAngle(UP,-SH.yaw); SH.cq.copy(_shq).multiply(_shq3.setFromEuler(_eu.set(SH.roll,0,SH.pitch,'YXZ'))).multiply(_shq2); }
+    else SH.cq.slerp(_shq.identity(),1-Math.exp(-dt*CARRY_LEVEL));
+    root.quaternion.copy(SH.cq);
+    root.position.copy(ship.position).add(_v.set(0,SH.hang*sc,0).applyQuaternion(SH.cq));
+    root.scale.setScalar(state==='intro' && !SH.fly ? lerp(SHIP_CUBE*sc,1,ease(SH.gk||0)) : sc);   // lowering: grows from the small one hidden in the ship to its own size (SH.gk — the quick first part of the lowering)
+  }
   else if(root.quaternion.w<1 && !propBrTilt) root.quaternion.identity();   // a rolling bridge deck tilts the cube (props.js)
   if(state==='intro' && ship.visible && SH.carry && SH.aT>.01){      // while lowering on the beam, keep beam length synced to cube position
     SH.len=Math.max(1.25,ship.position.y-root.position.y+.2);
@@ -26100,16 +26109,16 @@ function shipDrop(x,z,l){
   state='intro'; queue=[]; holdDir=null; SH.drop=(SH.drop||0)+1;
   if(T.cave) return pillarDrop(x,z,l);                                // underground there's no sky for the ship
   const hover=new V3(x,shipHoverY(l,x,z),z);
-  SND.shipIn(); pMesh.visible=true; root.scale.set(1,1,1);
-  SH.hang=-1.55; SH.a=0; SH.dropK=0; shipBeam(1.25,.9);              // reset per-drop camera handoff state (restart-safe)
+  SND.shipIn(); pMesh.visible=false; root.scale.set(1,1,1);             // the cube is not seen while the ship flies: it appears small inside it over the cell and is lowered (the reverse of shipPickup)
+  SH.hang=0; SH.a=0; SH.dropK=0; SH.gk=0; shipBeam(0,0);              // reset per-drop camera handoff state (restart-safe)
   shipArrive(hover,()=>{
     shipAlignToGrid(.22,()=>{
       const sc=Math.max(.01,ship.scale.x), y0=SH.hang, y1=(P.l+HALF+0.02-ship.position.y)/sc;
-      SH.dropK=0; P.q.copy(snapQ(P.q));
+      SH.dropK=0; SH.gk=0; P.q.copy(snapQ(P.q)); pMesh.visible=true; SND.beam(); shipBeam(1.25,.9);
       const qa=pMesh.quaternion.clone(), qb=playerPose().tilt.clone().multiply(P.q);   // the cube turns into its landing pose on the way down — no snap on release
-      play(.96, q=>{ SH.dropK=q; SH.hang=lerp(y0,y1,ease(q)); pMesh.quaternion.copy(qa).slerp(qb,ease(q)); }, ()=>{
-        SH.dropK=1;
-        SH.hang=y1; SH.carry=false; root.scale.set(1,1,1); afterLand(null,null,'soft');   // afterLand eases what is left (nudgeFrom) SND.drop(); camSoft=1.2;
+      play(.96, q=>{ SH.dropK=q; SH.gk=clamp(q/.4,0,1); SH.hang=lerp(y0,y1,ease(q)); pMesh.quaternion.copy(qa).slerp(qb,ease(q)); }, ()=>{
+        SH.dropK=1; SH.gk=1;
+        SH.hang=y1; SH.carry=false; root.scale.set(1,1,1); afterLand(null,null,'soft'); squashAmt=Math.min(squashAmt,SET_DOWN);   // afterLand eases what is left (nudgeFrom); the cube was lowered to a stop, so the landing squat is only a hint — a full one stepped the cube down in one frame at the release
         SH.len=Math.max(1.25,ship.position.y-(P.l+HALF)+.2); SH.a=SH.aT=.9;
         const id=SH.drop;                                             // a tween, not play(): the cube is already free — a swipe, a respawn or anything that takes the main anim would leave the ship hanging
         tween(.32, q=>{ if(SH.drop===id) SH.len=Math.max(.01,lerp(SH.len,.01,ease(q))); }, ()=>{
@@ -26118,7 +26127,7 @@ function shipDrop(x,z,l){
       });
     });
   });
-  SH.carry=true; root.position.copy(ship.position).add(_v.set(0,SH.hang,0));
+  SH.cq.identity(); SH.carry=true; root.position.copy(ship.position).add(_v.set(0,SH.hang,0));
 }
 /* Underground drop: no ship — a beam reaches down from above the frame onto the cell, the cube comes down in it, then the beam fades */
 const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.74,.74,1,4,1,true), beamMat(0x9ff4ff,.9));   // fades toward the top: bright at the floor, the far end off-frame
@@ -26136,7 +26145,7 @@ function pillarDrop(x,z,l){
   play(.45, q=>{ PIL.bot=lerp(y0,l-.6,ease(q)); }, ()=>{                // the beam reaches the floor (its soft lower edge sinks into the ground)
     P.q.copy(snapQ(P.q)); const qa=pMesh.quaternion.clone(), qb=playerPose().tilt.clone().multiply(P.q);   // turns into its landing pose on the way down
     play(1.25, q=>{ root.position.y=lerp(y0,y1,1-Math.pow(1-q,2.4)); pMesh.quaternion.copy(qa).slerp(qb,ease(q)); }, ()=>{   // the cube comes down in it, braking
-      root.position.y=y1; afterLand(null,null,'soft'); SND.drop(); camSoft=1.2; PIL.aT=0;
+      root.position.y=y1; afterLand(null,null,'soft'); squashAmt=Math.min(squashAmt,SET_DOWN); SND.drop(); camSoft=1.2; PIL.aT=0;
     });
   });
 }
@@ -36022,7 +36031,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut,
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.eea4850'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.19c6949'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
