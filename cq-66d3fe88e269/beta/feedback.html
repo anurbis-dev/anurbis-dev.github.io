@@ -310,6 +310,7 @@ details.box p{margin:6px 0 0;font-size:12px;color:var(--dim);overflow-wrap:anywh
 .rep{display:grid;gap:8px}
 .rep h3{margin:0;font:600 15px var(--f-disp);display:flex;align-items:center;gap:8px}
 .rep .r{background:var(--card);border-radius:10px;padding:7px 10px;white-space:pre-wrap;font-size:13.5px;overflow-wrap:anywhere;animation:rise .3s var(--ease)}
+.rep .r.me{background:none;border:1px solid var(--line,rgba(127,127,127,.3))} .rep .r.me b{display:block;font-size:12px;color:var(--gold)}
 .rep .r small,.note{display:block;color:var(--dim);font-size:11.5px;white-space:normal}
 .rep textarea{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-height:56px;resize:vertical;width:100%;transition:border-color .2s}
 .rep textarea:focus{border-color:var(--gold);outline:0}
@@ -891,6 +892,7 @@ function detail(r,sheet){
   const s=r.s, m=r.m, qq=s.q||{}, f=(a,b,c)=>b ? `<div><span>${a}</span><b>${b}</b>${c ? `<small>${c}</small>` : ''}</div>` : '';
   const replay=m.snap && m.id && !DEMO ? `fb.html?id=${m.id}&k=${encodeURIComponent(KEY)}` : null;
   const reps=r.reps ? r.reps.map(p=>{ const nsh=p.shots||(p.shot ? 1 : 0), shots=!DEMO && r.m.id ? Array.from({ length:nsh },(_,i)=>media(r.m.id,i ? 'r'+p.id+'-shot-'+(i+1)+'.jpg' : 'r'+p.id+'-shot.jpg')) : [], voice=p.voice && r.m.id && !DEMO ? media(r.m.id,'r'+p.id+'-voice.'+p.voice) : '';
+    if(p.me) return `<div class="r me"><b>💬 ${esc(r.who||'Игрок')}</b>${esc(p.text||'')}<small>${full(p.at)} · комментарий игрока</small></div>`;
     return `<div class="r">${p.text ? esc(p.text) : ''}${shots.map(s=>`<img class="rshot" data-act="zoom" src="${s}" alt="">`).join('')}${voice ? `<audio controls preload="none" src="${voice}"></audio>` : ''}<small>${full(p.at)} · ${p.wait ? '⏳ ещё не прочитан в игре' : '✓ показан игроку'}</small></div>`; }).join('')
     +(r.fixed ? `<span class="note">🔔 «Баг исправлен» — ${r.fixed.wait ? '⏳ ещё не прочитано в игре' : '✓ показано игроку'}</span>` : '') : '';
   const where=r.lv ? esc(r.lv)+(s.sub ? ' → '+esc(s.sub) : '') : '', wSub=[(r.icon||'')+' '+esc(r.area||''),r.ano ? '№'+r.ano : '',r.lvId ? `<code>${esc(r.lvId)}</code>` : ''].filter(x=>x.trim()).join(' · ');

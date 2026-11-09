@@ -9,6 +9,24 @@ const FB=window.__cubeFb; if(!FB || document.getElementById('fbBtn')) return;
 const API=(new URLSearchParams(location.search).get('fbapi')) || window.CUBE_FB_API;
 const VOICE_MAX=60, LANGS=['ru','es','pt','de','fr','zh','ja','ko'];
 const TR={
+  'Log out':["Выйти","Cerrar sesión","Sair","Abmelden","Se déconnecter","退出登录","ログアウト","로그아웃"],
+  'Log out?':["Выйти?","¿Cerrar sesión?","Sair?","Abmelden?","Se déconnecter ?","确定退出？","ログアウトする？","로그아웃할까요?"],
+  'Open bugs':["Открытые ошибки","Errores abiertos","Bugs abertos","Offene Fehler","Bugs ouverts","未关闭的错误","未解決のバグ","열린 버그"],
+  'Open impressions':["Открытые впечатления","Impresiones abiertas","Impressões abertas","Offene Eindrücke","Impressions ouvertes","未关闭的感受","未解決の感想","열린 소감"],
+  'Your open bugs':["Ваши открытые ошибки","Tus errores abiertos","Seus bugs abertos","Deine offenen Fehler","Tes bugs ouverts","你未关闭的错误","あなたの未解決のバグ","내 열린 버그"],
+  'Your open impressions':["Ваши открытые впечатления","Tus impresiones abiertas","Suas impressões abertas","Deine offenen Eindrücke","Tes impressions ouvertes","你未关闭的感受","あなたの未解決の感想","내 열린 소감"],
+  'Back':["Назад","Atrás","Voltar","Zurück","Retour","返回","戻る","뒤로"],
+  'Add comment':["Добавить комментарий","Añadir comentario","Adicionar comentário","Kommentar hinzufügen","Ajouter un commentaire","添加评论","コメントを追加","댓글 추가"],
+  'Comment':["Отправить","Enviar","Enviar","Senden","Envoyer","发送","送信","보내기"],
+  'Developers':["Разработчики","Desarrolladores","Desenvolvedores","Entwickler","Développeurs","开发者","開発者","개발자"],
+  'You':["Вы","Tú","Você","Du","Vous","你","あなた","나"],
+  'Waiting':["Ждёт","En espera","Aguardando","Wartet","En attente","等待处理","待機中","대기 중"],
+  'In progress':["В работе","En curso","Em andamento","In Arbeit","En cours","处理中","対応中","처리 중"],
+  'Fixed, awaiting check':["Исправлено, ждёт проверки","Corregido, pendiente de revisión","Corrigido, aguardando verificação","Behoben, wird geprüft","Corrigé, en attente de vérification","已修复，待验证","修正済み・確認待ち","수정됨, 확인 대기"],
+  '(voice note)':["(голосовое сообщение)","(nota de voz)","(mensagem de voz)","(Sprachnachricht)","(message vocal)","（语音留言）","（ボイスメモ）","(음성 메시지)"],
+  'Couldn\'t load your feedback.':["Не удалось загрузить ваши отзывы.","No se pudieron cargar tus comentarios.","Não foi possível carregar seus feedbacks.","Dein Feedback konnte nicht geladen werden.","Impossible de charger tes avis.","无法加载你的反馈。","フィードバックを読み込めませんでした。","피드백을 불러오지 못했어요."],
+  'This report is already closed.':["Этот отзыв уже закрыт.","Este informe ya está cerrado.","Este relato já foi fechado.","Diese Meldung ist schon geschlossen.","Ce signalement est déjà fermé.","此反馈已关闭。","この報告はすでに閉じられています。","이 피드백은 이미 닫혔어요."],
+  'Nothing open.':["Открытых нет.","Nada abierto.","Nada aberto.","Nichts offen.","Rien d'ouvert.","没有未关闭的。","未解決のものはありません。","열린 항목이 없어요."],
   'Feedback':['Отзыв','Comentarios','Feedback','Feedback','Avis','反馈','フィードバック','피드백'],
   'Bug':['Ошибка','Error','Bug','Fehler','Bug','错误','バグ','버그'],
   'Impression':['Впечатление','Impresión','Impressão','Eindruck','Impression','感受','感想','소감'],
@@ -158,6 +176,31 @@ body:not(.fbin) #fbBtn{display:none}
 #fbMailCard #fbAskNo:disabled{opacity:.45;cursor:default}
 #fbMailCard #fbAskOk{flex:1.2;border:0;background:#ffd66b;color:#2d1f55;font-weight:700}
 #fbMailCard .msg{min-height:1.2em;font-size:13px;color:#ffb3c0;text-align:center}
+#fbCard .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.14)}
+#fbCard .hd .who{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46%}
+#fbCard .hd .sp{flex:1}
+#fbCard .hd #fbOut{font-size:12.5px;padding:3px 10px;border-radius:99px}
+#fbCard .hd #fbOut.ask{background:#d64a5a;border-color:#d64a5a}
+#fbCard .hd .cnt{padding:3px 10px;border-radius:99px;font-size:14px;display:flex;gap:5px;align-items:center}
+#fbCard .hd .cnt b{font-weight:700;min-width:.7em;text-align:center}
+#fbCard .col{display:grid;gap:10px}
+#fbCard .col[hidden]{display:none}
+#fbCard .mh{display:flex;align-items:center;gap:8px}
+#fbCard .mh button{padding:4px 10px}
+#fbCard .mh h2{font-size:17px}
+#fbMineList{display:grid;gap:10px}
+#fbMineList .it{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+#fbMineList .m{display:flex;gap:8px;font-size:12px;opacity:.75}
+#fbMineList .m .st{color:#ffd66b;font-weight:700;opacity:1}
+#fbMineList .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+#fbMineList .th{border-left:3px solid rgba(255,255,255,.3);padding:2px 0 2px 9px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+#fbMineList .th.dev{border-color:#ffd66b}
+#fbMineList .th b{display:block;font-size:12px;opacity:.8}
+#fbMineList .th small{display:block;font-size:11px;opacity:.6}
+#fbMineList .add{justify-self:start;font-size:13px;padding:4px 10px}
+#fbMineList .add[hidden]{display:none}
+#fbMineList textarea{min-height:60px}
+#fbMineList .note{font-size:13px;opacity:.7;text-align:center}
 #tBetaOk[hidden]{display:none}
 #tBetaOk:disabled{opacity:.4;filter:grayscale(.6);cursor:default}
 `;
@@ -168,6 +211,10 @@ btn.id='fbBtn'; btn.type='button'; btn.title=btn.ariaLabel='Feedback';
 btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/></svg>';
 const wrap=document.createElement('div'); wrap.id='fbWrap'; wrap.hidden=true;
 wrap.innerHTML=`<div id="fbCard" role="dialog" aria-modal="true" aria-labelledby="fbH">
+  <div class="hd"><span class="who">👤 <b id="fbNick"></b></span><button type="button" id="fbOut"></button><span class="sp"></span>
+    <button type="button" class="cnt" data-k="bug" disabled>🐞 <b>…</b></button><button type="button" class="cnt" data-k="opinion" disabled>💬 <b>…</b></button></div>
+  <div class="col" id="fbMine" hidden><div class="mh"><button type="button" id="fbBack">←</button><h2 id="fbMineH"></h2></div><div id="fbMineList"></div></div>
+  <div class="col" id="fbForm">
   <h2 id="fbH"></h2>
   <div class="seg"><button type="button" data-k="bug"></button><button type="button" data-k="opinion"></button></div>
   <textarea id="fbText" maxlength="4000"></textarea>
@@ -177,6 +224,7 @@ wrap.innerHTML=`<div id="fbCard" role="dialog" aria-modal="true" aria-labelledby
   <div class="voice"><button type="button" id="fbRec"></button><audio id="fbAud" controls hidden></audio><button type="button" id="fbAudDel" hidden></button></div>
   <div class="msg" id="fbMsg"></div>
   <div class="row"><button type="button" id="fbCancel"></button><button type="button" class="go" id="fbSend"></button></div>
+  </div>
 </div>`;
 const inb=document.createElement('div'); inb.id='fbIn'; inb.hidden=true;
 inb.innerHTML='<div id="fbInCard" role="dialog" aria-modal="true" aria-labelledby="fbInH"><h2 id="fbInH"></h2><div id="fbInList"></div><button type="button" id="fbInOk"></button></div>';
@@ -188,8 +236,8 @@ mailAsk.innerHTML=`<div id="fbMailCard" role="dialog" aria-modal="true" aria-lab
   <div class="row"><button type="button" id="fbAskNo" disabled></button><button type="button" id="fbAskOk"></button></div>
 </div>`;
 document.body.append(btn,wrap,inb,mailAsk);
-const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg button')];
-['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape') close(); }));
+const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg button')], cnt=[...wrap.querySelectorAll('.hd .cnt')];
+['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape'){ if(!$('fbMine').hidden) mineBack(); else close(); } }));
 btn.addEventListener('keydown',e=>e.stopPropagation());
 
 let snap=null, shot=null, shotP=null, kind='bug', rec=null, voice=null, sending=false;
@@ -235,6 +283,7 @@ function texts(){
   $('fbText').placeholder=t('What happened? Or what do you think of this moment?');
   wrap.querySelector('label.shot span').textContent=t('Attach screenshot'); $('fbAudDel').textContent=t('Delete');
   $('fbCancel').textContent=t('Cancel'); $('fbSend').textContent=t('Send'); mailField(); recTxt();
+  $('fbNick').textContent=acct ? acct.nick : ''; outTxt(); $('fbBack').title=$('fbBack').ariaLabel=t('Back'); mineCnt(); if(!$('fbMine').hidden) mineRender();
 }
 function setKind(k){ kind=k; seg.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k))); }
 seg.forEach(b=>b.onclick=()=>setKind(b.dataset.k));
@@ -247,6 +296,7 @@ function open(){
   shot=null; shotP=capture().then(d=>{ shot=d; showShot(); return d; });
   texts(); setKind(kind); msg(''); sending=false; $('fbSend').disabled=false;
   $('fbShotImg').removeAttribute('src'); $('fbShotWait').hidden=false; $('fbShotOn').checked=true; $('fbShotOn').disabled=false; showShot();
+  outAsk=false; $('fbOut').disabled=false; $('fbMine').hidden=true; $('fbForm').hidden=false; mineLoad(); texts();
   wrap.hidden=false; setTimeout(()=>$('fbText').focus({ preventScroll:true }),50);
 }
 function showShot(){ const on=$('fbShotOn').checked; $('fbPic').classList.toggle('off',!on);
@@ -260,6 +310,60 @@ $('fbCancel').onclick=close;
 $('fbShotOn').onchange=showShot;
 wrap.addEventListener('pointerdown',e=>{ if(e.target===wrap) wrap.dataset.out='1'; });
 wrap.addEventListener('click',e=>{ if(e.target===wrap && wrap.dataset.out && !sending) close(); delete wrap.dataset.out; });
+
+/* The tester's account in the same window: the nickname, "Log out" (asks once in the button: syncs the progress, signs out and reloads —
+   the beta notice opens with the sign-in), the open reports by kind (/tester/reports) — a tap lists them with the developers' replies and
+   the tester's comments, no pictures; a comment goes to /tester/comment */
+let mine=null, mineBusy=false, mineKind='bug', outAsk=false, outTimer=null;
+const when=s=>{ try{ return new Date(s).toLocaleString(FB.lang||undefined,{ day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); }catch(e){ return ''; } };
+function outTxt(){ const b=$('fbOut'); b.textContent=t(outAsk ? 'Log out?' : 'Log out'); b.classList.toggle('ask',outAsk); }
+$('fbOut').onclick=async()=>{
+  if(!outAsk){ outAsk=true; outTxt(); clearTimeout(outTimer); outTimer=setTimeout(()=>{ outAsk=false; outTxt(); },3000); return; }
+  clearTimeout(outTimer); $('fbOut').disabled=true; recStop(true);
+  if(acct){ const a=acct;
+    await Promise.race([syncSend(false).catch(()=>{}),new Promise(r=>setTimeout(r,3000))]);
+    if(FB.busy) post('/tester/bye',{ tok:a.tok },true).catch(()=>{}); }
+  signOut(); setTimeout(()=>location.reload(),150);
+};
+function mineCnt(){
+  for(const b of cnt){ const n=mine ? mine.filter(x=>x.kind===b.dataset.k).length : null;
+    b.querySelector('b').textContent=n==null ? (mineBusy ? '…' : '–') : n; b.disabled=!n;
+    b.title=b.ariaLabel=t(b.dataset.k==='bug' ? 'Open bugs' : 'Open impressions')+(n!=null ? ': '+n : ''); }
+}
+async function mineLoad(){
+  if(!acct || mineBusy) return; mineBusy=true; mineCnt(); const me=acct;
+  try{ const d=await post('/tester/reports',{ tok:acct.tok }); if(acct===me) mine=Array.isArray(d.items) ? d.items : []; }
+  catch(e){ if(e.status===401 && acct===me) signOut(); }
+  finally{ mineBusy=false; mineCnt(); if(!$('fbMine').hidden) mineRender(); }
+}
+function mineOpen(k){ recStop(true); mineKind=k; $('fbForm').hidden=true; $('fbMine').hidden=false; mineRender(); }
+function mineBack(){ $('fbMine').hidden=true; $('fbForm').hidden=false; }
+cnt.forEach(b=>b.onclick=()=>mineOpen(b.dataset.k));
+$('fbBack').onclick=mineBack;
+const ST={ open:'Waiting', wip:'In progress', done:'Fixed, awaiting check' };
+function mineRender(){
+  $('fbMineH').textContent=t(mineKind==='bug' ? 'Your open bugs' : 'Your open impressions');
+  const L=$('fbMineList'); L.textContent='';
+  const el=(tag,cls,txt)=>{ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
+  if(!mine){ L.append(el('div','note',mineBusy ? '…' : t('Couldn\'t load your feedback.'))); return; }
+  const a=mine.filter(x=>x.kind===mineKind);
+  if(!a.length){ L.append(el('div','note',t('Nothing open.'))); return; }
+  for(const r of a){ const it=el('div','it'), m=el('div','m');
+    m.append(el('span','st',t(ST[r.state]||ST.open)),el('span','',when(r.at))); it.append(m,el('div','tx',r.text || (r.voice ? t('(voice note)') : '—')));
+    for(const c of r.thread||[]){ const th=el('div','th'+(c.dev ? ' dev' : '')); th.append(el('b','',t(c.dev ? 'Developers' : 'You')),document.createTextNode(c.text||''),el('small','',when(c.at))); it.append(th); }
+    const add=el('button','add',t('Add comment')); add.type='button'; it.append(add);
+    add.onclick=()=>{ add.hidden=true;
+      const ta=el('textarea'); ta.maxLength=2000; const row=el('div','row'), no=el('button','',t('Cancel')), go=el('button','go',t('Comment')), ms=el('div','msg');
+      no.type=go.type='button'; row.append(no,go); it.append(ta,ms,row); ta.focus({ preventScroll:true });
+      no.onclick=()=>{ ta.remove(); row.remove(); ms.remove(); add.hidden=false; };
+      go.onclick=async()=>{ const text=ta.value.trim(); if(!text || !acct) return; go.disabled=no.disabled=true; ms.classList.add('ok'); ms.textContent=t('Sending…');
+        try{ const d=await post('/tester/comment',{ tok:acct.tok, n:r.n, text }); (r.thread=r.thread||[]).push(d.c||{ at:new Date().toISOString(), text }); mineRender(); }
+        catch(e){ ms.classList.remove('ok'); go.disabled=no.disabled=false;
+          if(e.message==='closed'){ ms.textContent=t('This report is already closed.'); mine=mine.filter(x=>x!==r); mineCnt(); }
+          else ms.textContent=t(e.status===429 ? 'Too many reports for now. Try again later.' : 'Couldn\'t send. Check the connection and try again.'); } };
+    };
+    L.append(it); }
+}
 
 /* Voice note */
 function recTxt(s){ const b=$('fbRec'); b.textContent=rec ? '■ '+t('Stop')+' '+(s||'0:00') : '🎤 '+t('Record voice'); b.classList.toggle('rec',!!rec); }
@@ -297,6 +401,7 @@ $('fbSend').onclick=async()=>{
     const pic=$('fbShotOn').checked ? await shotP : null;
     const d=await post('/fb',{ tok:acct && acct.tok, kind, text, snap, shot:pic, audio:voice ? { data:await b64(voice.blob), dur:voice.dur } : null, ...(email ? { email } : {}) });
     if(d && acct && (d.mail || d.pend)){ acct={ ...acct, mail:!!d.mail, pend:!d.mail }; LSset('cube-tester-acct',JSON.stringify(acct)); mailField(); }
+    mine=null;
     msg(t(d && d.pend && email ? 'Thank you! Sent. Confirm your email from the letter.' : 'Thank you! Sent.'),true); setTimeout(close,1100);
   }catch(e){ console.warn('feedback:',e); msg(t(e.message==='email' ? 'Email looks wrong' : e.status===429 ? 'Too many reports for now. Try again later.' : 'Couldn\'t send. Check the connection and try again.')); sending=false; $('fbSend').disabled=false; }
 };
@@ -387,10 +492,11 @@ document.addEventListener('cube-lang',()=>{ gTexts(); gSync(); if(!wrap.hidden) 
    sign-in and at every launch — this device's expeditions go up and the merged list comes back ("Enter the game" waits, SYNC_WAIT at most):
    the same expedition (its creation time c) takes the newer copy, one only the cloud has takes a free slot (or the slot of an older one
    that is in the cloud anyway). Later the device sends its progress every SYNC_EVERY while it changes and when the page is hidden.
-   cube-tester-sync — { id, cs }: the expeditions this device had at its last sync; one missing now was deleted here (gone) */
+   cube-tester-sync — { id, cs }: the expeditions this device had at its last sync. gone — only what the player deleted or replaced here
+   (cube-gone, FB.gone; cleared once the worker has it): an expedition merely missing on this device (wiped storage, an overwritten slot)
+   is never deleted from the cloud. A cloud copy behind the local one never overwrites it (FB.expPut forks the local one) */
 const SYNC_WAIT=6000, SYNC_EVERY=600e3, SYNC_DONE_TTL=4000;   // the worker takes SAVE_DAY writes a tester a day
 let syncing=false, syncDone=false, sentAt=-1, syncDoneTimer=null, syncDoneAt=0;
-const known=()=>{ try{ const k=JSON.parse(LSget('cube-tester-sync','null')); return k && acct && k.id===acct.id && Array.isArray(k.cs) ? k.cs : []; }catch(e){ return []; } };
 const strip=a=>a.map(({ k, ...e })=>e), atMax=a=>a.reduce((m,e)=>Math.max(m,e.at||0),0);
 function syncDoneSet(){
   syncDone=true; syncDoneAt=performance.now();
@@ -401,19 +507,20 @@ function syncDoneSet(){
   },SYNC_DONE_TTL);
 }
 async function syncSend(pull,keep){
-  const loc=FB.exps(), gone=known().filter(c=>!loc.some(e=>e.c===c)), at=atMax(loc);
+  const loc=FB.exps(), gone=FB.gone ? FB.gone().filter(c=>!loc.some(e=>e.c===c)) : [], at=atMax(loc);
   const d=await post('/save',{ tok:acct.tok, exps:strip(loc), gone, pull:pull ? 1 : 0 },keep);
-  sentAt=at; syncDoneSet(); LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
+  if(FB.goneSent) FB.goneSent(gone); sentAt=at; syncDoneSet(); LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:loc.map(e=>e.c) }));
   return d;
 }
 function syncMerge(remote){
-  const loc=FB.exps(), held=new Set(), all=[...Array(FB.slots)].map((_,j)=>j+1);
   remote=(Array.isArray(remote) ? remote : []).slice().sort((a,b)=>b.at-a.at);
-  for(const e of remote){ const l=loc.find(x=>x.c===e.c); if(!l) continue; held.add(l.k); if(e.at>l.at && FB.expPut(l.k,e)) l.at=e.at; }
+  const all=[...Array(FB.slots)].map((_,j)=>j+1), inCloud=c=>remote.some(e=>e.c===c), placed=new Set();
+  for(const l of FB.exps()){ const e=remote.find(x=>x.c===l.c); if(e && e.at>l.at) FB.expPut(l.k,e); }   // a fork keeps the local one (a new c) and may fill a free slot
+  const loc=FB.exps();
   for(const e of remote){ if(loc.some(x=>x.c===e.c)) continue;
     let k=all.find(j=>!loc.some(x=>x.k===j));
-    if(!k){ const o=loc.filter(x=>!held.has(x.k)).sort((a,b)=>a.at-b.at)[0]; if(!o || o.at>=e.at) continue; k=o.k; loc.splice(loc.indexOf(o),1); }
-    if(FB.expPut(k,e)){ loc.push({ k, c:e.c, at:e.at }); held.add(k); } }
+    if(!k){ const o=loc.filter(x=>!placed.has(x.k) && inCloud(x.c)).sort((a,b)=>a.at-b.at)[0]; if(!o || o.at>=e.at) continue; k=o.k; loc.splice(loc.indexOf(o),1); }   // only an older one the cloud keeps makes room
+    if(FB.expPut(k,e)){ loc.push({ k, c:e.c, at:e.at }); placed.add(k); } }
   LSset('cube-tester-sync',JSON.stringify({ id:acct.id, cs:FB.exps().map(e=>e.c) })); sentAt=-1;   // what came in goes up with the next send
 }
 async function syncStart(){

@@ -1189,7 +1189,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.16.45';
+const VERSION = '2.17.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -1236,6 +1236,10 @@ function slotMeta(k){ try{ const m=JSON.parse(LSR.get(metaKey(k),'null')); retur
 function slotTouch(k=slot){ const m=slotMeta(k)||{ c:Date.now() }; m.at=Date.now(); LSR.set(metaKey(k),JSON.stringify(m)); if(!XNAMES[m.nm]) xNameGive(k); }   // a new slot — its name
 const slotOwn=k=>LSR.keys().filter(x=>x===metaKey(k) || (k>1 ? x.startsWith('cube-x'+k+'-') : PROG.test(x)));   // every key of the slot
 function slotClear(k){ slotOwn(k).forEach(LSR.del); }
+/* The player deleted (or replaced) expedition k: its creation time goes into cube-gone — the beta sync tells the cloud only about these,
+   never about an expedition that is merely missing on this device (a wiped or overwritten slot must not delete it everywhere) */
+function slotDrop(k){ const m=slotMeta(k); if(m && m.c) LSR.set('cube-gone',JSON.stringify([...slotGone().filter(c=>c!==m.c),m.c].slice(-50))); slotClear(k); }
+function slotGone(){ try{ const a=JSON.parse(LSR.get('cube-gone','[]')); return Array.isArray(a) ? a.filter(c=>Number.isFinite(c) && c>0) : []; }catch(e){ return []; } }
 function setSlot(k){ slot=k; LSR.set('cube-slot',String(k)); }
 (function slotsInit(){                                                 // a save from before the slots: expedition 1, last played — its last win
   if(slotMeta(1) || !slotOwn(1).length) return;
@@ -36452,7 +36456,7 @@ async function enter(k){ if(!xGo && xpFresh!==k) xpFresh=0;                     
   if(xpOn) xDown(()=>{ document.activeElement?.blur?.(); xShow(''); xpFill(); showOverlay('xp'); },()=>{ xGo=false; $('xpGo').focus({ preventScroll:true }); });
   else { xGo=false; xpPlay(); }
 }
-function xpPlay(){ SND.titleAmb(false); document.activeElement?.blur?.(); closeOverlays(); startLevel(); announce(); }   // no focus left on a hidden button (Enter would click it)
+function xpPlay(){ xpFresh=0; SND.titleAmb(false); document.activeElement?.blur?.(); closeOverlays(); startLevel(); announce(); }   // no focus left on a hidden button (Enter would click it)
 /* The expedition screen's curtain: a panel in the title's colours comes down over the title, under it mid() shows the screen, then the panel leaves downwards */
 function xDown(mid,open){
   const w=$('xcd'), [c0,c1,c2]=titleCols(), an=(g,mask,a,b,ms,ease,done)=>{ w.style.background=g; w.style.webkitMaskImage=w.style.maskImage=mask;
@@ -36479,9 +36483,9 @@ function xpRows(){                                                    // the exp
     .map(([a,b])=>'<div class="xpr"><span>'+esc(loc(a))+'</span><b>'+esc(b)+'</b></div>').join('');
 }
 function xpFill(){ $('xpName').textContent=xName(slot); $('xpGo').textContent=loc("Let's go!"); $('xpRows').innerHTML=xpRows(); }
-$('xpGo').onclick=()=>{ if(xGo) return; xGo=true; wiping=lvWipe=true; SND.init(); SND.uiTap();                 // the level's curtain, left to right, over the screen
+$('xpGo').onclick=()=>{ if(xGo) return; xGo=true; xpFresh=0; wiping=lvWipe=true; SND.init(); SND.uiTap();                 // the level's curtain, left to right, over the screen
   lvCurtain(async()=>{ SND.titleAmb(false); document.activeElement?.blur?.(); closeOverlays(); await SND.ready(); },()=>{ xGo=false; wiping=lvWipe=false; startLevel(); announce(); },'xcr'); };
-function fresh(k){ if(xGo) return; slotClear(k); slotTouch(k); if(lvSlot===k) lvSlot=0; xpFresh=k; return enter(k); }   // a new expedition in slot k: zero progress
+function fresh(k){ if(xGo) return; slotDrop(k); slotTouch(k); if(lvSlot===k) lvSlot=0; xpFresh=k; return enter(k); }   // a new expedition in slot k: zero progress
 function newExp(){ const k=[...Array(SLOTS)].map((_,j)=>j+1).find(j=>!slotUsed(j)); if(k) return fresh(k); xShow('replace'); }
 function toTitle(){                                                    // the menu: back to the title to switch expeditions
   if(goalLock || wiping || xGo) return; xGo=true; fbEvEnd('quit',{ w:'title' }); xpSave(); introHide(); showOverlay('title'); logoSpin(); xShow('opt'); SND.init(); SND.titleAmb(true);
@@ -36502,7 +36506,7 @@ $('xList').onclick=e=>{ const r=e.target.closest('.xrow'), b=e.target.closest('b
   else if(b.classList.contains('xdel')){ $('xList').querySelectorAll('.ask').forEach(x=>x.classList.remove('ask')); r.classList.add('ask'); }
   else if(a==='no') r.classList.remove('ask');
   else if(xMode==='replace') fresh(k);
-  else { slotClear(k); if(lvSlot===k) lvSlot=0;
+  else { slotDrop(k); if(lvSlot===k) lvSlot=0;
     const gone=()=>{ r.remove(); if(!$('xList').children.length) xShow('opt'); };
     if(matchMedia('(prefers-reduced-motion: reduce)').matches) gone(); else r.animate([{ opacity:1 },{ opacity:0, transform:'scale(.95)' }],{ duration:220, easing:'ease-in' }).onfinish=gone; }
 };
@@ -36535,7 +36539,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest && e.target.clos
 
 /* A swipe in any direction (or Esc) on the expedition screen goes back to the start menu; an expedition that was just begun and not entered is dropped */
 function xpBack(){ if(xGo) return; xGo=true; SND.uiTap(.8);
-  if(xpFresh===slot){ slotClear(slot); if(lvSlot===slot) lvSlot=0; } xpFresh=0;
+  if(xpFresh===slot){ slotDrop(slot); if(lvSlot===slot) lvSlot=0; } xpFresh=0;
   xDown(()=>{ showOverlay('title'); logoSpin(); xShow('opt'); },()=>{ xGo=false; }); }
 let xpG=null;
 $('xp').addEventListener('pointerdown',e=>{ xpG={ x:e.clientX, y:e.clientY, id:e.pointerId }; });
@@ -38983,18 +38987,32 @@ function fbShot(max=1280){
 /* Progress sync of a signed-in beta tester (beta/feedback.js and the worker's /save): every taken slot as an expedition —
    { k, c, at, nm, d } (meta and its progress keys, d without the slot prefix: 'cube-level', 'cube-got-<id>'…); the same expedition on
    another device has the same c (its creation time). fbExpPut writes one into slot k (only on the title before an expedition is chosen) */
+function fbExpD(k){ const d={}, pre='cube-x'+k+'-';                 // slot k's progress keys without the slot prefix
+  slotOwn(k).forEach(x=>{ if(x!==metaKey(k)) d[k>1 ? 'cube-'+x.slice(pre.length) : x]=LSR.get(x,''); }); return d; }
 function fbExps(){
-  const o=[]; for(let k=1;k<=SLOTS;k++){ const m=slotMeta(k); if(!m) continue; const d={}, pre='cube-x'+k+'-';
-    slotOwn(k).forEach(x=>{ if(x!==metaKey(k)) d[k>1 ? 'cube-'+x.slice(pre.length) : x]=LSR.get(x,''); });
-    o.push({ k, c:m.c||0, at:m.at||0, nm:m.nm, d }); }
+  const o=[]; for(let k=1;k<=SLOTS;k++){ const m=slotMeta(k); if(!m) continue; o.push({ k, c:m.c||0, at:m.at||0, nm:m.nm, d:fbExpD(k) }); }
   return o;
 }
-function fbExpPut(k,e){
-  if(xGo || !(k>=1 && k<=SLOTS) || !e || !e.c || !e.d) return false;
+/* How far an expedition got: banked stars plus the levels it has a record of (cube-lv-<id>) */
+function fbProg(d){ return (+d['cube-stars-total']||0)+Object.keys(d).filter(x=>/^cube-lv-/.test(x)).length; }
+function fbExpWrite(k,e){
   slotClear(k); Object.entries(e.d).forEach(([x,v])=>{ if(PROG.test(x)) LSR.set(slotKey(x,k),String(v)); });
   LSR.set(metaKey(k),JSON.stringify({ c:e.c, at:e.at||e.c, nm:e.nm }));
   if(!XNAMES[e.nm] || [...Array(SLOTS)].some((_,j)=>j+1!==k && (slotMeta(j+1)||{}).nm===e.nm)) xNameGive(k);   // the name another slot here has — a new one
-  if(lvSlot===k) lvSlot=0; xNewTxt(); return true;
+  if(lvSlot===k) lvSlot=0;
+}
+/* The cloud's copy e goes into slot k. Never loses progress: if slot k holds the same expedition (same c) further along than e (the
+   copies forked on two devices), the local one becomes an expedition of its own (a new c) and e takes a free slot — or none, it stays in the cloud */
+function fbExpPut(k,e){
+  if(xGo || !(k>=1 && k<=SLOTS) || !e || !e.c || !e.d) return false;
+  const m=slotMeta(k);
+  if(m && m.c===e.c && fbProg(fbExpD(k))>fbProg(e.d)){
+    m.c=Date.now(); LSR.set(metaKey(k),JSON.stringify(m));
+    const j=[...Array(SLOTS)].map((_,i)=>i+1).find(i=>!slotMeta(i));
+    if(j) fbExpWrite(j,e);
+    xNewTxt(); return false;
+  }
+  fbExpWrite(k,e); xNewTxt(); return true;
 }
 let fbDone=false;
 function fbGo(){
@@ -39078,10 +39096,10 @@ if(fbEvOn){
 /*web{*/
 if(BETA && !FBS){
   window.__cubeFb={ snap:fbSnap, shot:fbShot, get lang(){ return lang; }, ver:VERSION,
-    pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut,
+    pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.6e80590'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.65fc216'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
