@@ -45,7 +45,6 @@ const TR={
   'Nickname: 2–20 letters or digits':['Ник: 2–20 букв или цифр','Apodo: 2–20 letras o números','Apelido: 2–20 letras ou números','Name: 2–20 Buchstaben oder Ziffern','Pseudo : 2 à 20 lettres ou chiffres','昵称：2–20 个字母或数字','ニックネーム：2〜20文字の文字または数字','닉네임: 글자나 숫자 2–20자'],
   'PIN: 4–6 digits':['PIN: 4–6 цифр','PIN: 4–6 dígitos','PIN: 4–6 dígitos','PIN: 4–6 Ziffern','PIN : 4 à 6 chiffres','PIN：4–6 位数字','PIN：4〜6桁の数字','PIN: 숫자 4–6자리'],
   'No connection. Try again.':['Нет связи. Попробуйте ещё раз.','Sin conexión. Inténtalo de nuevo.','Sem conexão. Tente de novo.','Keine Verbindung. Versuch es erneut.','Pas de connexion. Réessayez.','无法连接，请重试。','接続できません。もう一度お試しください。','연결되지 않아요. 다시 시도하세요.'],
-  'Attach screenshot':['Приложить снимок экрана','Adjuntar captura','Anexar captura de tela','Screenshot anhängen','Joindre une capture','附上截图','スクリーンショットを添付','스크린샷 첨부'],
   'Record voice':['Записать голос','Grabar voz','Gravar voz','Sprachnachricht','Enregistrer la voix','录音','音声を録音','음성 녹음'],
   'Stop':['Стоп','Detener','Parar','Stopp','Arrêter','停止','停止','정지'],
   'Delete':['Удалить','Borrar','Apagar','Löschen','Supprimer','删除','削除','삭제'],
@@ -129,10 +128,8 @@ css.textContent=`
 #fbCard label.mail small{font-size:12px;opacity:.75}
 #fbCard label.mail[hidden]{display:none}
 #fbCard textarea{min-height:84px;resize:vertical}
-#fbCard label.shot{display:flex;align-items:center;gap:8px;font-size:14px}
 #fbCard .pic{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);min-height:60px;display:grid;place-items:center}
 #fbCard .pic img{display:block;width:100%;max-height:min(42vh,320px);object-fit:contain}
-#fbCard .pic.off img{opacity:.25;filter:grayscale(1)}
 #fbCard .pic .wait{position:absolute;font-size:13px;opacity:.8}
 #fbCard .voice{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
 #fbCard #fbRec{grid-column:1/-1;width:100%;padding:12px;font-size:16px;font-weight:600}
@@ -201,6 +198,10 @@ body:not(.fbin) #fbBtn{display:none}
 #fbMineList .add[hidden]{display:none}
 #fbMineList textarea{min-height:60px}
 #fbMineList .note{font-size:13px;opacity:.7;text-align:center}
+#fbWrap *,#fbIn *,#fbMailAsk *{scrollbar-width:none}
+#fbWrap ::-webkit-scrollbar,#fbIn ::-webkit-scrollbar,#fbMailAsk ::-webkit-scrollbar{display:none}
+#fbCard,#fbInCard{touch-action:pan-y;overscroll-behavior:contain}
+#fbCard.drag,#fbInCard.drag{cursor:grabbing;user-select:none}
 #tBetaOk[hidden]{display:none}
 #tBetaOk:disabled{opacity:.4;filter:grayscale(.6);cursor:default}
 `;
@@ -219,7 +220,6 @@ wrap.innerHTML=`<div id="fbCard" role="dialog" aria-modal="true" aria-labelledby
   <div class="seg"><button type="button" data-k="bug"></button><button type="button" data-k="opinion"></button></div>
   <textarea id="fbText" maxlength="4000"></textarea>
   <label class="mail" id="fbMail" hidden><span id="fbMailL"></span><input id="fbMailIn" type="email" maxlength="200" autocomplete="email" inputmode="email" spellcheck="false"><small id="fbMailS"></small></label>
-  <label class="shot"><input id="fbShotOn" type="checkbox" checked><span></span></label>
   <div class="pic" id="fbPic"><img id="fbShotImg" alt=""><span class="wait" id="fbShotWait">…</span></div>
   <div class="voice"><button type="button" id="fbRec"></button><audio id="fbAud" controls hidden></audio><button type="button" id="fbAudDel" hidden></button></div>
   <div class="msg" id="fbMsg"></div>
@@ -236,6 +236,22 @@ mailAsk.innerHTML=`<div id="fbMailCard" role="dialog" aria-modal="true" aria-lab
   <div class="row"><button type="button" id="fbAskNo" disabled></button><button type="button" id="fbAskOk"></button></div>
 </div>`;
 document.body.append(btn,wrap,inb,mailAsk);
+/* No scrollbars (project rule): the windows scroll by dragging — the middle mouse button anywhere, the left one from any spot that is
+   not a control or a text field; a touch pans natively. The click that ends a drag is swallowed */
+const DRAG_MOVE=5, dragNo=e=>e.closest('input,textarea,select,audio,button,a,label');
+function dragScroll(box){
+  let d=null;
+  box.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse' || !(e.button===1 || e.button===0 && !dragNo(e.target))) return;
+    if(e.button===1) e.preventDefault(); d={ id:e.pointerId, y:e.clientY, top:box.scrollTop, on:false }; });
+  box.addEventListener('pointermove',e=>{ if(!d || e.pointerId!==d.id) return; const dy=e.clientY-d.y;
+    if(!d.on){ if(Math.abs(dy)<DRAG_MOVE) return; d.on=true; box.classList.add('drag'); try{ box.setPointerCapture(e.pointerId); }catch(x){} getSelection().removeAllRanges(); }
+    box.scrollTop=d.top-dy; e.preventDefault(); });
+  const end=e=>{ if(!d || e.pointerId!==d.id) return; if(d.on){ box.classList.remove('drag'); box.dataset.eat='1'; setTimeout(()=>delete box.dataset.eat,0); } d=null; };
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+  box.addEventListener('click',e=>{ if(box.dataset.eat){ e.stopPropagation(); e.preventDefault(); delete box.dataset.eat; } },true);
+  box.addEventListener('auxclick',e=>{ if(e.button===1) e.preventDefault(); });
+}
+['fbCard','fbInCard'].forEach(id=>dragScroll(document.getElementById(id)));
 const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg button')], cnt=[...wrap.querySelectorAll('.hd .cnt')];
 ['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape'){ if(!$('fbMine').hidden) mineBack(); else close(); } }));
 btn.addEventListener('keydown',e=>e.stopPropagation());
@@ -281,7 +297,7 @@ function mailField(){
 function texts(){
   $('fbH').textContent=t('Feedback'); seg[0].textContent=t('Bug'); seg[1].textContent=t('Impression');
   $('fbText').placeholder=t('What happened? Or what do you think of this moment?');
-  wrap.querySelector('label.shot span').textContent=t('Attach screenshot'); $('fbAudDel').textContent=t('Delete');
+  $('fbAudDel').textContent=t('Delete');
   $('fbCancel').textContent=t('Cancel'); $('fbSend').textContent=t('Send'); mailField(); recTxt();
   $('fbNick').textContent=acct ? acct.nick : ''; outTxt(); $('fbBack').title=$('fbBack').ariaLabel=t('Back'); mineCnt(); if(!$('fbMine').hidden) mineRender();
 }
@@ -295,11 +311,11 @@ function open(){
   FB.pause(true);
   shot=null; shotP=capture().then(d=>{ shot=d; showShot(); return d; });
   texts(); setKind(kind); msg(''); sending=false; $('fbSend').disabled=false;
-  $('fbShotImg').removeAttribute('src'); $('fbShotWait').hidden=false; $('fbShotOn').checked=true; $('fbShotOn').disabled=false; showShot();
+  $('fbShotImg').removeAttribute('src'); $('fbShotWait').hidden=false; showShot();
   outAsk=false; $('fbOut').disabled=false; $('fbMine').hidden=true; $('fbForm').hidden=false; mineLoad(); texts();
   wrap.hidden=false; setTimeout(()=>$('fbText').focus({ preventScroll:true }),50);
 }
-function showShot(){ const on=$('fbShotOn').checked; $('fbPic').classList.toggle('off',!on);
+function showShot(){   // the screenshot always goes with the report
   if(shot){ $('fbShotImg').src=shot; $('fbShotWait').hidden=true; } else if(shotP===null){ $('fbShotWait').hidden=true; } }
 function close(){
   if(wrap.hidden) return; recStop(true); wrap.hidden=true; FB.pause(false);
@@ -307,7 +323,6 @@ function close(){
 }
 btn.onclick=open;
 $('fbCancel').onclick=close;
-$('fbShotOn').onchange=showShot;
 wrap.addEventListener('pointerdown',e=>{ if(e.target===wrap) wrap.dataset.out='1'; });
 wrap.addEventListener('click',e=>{ if(e.target===wrap && wrap.dataset.out && !sending) close(); delete wrap.dataset.out; });
 
@@ -398,7 +413,7 @@ $('fbSend').onclick=async()=>{
   if(email && !emailOk(email)) return msg(t('Email looks wrong'));
   sending=true; $('fbSend').disabled=true; msg(t('Sending…'),true);
   try{
-    const pic=$('fbShotOn').checked ? await shotP : null;
+    const pic=await shotP;
     const d=await post('/fb',{ tok:acct && acct.tok, kind, text, snap, shot:pic, audio:voice ? { data:await b64(voice.blob), dur:voice.dur } : null, ...(email ? { email } : {}) });
     if(d && acct && (d.mail || d.pend)){ acct={ ...acct, mail:!!d.mail, pend:!d.mail }; LSset('cube-tester-acct',JSON.stringify(acct)); mailField(); }
     mine=null;
