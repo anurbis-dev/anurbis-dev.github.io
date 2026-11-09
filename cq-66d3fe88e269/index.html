@@ -1429,7 +1429,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.18.0';
+const VERSION = '2.19.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -2520,7 +2520,7 @@ const SND = (() => {
   let warmVoice=null;                                                // idle warmup droid {g,t0} — faded out if the player moves
   const busy=()=>live>=VOICES;
   let urgent=false;                 // a sound that must be heard (goldFrame): it may go past VOICES
-  let quiet=false;                  // the level report is open: the level's music and effects are off, the ambience plays (levelQuiet)
+  let quiet=false;                  // the level report is open: all the level's sound is held off, the report's cues go on the UI bus (levelQuiet)
   const holds = new Set();          // reasons for silence: 'menu', 'hidden', 'fb' (the beta feedback form: the output itself goes silent)
   const busOf = k => k==='mus'?musBus:k==='amb'?ambBus:k==='ui'?uiBus:sfxBus;
   const verbOf = k => k==='mus'?verbM:k==='amb'?verbA:verbS;
@@ -2830,10 +2830,11 @@ const SND = (() => {
     if(!ctx) return; const t=ctx.currentTime;
     for(const id in loops){ const L=loops[id]; try{ holdAt(L.g.gain,t); L.g.gain.setTargetAtTime(0,t,.08); L.src.forEach(s=>{ try{ s.stop(t+.6); }catch(e){} }); }catch(e){} delete loops[id]; }
   }
-  /* The level report (stats) is open: the level's music, effects and loops go quiet and stop, the ambience keeps playing.
-     The gold chime is on the UI bus, so it still sounds */
+  /* The level report (stats) is open: everything of the level — music, effects, ambience, loops, reverb tails, the idle whistle — fades
+     to silence and the master is unplugged (hold 'stats'); the report's own cues (stars, life, gold chime, buttons) go on the UI bus */
   function levelQuiet(on){
-    if(!ctx || quiet===on) return; quiet=on; const t=ctx.currentTime;
+    if(quiet===on) return; quiet=on; hold('stats',on);
+    if(!ctx) return; const t=ctx.currentTime;
     holdAt(sfxBus.gain,t); holdAt(musBus.gain,t);
     sfxBus.gain.setTargetAtTime(on?0:VOL.sfx*BASE.sfx,t,.12); musBus.gain.setTargetAtTime(on?0:VOL.mus*BASE.mus,t,.12);
     if(on) loopsHush();
@@ -28022,7 +28023,7 @@ function showStats(){
   $('stSecrets').textContent=sec.length?loc('{0} of {1}',sec.filter(s=>s.got).length,sec.length):'—';
   const pr=starsProg||{ t0:lsNum('cube-stars-total',0), add:[], bonus:0 }; starsProg=null;
   statBar(pr.t0); $('stLife').classList.remove('on');
-  $('btnNext').textContent=loc(lvNextI(cur+1)>=N?'Start over':'Move On');
+  $('btnNext').textContent=loc(lvMoveI()>=N?'Start over':'Move On');
   const full=lvAllGot(cur); $('stats').querySelector('.card').classList.remove('gold','gon');
   showOverlay('stats');
   statsFly(pr).then(()=>{ if(full) statGold(); });
@@ -29596,6 +29597,15 @@ function lvBonusVis(i){ if(!lvBonus(i)) return true;
   return lvStat(i).done || i===cur || lvBonusPeek || LS.get('cube-bonus-'+LEVELS[i].area,'')==='1'; }
 function lvCaption(i){ return lvBonus(i) ? loc('Bonus') : loc('Level {0} of {1}',lvNo(i),lvVisN(areaOf(i))); }
 function lvNextI(i){ while(i<N && lvBonus(i) && !lvBonusVis(i)) i++; if(i<N && lvEvt(i) && !lvEvt(cur)) i=N; return i; }   // skip a locked bonus (Move On goes to the next area)
+/* The stats' Move On: a logical next step. Among the open levels (lvVis) of the same kind (the game or the event, as cur) except cur:
+   the first never finished; else the first one not fully explored after cur (wrapping); else the plain next level (lvNextI) */
+const lvFullI=i=>{ const s=lvStat(i); return s.done && s.stars[0]===s.stars[1] && s.secrets[0]===s.secrets[1]; };   // finished and nothing left (a level without stars counts too)
+function lvMoveI(){
+  lvVisUp(); const ev=lvEvt(cur), ok=i=>i!==cur && lvEvt(i)===ev && lvVis(i);
+  for(let i=0;i<N;i++) if(ok(i) && !lvStat(i).done) return i;
+  for(let k=1;k<N;k++){ const i=(cur+k)%N; if(ok(i) && !lvFullI(i)) return i; }
+  return lvNextI(cur+1);
+}
 /* What the levels views show — the map's unlock rule (MAP.vis: groups of 1, then 5; the next area once the previous is done; finished
    and the current level always; lvPeek — every regular level; bonus — gold frames or the second hold): a level not open yet has no tile,
    the area counts only the open numbered ones (lvVisN). New tiles appear one by one when Locations opens (lvReveal) */
@@ -36270,7 +36280,7 @@ function updatePause(){
   document.body.classList.toggle('artopen', paused && ov?.id==='art');
   SND.hold('menu', paused && ov?.id!=='stats' && ov?.id!=='art' && ov?.id!=='xp');   // settings stay muted too; volume sliders preview on the UI bus. The expedition screen keeps the title's music
   SND.hold('art', paused && ov?.id==='art'); SND.hold('fb', fbPaused);
-  SND.levelQuiet(ov?.id==='stats');   // the level report: the level's music and effects stop, the ambience plays on
+  if(ov?.id==='stats') SND.levelQuiet(true);   // the level report: all the level's sound fades out and stays off until the next loadLevel
   if(paused && (ov?.id==='stats' || ov?.id==='xp')) SND.loopsHush();   // no tick under these screens (the sound is not held): the game's loops would stick on their last level
   const mo=paused && (ov?.id==='menu' || artKeep && ov?.id==='art'); if(mo!==menuOn){ menuOn=mo; if(!artSwap) mo ? SND.pauseOn() : SND.pauseOff(); }   // the pause menu opens / the game resumes; a gallery relic stays inside the pause
   if(paused) dropInput();
@@ -36716,7 +36726,7 @@ SND.titleAmb(true);                                                    // the ti
 SND.init();                                                            // allowed to start right away; otherwise the first touch of any kind (before the tap's click) wakes it
 ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>SND.init(),{ capture:true, passive:true }));
 $('btnNext').onclick=()=>{ if(statBusy) return; SND.init(); closeOverlays();
-  const nx=lvNextI(cur+1);
+  const nx=lvMoveI();
   if(nx<N && MAP.news() && (lvMode==='map' && !lvEvt(nx) ? MAP.open(nx) : lvOpenAfter(nx))) return;   // the last level of an open group: the map (or the tiles, the list) shows what opened; left without a pick — the next level
   goLevel(nx,false,nx>=N && [loc('All done!'),loc('Version {0} — let\'s start over',VERSION)]); };
 $('btnAgain').onclick=()=>{ if(statBusy) return; SND.init(); closeOverlays(); goLevel(cur); };
@@ -36778,7 +36788,7 @@ function startLevel(){
 /* sv — a visit to or from a hidden sublevel of the same run (subGo): subLv and subRun stay, the run's lives, time and finds carry over */
 function loadLevel(i,retry,defer,sv){
   cur=((i%N)+N)%N; if(!sv){ subLv=null; subRun=null; } const def=curDef(); T=THEMES[def.theme];
-  anim=null; tweens.length=0; timers.length=0; queue=[]; chargeV=0; goalLock=false; afterSpin=null; spinHold=false; artPend=-1; cineEnd(); needDraw=true; fallingLeaves.length=0;   // the leaves go with the old world
+  anim=null; tweens.length=0; timers.length=0; queue=[]; chargeV=0; goalLock=false; afterSpin=null; spinHold=false; artPend=-1; cineEnd(); needDraw=true; fallingLeaves.length=0; SND.levelQuiet(false);   // the leaves go with the old world; the level report's silence ends only with a new level (not when the report closes before the curtain)
   applyTheme(); parse(def); subStars(); keepProgress(); build(); subApply(); matPrune(); hazeLevel();
   if(lastTheme!==def.theme||!retry) SND.setAmbient(T.weather||T.amb||(waterCells.length?'water':null));
   lastTheme=def.theme;
@@ -39301,7 +39311,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.a1abe51'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.4d31b86'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
