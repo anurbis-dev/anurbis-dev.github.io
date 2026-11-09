@@ -198,10 +198,6 @@ body:not(.fbin) #fbBtn{display:none}
 #fbMineList .add[hidden]{display:none}
 #fbMineList textarea{min-height:60px}
 #fbMineList .note{font-size:13px;opacity:.7;text-align:center}
-#fbWrap *,#fbIn *,#fbMailAsk *{scrollbar-width:none}
-#fbWrap ::-webkit-scrollbar,#fbIn ::-webkit-scrollbar,#fbMailAsk ::-webkit-scrollbar{display:none}
-#fbCard,#fbInCard{touch-action:pan-y;overscroll-behavior:contain}
-#fbCard.drag,#fbInCard.drag{cursor:grabbing;user-select:none}
 #tBetaOk[hidden]{display:none}
 #tBetaOk:disabled{opacity:.4;filter:grayscale(.6);cursor:default}
 `;
@@ -236,24 +232,13 @@ mailAsk.innerHTML=`<div id="fbMailCard" role="dialog" aria-modal="true" aria-lab
   <div class="row"><button type="button" id="fbAskNo" disabled></button><button type="button" id="fbAskOk"></button></div>
 </div>`;
 document.body.append(btn,wrap,inb,mailAsk);
-/* No scrollbars (project rule): the windows scroll by dragging — the middle mouse button anywhere, the left one from any spot that is
-   not a control or a text field; a touch pans natively. The click that ends a drag is swallowed */
-const DRAG_MOVE=5, dragNo=e=>e.closest('input,textarea,select,audio,button,a,label');
-function dragScroll(box){
-  let d=null;
-  box.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse' || !(e.button===1 || e.button===0 && !dragNo(e.target))) return;
-    if(e.button===1) e.preventDefault(); d={ id:e.pointerId, y:e.clientY, top:box.scrollTop, on:false }; });
-  box.addEventListener('pointermove',e=>{ if(!d || e.pointerId!==d.id) return; const dy=e.clientY-d.y;
-    if(!d.on){ if(Math.abs(dy)<DRAG_MOVE) return; d.on=true; box.classList.add('drag'); try{ box.setPointerCapture(e.pointerId); }catch(x){} getSelection().removeAllRanges(); }
-    box.scrollTop=d.top-dy; e.preventDefault(); });
-  const end=e=>{ if(!d || e.pointerId!==d.id) return; if(d.on){ box.classList.remove('drag'); box.dataset.eat='1'; setTimeout(()=>delete box.dataset.eat,0); } d=null; };
-  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
-  box.addEventListener('click',e=>{ if(box.dataset.eat){ e.stopPropagation(); e.preventDefault(); delete box.dataset.eat; } },true);
-  box.addEventListener('auxclick',e=>{ if(e.button===1) e.preventDefault(); });
-}
-['fbCard','fbInCard'].forEach(id=>dragScroll(document.getElementById(id)));
+/* The windows are the UI kit's modals (src/ui/kit.js, window.UIK — the game inlines it): no scrollbars, drag to scroll (the middle mouse
+   button anywhere, the left one off the text fields; a finger pans natively), keys stay inside, Esc and a tap on the backdrop, focus back */
+const K=window.UIK;
 const $=id=>document.getElementById(id), seg=[...wrap.querySelectorAll('.seg button')], cnt=[...wrap.querySelectorAll('.hd .cnt')];
-['keydown','keyup','keypress'].forEach(ev=>wrap.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && e.key==='Escape'){ if(!$('fbMine').hidden) mineBack(); else close(); } }));
+const inM=K.modal(inb,{ card:$('fbInCard'), esc:()=>inClose(), enter:()=>inClose() });
+const mailM=K.modal(mailAsk,{ card:$('fbMailCard'), esc:()=>mailAskDismiss(), enter:e=>{ if(e.target.id==='fbAskIn') mailAskSave(); } });
+const wrapM=K.modal(wrap,{ card:$('fbCard'), esc:()=>{ if(!$('fbMine').hidden) mineBack(); else close(); }, outside:()=>{ if(!sending) close(); }, stop:false });
 btn.addEventListener('keydown',e=>e.stopPropagation());
 
 let snap=null, shot=null, shotP=null, kind='bug', rec=null, voice=null, sending=false;
@@ -313,18 +298,16 @@ function open(){
   texts(); setKind(kind); msg(''); sending=false; $('fbSend').disabled=false;
   $('fbShotImg').removeAttribute('src'); $('fbShotWait').hidden=false; showShot();
   outAsk=false; $('fbOut').disabled=false; $('fbMine').hidden=true; $('fbForm').hidden=false; mineLoad(); texts();
-  wrap.hidden=false; setTimeout(()=>$('fbText').focus({ preventScroll:true }),50);
+  wrapM.show($('fbText'));
 }
 function showShot(){   // the screenshot always goes with the report
   if(shot){ $('fbShotImg').src=shot; $('fbShotWait').hidden=true; } else if(shotP===null){ $('fbShotWait').hidden=true; } }
 function close(){
-  if(wrap.hidden) return; recStop(true); wrap.hidden=true; FB.pause(false);
+  if(wrap.hidden) return; recStop(true); wrapM.hide(); FB.pause(false);
   $('fbText').value=''; voiceDel(); snap=shot=shotP=null; btn.blur(); setTimeout(()=>{ inShow(); mailAskMaybe(); },300);
 }
 btn.onclick=open;
 $('fbCancel').onclick=close;
-wrap.addEventListener('pointerdown',e=>{ if(e.target===wrap) wrap.dataset.out='1'; });
-wrap.addEventListener('click',e=>{ if(e.target===wrap && wrap.dataset.out && !sending) close(); delete wrap.dataset.out; });
 
 /* The tester's account in the same window: the nickname, "Log out" (asks once in the button: syncs the progress, signs out and reloads —
    the beta notice opens with the sign-in), the open reports by kind (/tester/reports) — a tap lists them with the developers' replies and
@@ -578,12 +561,12 @@ function mailAskTxt(){
 function mailAskMaybe(){
   if(!mailKnown || !acct || acct.mail || acct.pend || mailSkipAsk || LSget('cube-mail-ask','')==='1') return;
   if(!mailAsk.hidden || !wrap.hidden || !inb.hidden) return;
-  mailLeft=5; $('fbAskMsg').textContent=''; $('fbAskIn').value=''; mailAskTxt(); mailAsk.hidden=false; FB.pause(true);
+  mailLeft=5; $('fbAskMsg').textContent=''; $('fbAskIn').value=''; mailAskTxt(); mailM.show(); FB.pause(true);
   if(mailTimer) clearInterval(mailTimer);
   mailTimer=setInterval(()=>{ mailLeft=Math.max(0,mailLeft-1); if(mailLeft<=0){ clearInterval(mailTimer); mailTimer=null; } mailAskTxt(); },1000);
 }
 function mailAskHide(){
-  if(mailAsk.hidden) return; mailAsk.hidden=true; if(mailTimer){ clearInterval(mailTimer); mailTimer=null; }
+  if(mailAsk.hidden) return; mailM.hide(); if(mailTimer){ clearInterval(mailTimer); mailTimer=null; }
   if(wrap.hidden && inb.hidden) FB.pause(false); inShow();
 }
 function mailAskDismiss(){ if(mailLeft>0) return; LSset('cube-mail-ask','1'); mailAskHide(); }
@@ -601,10 +584,6 @@ async function mailAskSave(){
 }
 $('fbAskOk').onclick=()=>mailAskSave();
 $('fbAskNo').onclick=mailAskDismiss;
-['keydown','keyup','keypress'].forEach(ev=>mailAsk.addEventListener(ev,e=>{ e.stopPropagation();
-  if(ev==='keydown' && e.key==='Escape'){ e.preventDefault(); mailAskDismiss(); }
-  if(ev==='keydown' && e.key==='Enter' && e.target.id==='fbAskIn'){ e.preventDefault(); mailAskSave(); } }));
-mailAsk.addEventListener('click',e=>e.stopPropagation());
 async function inPull(){
   if(!acct || inBusy || document.hidden) return; inBusy=true; const me=acct;
   try{ const d=await post('/tester/me',{ tok:acct.tok, nick:acct.nick, play:FB.busy ? 1 : 0, dev:FB.busy ? devInfo : undefined });
@@ -629,17 +608,15 @@ function inRender(){
 }
 function inShow(){
   if(!inMsgs.length || !inb.hidden || !wrap.hidden || !mailAsk.hidden) return;
-  inRender(); inb.hidden=false; FB.pause(true); setTimeout(()=>$('fbInOk').focus({ preventScroll:true }),50);
+  inRender(); inM.show($('fbInOk')); FB.pause(true);
 }
 function inClose(){
-  if(inb.hidden) return; inb.hidden=true; FB.pause(false);
+  if(inb.hidden) return; inM.hide(); FB.pause(false);
   const ids=inMsgs.map(m=>m.id); inMsgs=[];
   if(acct) post('/tester/ack',{ tok:acct.tok, ids }).catch(e=>console.warn('feedback messages:',e));
   mailAskMaybe();
 }
 $('fbInOk').onclick=inClose;
-['keydown','keyup','keypress'].forEach(ev=>inb.addEventListener(ev,e=>{ e.stopPropagation(); if(ev==='keydown' && (e.key==='Escape' || e.key==='Enter')){ e.preventDefault(); inClose(); } }));
-inb.addEventListener('click',e=>e.stopPropagation());
 setInterval(inPull,MSG_EVERY);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) inPull(); });
 let inPlay=false;

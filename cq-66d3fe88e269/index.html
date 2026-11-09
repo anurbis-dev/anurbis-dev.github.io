@@ -1118,6 +1118,246 @@ body.lowq #mapCard{ backdrop-filter:none; -webkit-backdrop-filter:none; }
   </section>
 </div>
 
+<script>
+/* ==================== UI KIT ====================
+   One shared set of window behaviours for every page of the project: the game (the build inlines this file into index.html and the editor),
+   the beta feedback windows (beta/feedback.js runs inside the game and uses window.UIK), the beta dashboard (beta/feedback.html) and the
+   preview prototypes (preview/*.html load ../src/ui/kit.js). New windows are built on it — never with default behaviour:
+   - no scrollbars anywhere (the kit's stylesheet hides them on the whole page);
+   - UIK.drag — drag to scroll: the middle mouse button anywhere over a scroller, the left button (mouse, pen) where the page allows it,
+     a finger pans natively; a coast after a fast release; the click that ends a drag is swallowed;
+   - UIK.edges — arrows at the edges of a scroller that has more content past them (a tap scrolls most of a page), UIK.more — the same state
+     on edge markers the page draws itself (.more.up / .more.dn next to the scroller);
+   - UIK.tap — touch taps act on pointerup (a mobile browser drops the click of a tap that stops a fling, is held a little long or lands
+     while the main thread is busy); the native click that follows is swallowed;
+   - UIK.popup — a popup / menu closes when the mouse goes more than 25 px outside it, on Esc and on a press outside;
+   - UIK.modal — a modal window: keys stay inside, Esc and a tap on the backdrop close it, focus returns where it was.
+   Not a module: the file declares one name (UIK) and also puts it on window, so it works as a classic script and inside the game's cubeMain. */
+const UIK=(()=>{
+  if(typeof window!=='undefined' && window.UIK) return window.UIK;        // loaded twice (a tool page that also pulls the game in): one kit
+  const D=document, now=()=>performance.now();
+  const css=D.createElement('style'); css.id='uikCss';
+  css.textContent=`
+  *{scrollbar-width:none}
+  *::-webkit-scrollbar{display:none;width:0;height:0}
+  .uk-scr{overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+  .uk-drag,.uk-drag *{cursor:grabbing!important;user-select:none!important}
+  .uk-mol{position:absolute;inset:0;pointer-events:none}
+  .uk-mo{position:absolute;z-index:var(--z,4);width:30px;height:18px;border:1px solid var(--uk-line,rgba(255,255,255,.25));border-radius:9px;background:var(--uk-bg,rgba(36,26,67,.9));color:var(--uk-fg,#ffd36b);display:grid;place-items:center;padding:0;margin:0;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+  .uk-mo.on{opacity:1;pointer-events:auto}
+  .uk-mo.l,.uk-mo.r{width:18px;height:26px}
+  .uk-mo svg{width:12px;height:12px}
+  .uk-mo.d svg{transform:rotate(180deg)} .uk-mo.l svg{transform:rotate(-90deg)} .uk-mo.r svg{transform:rotate(90deg)}`;
+  (D.head||D.documentElement).prepend(css);                              // first: every page's own rules win over the kit's defaults
+
+  /* ==== SCROLLERS ==== */
+  const scrP=ax=>ax==='y' ? 'scrollTop' : 'scrollLeft', scrMax=(el,ax)=>ax==='y' ? el.scrollHeight-el.clientHeight : el.scrollWidth-el.clientWidth;
+  function scrollable(el,ax){
+    if(!el || el.nodeType!==1 || scrMax(el,ax)<2) return false;
+    const o=getComputedStyle(el)[ax==='y' ? 'overflowY' : 'overflowX'];
+    return o==='auto' || o==='scroll' || el===D.scrollingElement && o!=='hidden';
+  }
+  /* The nearest ancestor of t that scrolls along ax (null — none) */
+  function scrOf(t,ax){ for(let el=t && t.nodeType===1 ? t : t && t.parentElement; el; el=el.parentElement) if(scrollable(el,ax)) return el; return null; }
+
+  /* ==== DRAG TO SCROLL ====
+     One set of document listeners for the whole page; they do work only while a drag is live. UIK.drag.set(opts) tunes it for the page:
+     left(t, e)     → the scroller a left-button (mouse/pen) drag from t moves, or null (default: the nearest scroller unless t is a field — FIELDS);
+     middle         → false turns the middle button off (default: on, anywhere over a scroller);
+     cancel(sc,dx,dy) → true when the first move should be left to the page (a sideways pager), the drag is dropped;
+     start(sc), end(sc, moved) → hooks (the game clears its long press, swallows its own clicks). */
+  const FIELDS='input,textarea,select,audio,video,[contenteditable],[contenteditable] *,.bs,[data-nodrag],[data-nodrag] *';
+  const DRAG_MOVE=5;
+  const DR={ left:(t)=>t.closest && t.closest(FIELDS) ? null : scrOf(t,'y')||scrOf(t,'x'), middle:true, cancel:null, start:null, end:null, coast:true };
+  let drg=null, coast=0, eatClick=0;
+  function coastStop(){ if(coast){ cancelAnimationFrame(coast); coast=0; } }
+  function coastGo(sc,vx,vy){
+    coastStop(); if(Math.hypot(vx,vy)<.12) return;
+    let lt=0;
+    const step=t=>{ const dt=lt ? Math.min(.05,(t-lt)/1000) : .016; lt=t;
+      sc.scrollTop-=vy*dt*1000; sc.scrollLeft-=vx*dt*1000;
+      const k=Math.exp(-dt*5.2); vx*=k; vy*=k;
+      if(Math.hypot(vx,vy)<.04 || !sc.isConnected){ coast=0; return; }
+      coast=requestAnimationFrame(step); };
+    coast=requestAnimationFrame(step);
+  }
+  D.addEventListener('mousedown',e=>{ if(e.button===1 && DR.middle && (scrOf(e.target,'y')||scrOf(e.target,'x'))) e.preventDefault(); },true);   // no browser autoscroll
+  D.addEventListener('pointerdown',e=>{
+    coastStop(); drg=null;
+    if(e.pointerType==='touch') return;
+    let sc=null;
+    if(e.button===1 && DR.middle) sc=scrOf(e.target,'y')||scrOf(e.target,'x');
+    else if(e.button===0 && DR.left) sc=DR.left(e.target,e);
+    if(!sc) return;
+    if(e.button===1) e.preventDefault();
+    drg={ id:e.pointerId, x:e.clientX, y:e.clientY, sc, mid:e.button===1, on:false, ax:scrMax(sc,'x')>1, ay:scrMax(sc,'y')>1, s:[[now(),e.clientX,e.clientY]] };
+  },true);
+  D.addEventListener('pointermove',e=>{
+    const g=drg; if(!g || e.pointerId!==g.id) return;
+    const dx=e.clientX-g.x, dy=e.clientY-g.y;
+    if(!g.on){ if(Math.hypot(dx,dy)<DRAG_MOVE) return;
+      if(!g.mid && DR.cancel && DR.cancel(g.sc,dx,dy)){ drg=null; return; }
+      g.on=true; g.sc.classList.add('uk-drag'); D.documentElement.classList.add('uk-drag');
+      try{ getSelection().removeAllRanges(); }catch(x){}
+      if(DR.start) DR.start(g.sc); }
+    if(g.ay) g.sc.scrollTop-=dy; if(g.ax) g.sc.scrollLeft-=dx; g.x=e.clientX; g.y=e.clientY;
+    const t=now(); g.s.push([t,e.clientX,e.clientY]); while(g.s.length>2 && t-g.s[0][0]>90) g.s.shift();
+    e.preventDefault();
+  },true);
+  function dragEnd(e){
+    const g=drg; if(!g || e.pointerId!==g.id) return; drg=null;
+    if(!g.on) return;
+    g.sc.classList.remove('uk-drag'); D.documentElement.classList.remove('uk-drag');
+    eatClick=now()+800;                                                  // the click (or auxclick) this release makes is not a click
+    if(DR.end) DR.end(g.sc,true);
+    const t=now(), a=g.s[0], b=g.s[g.s.length-1];
+    if(e.type==='pointercancel' || !DR.coast || !a || t-b[0]>90) return;
+    const dt=Math.max(16,b[0]-a[0]);
+    coastGo(g.sc,g.ax ? (b[1]-a[1])/dt : 0,g.ay ? (b[2]-a[2])/dt : 0);
+  }
+  D.addEventListener('pointerup',dragEnd,true); D.addEventListener('pointercancel',dragEnd,true);
+  const eatIt=e=>{ if(e.isTrusted && eatClick && now()<eatClick){ eatClick=0; e.stopImmediatePropagation(); e.preventDefault(); } };
+  addEventListener('click',eatIt,true); addEventListener('auxclick',eatIt,true);
+  D.addEventListener('pointerdown',()=>{ eatClick=0; },true);            // registered after the drag's own pointerdown: a fresh press forgets the old eat
+
+  /* ==== SMOOTH WHEEL ==== UIK.wheel(root, {stop}): the wheel over a scroller inside root glides it to its target (one rAF for all), with
+     Shift — sideways; Ctrl+wheel and <select> are left to the browser; stop — the wheel does not reach the page under it (the editor's 3D view) */
+  function wheel(root,opt){
+    opt=opt||{}; const WH=new Map(); let raf=0;                       // scroller → its wheel target {x, y}
+    const step=()=>{ raf=0;
+      for(const [el,g] of WH){ if(!el.isConnected){ WH.delete(el); continue; } let on=false;
+        for(const ax of ['x','y']){ if(g[ax]==null) continue; const p=scrP(ax), d=g[ax]-el[p];
+          if(Math.abs(d)<1){ el[p]=g[ax]; g[ax]=null; continue; } const was=el[p]; el[p]+=Math.sign(d)*Math.max(1,Math.abs(d)*.2); if(el[p]===was) g[ax]=null; else on=true; }
+        if(!on) WH.delete(el); }
+      if(WH.size) raf=requestAnimationFrame(step); };
+    const kick=()=>{ if(!raf && WH.size) raf=requestAnimationFrame(step); };
+    root.addEventListener('wheel',e=>{
+      if(opt.stop) e.stopPropagation();                                // always, even with nothing to scroll: the page under the panel never gets it
+      if(e.ctrlKey || e.target.closest && e.target.closest('select')) return;
+      let dx=e.deltaX, dy=e.deltaY; if(e.shiftKey && !dx){ dx=dy; dy=0; }
+      const ax=Math.abs(dy)>=Math.abs(dx) ? 'y' : 'x', d=ax==='y' ? dy : dx, el=scrOf(e.target,ax); if(!el || !d || el!==root && !root.contains(el)) return;
+      e.preventDefault(); coastStop();
+      const k=e.deltaMode===1 ? 36 : e.deltaMode===2 ? el[ax==='y' ? 'clientHeight' : 'clientWidth']*.9 : 1, g=WH.get(el)||{};
+      g[ax]=Math.max(0,Math.min(scrMax(el,ax),(g[ax]??el[scrP(ax)])+d*k)); WH.set(el,g); kick();
+    },{ passive:false });
+    return { map:WH, kick };                                           // a page that re-renders its panels carries a glide over to the new element
+  }
+
+  /* ==== EDGE ARROWS ====
+     UIK.edges(parent, {sel, z(el), hide()}) — an arrow layer over parent (rebuilt if parent's content is replaced): every scroller matching sel
+     inside parent shows an arrow at each edge with more content past it; a tap scrolls most of a page that way. → {update, soon}.
+     Updates itself on scroll, load, toggle, animation / transition end and resize inside parent; call soon() after a render.
+     UIK.more(sc) — the same state on markers the page draws: .more.up / .more.dn children of the scroller's parent get .on */
+  const MO_SVG='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function edges(parent,opt){
+    opt=opt||{}; const sel=opt.sel||'.uk-scr', fixed=parent===D.body;
+    let q=0, els=new WeakMap();
+    const soon=()=>{ if(!q) q=requestAnimationFrame(()=>{ q=0; update(); }); };
+    function update(){
+      let lay=parent.querySelector(':scope>.uk-mol'); if(!lay){ lay=D.createElement('div'); lay.className='uk-mol'; if(fixed) lay.style.position='fixed'; parent.append(lay); els=new WeakMap(); }
+      if(opt.hide && opt.hide()){ lay.style.opacity='0'; return; } lay.style.opacity='';
+      const pr=fixed ? { left:0, top:0 } : parent.getBoundingClientRect();
+      for(const el of parent.querySelectorAll(sel)){
+        let a=els.get(el);
+        const r=el.getBoundingClientRect(), vis=!!el.offsetParent && r.width>0 && r.height>0 && !el.closest('[hidden]'), v=el.scrollHeight-el.clientHeight, h=el.scrollWidth-el.clientWidth;
+        if(!a){ if(!vis || v<3 && h<3) continue;
+          a={}; for(const d of 'udlr'){ const b=D.createElement('button'); b.type='button'; b.className='uk-mo '+d; b.tabIndex=-1; b.setAttribute('aria-hidden','true'); b.innerHTML=MO_SVG;
+            b.onclick=ev=>{ ev.stopPropagation(); const k=d==='u' || d==='l' ? -1 : 1; el.scrollBy(d==='u' || d==='d' ? { top:k*el.clientHeight*.8, behavior:'smooth' } : { left:k*el.clientWidth*.7, behavior:'smooth' }); };
+            lay.append(b); a[d]=b; } els.set(el,a); }
+        const z=opt.z ? opt.z(el) : 4, x=r.left-pr.left, y=r.top-pr.top;
+        const on={ u:vis && v>2 && el.scrollTop>2, d:vis && v>2 && el.scrollTop<v-2, l:vis && h>2 && el.scrollLeft>2, r:vis && h>2 && el.scrollLeft<h-2 };
+        const pos={ u:[x+r.width/2-15,y+4], d:[x+r.width/2-15,y+r.height-22], l:[x+2,y+r.height/2-13], r:[x+r.width-20,y+r.height/2-13] };
+        for(const d of 'udlr'){ const b=a[d]; b.classList.toggle('on',on[d]); b.style.left=pos[d][0]+'px'; b.style.top=pos[d][1]+'px'; b.style.setProperty('--z',z); }
+      }
+    }
+    parent.addEventListener('scroll',soon,true); parent.addEventListener('load',soon,true); parent.addEventListener('toggle',soon,true);
+    parent.addEventListener('animationend',soon); parent.addEventListener('transitionend',soon); addEventListener('resize',soon);
+    return { update, soon };
+  }
+  function more(sc){ const c=sc.parentNode, up=c && c.querySelector(':scope > .more.up'), dn=c && c.querySelector(':scope > .more.dn');
+    if(!up || !dn) return;
+    const t=sc.scrollTop, h=sc.scrollHeight-sc.clientHeight;
+    up.classList.toggle('on',t>2); dn.classList.toggle('on',t<h-2); }
+
+  /* ==== TAPS ON POINTERUP ====
+     UIK.tap.set({on(t), ok(g, e), target(g, e)}): a finger (pen too — not the mouse) that goes down on a target on(t) and comes up on the same
+     spot (< TAP_MOVE px) clicks it at once (a MouseEvent 'click', detail 1); the browser's own click that may follow is swallowed (until the
+     next pointerdown, at most TAP_EAT ms). A swipe clicks nothing. ok(g, e) — false: no click (the target was hidden meanwhile);
+     target(g, e) — the element to click instead of g.t. Default: buttons, not inside hidden / inert / disabled.
+     UIK.tap.eat() — swallow the next native click (a page's own gesture ended on a control) */
+  const TAP_MOVE=10, TAP_EAT=800;
+  const TP={ on:t=>t.closest('button,[data-tap]') && !t.closest('input,label'), ok:g=>!g.t.closest('.hidden,[hidden],[inert],button:disabled'), target:null };
+  let tapD=null, tapEat=0;
+  const tapCan=t=>t && t.closest && TP.on && TP.on(t);
+  D.addEventListener('pointerdown',e=>{ tapEat=0; const t=e.target;
+    tapD=e.pointerType!=='mouse' && e.isPrimary && tapCan(t) ? { id:e.pointerId, x:e.clientX, y:e.clientY, t } : null;
+    if(tapD && TP.down) TP.down(tapD,e); },true);
+  D.addEventListener('pointercancel',()=>{ tapD=null; },true);
+  D.addEventListener('pointerup',e=>{ const g=tapD; tapD=null;
+    if(!g || g.id!==e.pointerId) return;
+    if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>=TAP_MOVE){ tapEat=now()+TAP_EAT; return; }   // a swipe: do not click the control under the finger
+    if(!g.t.isConnected || !g.t.contains(e.target)) return;
+    if(TP.ok && !TP.ok(g,e)) return;
+    tapEat=now()+TAP_EAT;
+    ((TP.target && TP.target(g,e))||g.t).dispatchEvent(new MouseEvent('click',{ bubbles:true, cancelable:true, composed:true, detail:1, view:window, clientX:e.clientX, clientY:e.clientY, screenX:e.screenX, screenY:e.screenY })); },true);
+  addEventListener('click',e=>{ if(e.isTrusted && tapEat && now()<tapEat){ tapEat=0; e.stopImmediatePropagation(); e.preventDefault(); } },true);
+  const tap={ set:o=>Object.assign(TP,o), eat:()=>{ tapEat=now()+TAP_EAT; }, MOVE:TAP_MOVE, EAT:TAP_EAT };
+
+  /* ==== POPUPS ====
+     UIK.popup(el, close, {gap, anchor, esc, outside}) — while el (or el() — a page that re-renders it) is open: the mouse more than gap (25) px
+     away from every edge of it closes it (close()); so do Esc and a press outside it (and outside anchor, the control that opened it). → off() */
+  const POP_GAP=25;
+  const pops=new Set();
+  function popRect(p){ const el=typeof p.el==='function' ? p.el() : p.el; return el && el.isConnected && el.getClientRects().length ? el.getBoundingClientRect() : null; }
+  const popIn=(el,t)=>{ const e=typeof el==='function' ? el() : el; return !!(e && t && e.contains(t)); };
+  function popup(el,close,opt){
+    opt=opt||{}; const p={ el, close, gap:opt.gap??POP_GAP, anchor:opt.anchor, esc:opt.esc!==false, outside:opt.outside!==false, armed:false };
+    const off=()=>pops.delete(p); p.off=off; pops.add(p); return off;
+  }
+  function popShut(p){ pops.delete(p); try{ p.close(); }catch(e){ console.error(e); } }
+  addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse' || !pops.size || e.buttons) return;
+    for(const p of [...pops]){ const r=popRect(p); if(!r) continue;
+      const dx=Math.max(r.left-e.clientX,0,e.clientX-r.right), dy=Math.max(r.top-e.clientY,0,e.clientY-r.bottom);
+      if(Math.hypot(dx,dy)<=p.gap || popIn(p.anchor,e.target)) p.armed=true;
+      else if(p.armed) popShut(p); } },true);   // opened from the keyboard, far from the mouse: waits until the mouse has been near it once
+  addEventListener('pointerdown',e=>{ for(const p of [...pops]) if(p.outside && popRect(p) && !popIn(p.el,e.target) && !popIn(p.anchor,e.target)) popShut(p); },true);
+  addEventListener('keydown',e=>{ if(e.key!=='Escape') return; const l=[...pops].filter(p=>p.esc && popRect(p)).pop(); if(l){ e.stopPropagation(); e.preventDefault(); popShut(l); } },true);
+
+  /* ==== FOCUS ==== UIK.focus.keep(inside) remembers the focused control (not one inside `inside`), UIK.focus.back() returns focus there */
+  let fRet=null;
+  const focus={
+    keep:(inside)=>{ const a=D.activeElement; fRet=a && a!==D.body && !(inside && (typeof inside==='string' ? a.closest(inside) : inside.contains(a))) ? a : null; },
+    back:()=>{ const a=fRet; fRet=null; if(a && a.isConnected && !a.closest('[inert],[hidden],.hidden')) try{ a.focus({ preventScroll:true }); }catch(e){} },
+    drop:()=>{ fRet=null; } };
+
+  /* ==== MODAL WINDOWS ====
+     UIK.modal(back, {card, esc(), outside(), enter(), keys}) — back is the full-screen backdrop (shown and hidden with its `hidden`), card the
+     window in it. Keys pressed inside stay inside (keys:false — let them through); Esc → esc(), Enter → enter() (when given),
+     a press and release on the backdrop itself (not the card) → outside(); clicks inside do not reach the page.
+     → {show(focusEl), hide(), on()} — show remembers the focused control and focuses focusEl, hide returns focus */
+  function modal(back,opt){
+    opt=opt||{}; const card=opt.card||back.firstElementChild;
+    if(card && !card.classList.contains('uk-scr') && opt.scroll!==false) card.classList.add('uk-scr');
+    if(opt.keys!==false) ['keydown','keyup','keypress'].forEach(ev=>back.addEventListener(ev,e=>{ e.stopPropagation();
+      if(ev!=='keydown') return;
+      if(e.key==='Escape' && opt.esc){ e.preventDefault(); opt.esc(e); }
+      else if(e.key==='Enter' && opt.enter && !(e.target.closest && e.target.closest('textarea,button'))){ e.preventDefault(); opt.enter(e); } }));
+    let down=false;
+    back.addEventListener('pointerdown',e=>{ down=e.target===back; });
+    back.addEventListener('click',e=>{ const o=down && e.target===back; down=false; if(o && opt.outside) opt.outside(e); if(opt.stop!==false) e.stopPropagation(); });
+    let ret=null;
+    return {
+      show(f){ const a=D.activeElement; ret=a && a!==D.body && !back.contains(a) ? a : null; back.hidden=false;
+        if(f) setTimeout(()=>{ try{ f.focus({ preventScroll:true }); }catch(e){} },50); },
+      hide(){ back.hidden=true; const a=ret; ret=null; if(a && a.isConnected && !a.closest('[inert],[hidden]')) try{ a.focus({ preventScroll:true }); }catch(e){} },
+      on:()=>!back.hidden };
+  }
+
+  const K={ scrOf, scrollable, scrMax, drag:{ set:o=>Object.assign(DR,o), FIELDS, coastStop, busy:()=>!!(drg && drg.on) }, wheel, edges, more, tap, popup, focus, modal, POP_GAP };
+  if(typeof window!=='undefined') window.UIK=K;
+  return K;
+})();
+</script>
 <script src="vendor/three.r128.min.js"></script>
 <script>
 /* Content packs, the loader (runs before the game, in a script of its own): events and level patches from the server — data only, no code.
@@ -1189,7 +1429,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.17.0';
+const VERSION = '2.18.0';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -29543,65 +29783,30 @@ document.addEventListener('pointerdown',()=>{ aEat=cEat=false; },true);
    tap that stops a fling (right after a swipe of the areas or the card), that is held a little long, or that lands while the game keeps
    the main thread busy — "the first tap doesn't go through, the second does". A finger that goes down and up on the same spot (under
    TAP_MOVE px; a drag captures the pointer elsewhere and isn't a tap) clicks its target at once, and the browser's own click that may
-   follow is swallowed (tapEat: until the next pointerdown, at most TAP_EAT ms). Mouse and keyboard click as usual; sliders are left
+   follow is swallowed (until the next pointerdown, at most TAP_EAT ms) — all of it in the kit, UIK.tap. Mouse and keyboard click as usual; sliders are left
    alone; the game's canvas keeps its own gestures (a canvas inside a button does not — a list thumbnail is one, and its tap must open the card). A target hidden or made inert meanwhile gets no click.
    The section icons slide out of the menu button: a tap where an icon is heading (its layout box, without the slide's transform) is that
    icon's, not a tap outside that would close the menu (miAt) */
-const TAP_MOVE=10, TAP_EAT=800; let tapD=null, tapEat=0;
-const tapOn=t=>t && t.closest && !t.closest('input,label') && !(t.closest('canvas') && !t.closest('button')) && (t.closest('#menu') || t.closest('button'));
-document.addEventListener('pointerdown',e=>{ tapEat=0; const t=e.target;
-  tapD=e.pointerType!=='mouse' && e.isPrimary && tapOn(t) ? { id:e.pointerId, x:e.clientX, y:e.clientY, t, m:!!t.closest('#menu') } : null; },true);
-document.addEventListener('pointercancel',()=>{ tapD=null; },true);
-document.addEventListener('pointerup',e=>{ const g=tapD; tapD=null;
-  if(!g || g.id!==e.pointerId) return;
-  if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>=TAP_MOVE){ tapEat=performance.now()+TAP_EAT; return; }   // a swipe: do not click the control under the finger
-  if(!g.t.isConnected || !g.t.contains(e.target)) return;
-  if(g.m ? $('menu').classList.contains('hidden') : g.t.closest('.hidden,[hidden],[inert],button:disabled')) return;
-  tapEat=performance.now()+TAP_EAT;
-  ((g.m && miAt(e.clientX,e.clientY))||g.t).dispatchEvent(new MouseEvent('click',{ bubbles:true, cancelable:true, composed:true, detail:1, view:window, clientX:e.clientX, clientY:e.clientY, screenX:e.screenX, screenY:e.screenY })); },true);
+const TAP_MOVE=UIK.tap.MOVE, TAP_EAT=UIK.tap.EAT;   // the kit (src/ui/kit.js) does the taps; the game says what they are
+UIK.tap.set({
+  on:t=>!t.closest('input,label') && !(t.closest('canvas') && !t.closest('button')) && (t.closest('#menu') || t.closest('button')),
+  ok:g=>g.t.closest('#menu') ? !$('menu').classList.contains('hidden') : !g.t.closest('.hidden,[hidden],[inert],button:disabled'),
+  target:(g,e)=>g.t.closest('#menu') && miAt(e.clientX,e.clientY) });
 function miAt(x,y){
   const top=document.elementFromPoint(x,y);
   if(top && top.closest('.msec.on')) return null;                      // the open plate owns this tap (a setting's pill must not become a section icon)
   const r=$('mbar').getBoundingClientRect();
   return [...document.querySelectorAll('#mbar .mi')].find(b=>{ const l=r.left+b.offsetLeft, t=r.top+b.offsetTop; return x>=l && x<=l+b.offsetWidth && y>=t && y<=t+b.offsetHeight; }); }
-addEventListener('click',e=>{ if(e.isTrusted && tapEat && performance.now()<tapEat){ tapEat=0; e.stopImmediatePropagation(); e.preventDefault(); } },true);
-/* A finger pans a .scr natively (touch-action:pan-y). Mouse and pen have no pan, so a drag on any overflow scroller moves
-   scrollTop / scrollLeft — the same gesture in every overlay, without a handler per panel. Listeners do work only while a
-   drag is live (idle pointermove is a null check). No setPointerCapture on the HUD: that lagged pause and the section icons.
-   A mostly-sideways drag on the locations pager is left to aDrag. A drag that actually scrolled swallows its click (aEat) */
-let panScr=null, panCoast=0;
-function panCoastStop(){ if(panCoast){ cancelAnimationFrame(panCoast); panCoast=0; } }
-function panCoastGo(sc,vx,vy){
-  panCoastStop(); if(Math.hypot(vx,vy)<.12) return;
-  let lt=0;
-  const step=now=>{
-    const dt=lt ? Math.min(.05,(now-lt)/1000) : .016; lt=now;
-    sc.scrollTop-=vy*dt*1000; sc.scrollLeft-=vx*dt*1000;
-    const k=Math.exp(-dt*5.2); vx*=k; vy*=k;
-    if(Math.hypot(vx,vy)<.04){ panCoast=0; return; }
-    panCoast=requestAnimationFrame(step); };
-  panCoast=requestAnimationFrame(step); }
-document.addEventListener('pointerdown',e=>{
-  if(e.button>0 || e.pointerType==='touch') return;
-  const sc=e.target.closest && e.target.closest('.scr'); if(!sc) return;
-  if(lvdOn() && !sc.closest('#lvdA')) return;                         // overlay open: only the legend/artifact text pane pans (same .scr as the lists)
-  panCoastStop();
-  panScr={ id:e.pointerId, x:e.clientX, y:e.clientY, sc, on:false, s:[[performance.now(),e.clientX,e.clientY]] }; },true);
-document.addEventListener('pointermove',e=>{
-  const g=panScr; if(!g || e.pointerId!==g.id) return;
-  const dx=e.clientX-g.x, dy=e.clientY-g.y;
-  if(!g.on){ if(Math.hypot(dx,dy)<TAP_MOVE) return;
-    if(Math.abs(dx)>Math.abs(dy) && g.sc.closest('.aview')){ panScr=null; return; }
-    g.on=true; lvHoldClear(); }
-  g.sc.scrollTop-=e.clientY-g.y; g.sc.scrollLeft-=e.clientX-g.x; g.x=e.clientX; g.y=e.clientY;
-  const now=performance.now(); g.s.push([now,e.clientX,e.clientY]); while(g.s.length>2 && now-g.s[0][0]>90) g.s.shift();
-  e.preventDefault(); },true);
-const panScrEnd=e=>{ const g=panScr; if(!g || e.pointerId!==g.id) return; panScr=null; if(!g.on) return; aEat=true; tapEat=performance.now()+TAP_EAT;
-  const now=performance.now(), a=g.s[0], b=g.s[g.s.length-1];
-  if(e.type==='pointercancel' || !a || now-b[0]>90) return;
-  const dt=Math.max(16,b[0]-a[0]);
-  panCoastGo(g.sc,(b[1]-a[1])/dt,(b[2]-a[2])/dt); };
-document.addEventListener('pointerup',panScrEnd,true); document.addEventListener('pointercancel',panScrEnd,true);
+/* A finger pans a .scr natively (touch-action:pan-y). Mouse and pen drag it through the kit (UIK.drag): the left button on any .scr (and the kit's .uk-scr panels),
+   the middle one over any scroller. While the level card is open only its legend/artifact text pane pans; a mostly-sideways drag on the
+   locations pager is left to aDrag. A drag that actually scrolled swallows its click (the kit, and aEat for the pager's own clicks) */
+UIK.drag.set({
+  left:t=>{ const sc=t.closest && t.closest('.scr,.uk-scr'); if(!sc) return null;
+    if(sc.classList.contains('uk-scr')) return t.closest(UIK.drag.FIELDS) ? null : sc;   // a kit panel (the beta windows): not from a text field
+    return lvdOn() && !sc.closest('#lvdA') ? null : sc; },
+  cancel:(sc,dx,dy)=>Math.abs(dx)>Math.abs(dy) && !!sc.closest('.aview'),
+  start:()=>lvHoldClear(),
+  end:()=>{ aEat=true; UIK.tap.eat(); } });
 /* A still press on the level list (LV_HOLD, barely moving) swaps tiles and the list. Mouse and touch share the same
    listeners on aview — no window capture. The click that ends it does not open a card */
 aview.addEventListener('pointerdown',e=>{ if(e.button>0 || lvdOn() || !e.target.closest('.lvgrid')) return;
@@ -36051,7 +36256,7 @@ if(Object.keys(SHIP_MODEL).length) buildShip();                       // the shi
 function lvMarks(){ lvBtns.forEach((b,j)=>b.classList.toggle('on',j===cur)); }
 function setTg(id,on){ $(id).setAttribute('aria-pressed',on?'true':'false'); }
 /* The menu pauses the game. Sound fades, except in the settings section — the volume must be audible there */
-let paused=false, mSec='', modalOv, modalRet=null, fbPaused=false, mapOn=false;   // mapOn: the level map is open (src/map/app.js) — the game stands still under it   // fbPaused: the beta feedback form is open (fbsnap.js)
+let paused=false, mSec='', modalOv, fbPaused=false, mapOn=false;   // mapOn: the level map is open (src/map/app.js) — the game stands still under it   // fbPaused: the beta feedback form is open (fbsnap.js)
 function showOverlay(id){ document.querySelectorAll('.overlay').forEach(o=>o.classList.toggle('hidden',o.id!==id)); updatePause(); }
 function closeOverlays(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden')); updatePause(); }
 let menuOn=false;
@@ -36076,13 +36281,13 @@ function updatePause(){
    are inert, so Tab stays inside; on closing, the focus goes back where it was (not after the title — a new session) */
 function modalSync(ov){
   ov=ov||null; if(ov===modalOv) return; const was=modalOv;
-  if(ov && !was){ const a=document.activeElement; modalRet=a && a!==document.body && !a.closest('.overlay') ? a : null; }
+  if(ov && !was) UIK.focus.keep('.overlay');                          // the kit remembers the control and returns focus to it
   modalOv=ov;
   ['stage','hudL','btnReset'].forEach(id=>$(id).inert=!!ov);
   $('btnEv').inert=$('btnLv').inert=!!ov && ov.id!=='map' && ov.id!=='menu';           // the map and the menu keep the Locations button live
   ['btnCam','camRow'].forEach(id=>$(id).inert=!!ov && ov.id!=='map');   // the level map keeps the camera buttons $('btnMenu').inert=!!ov && ov.id!=='menu';
   document.querySelectorAll('.overlay').forEach(o=>o.inert=o!==ov);
-  if(!ov){ const r=modalRet; modalRet=null; if(r && was && was.id!=='title' && r.isConnected && !r.closest('[inert],.hidden,[hidden]')) try{ r.focus({ preventScroll:true }); }catch(e){} }
+  if(!ov){ if(was && was.id!=='title') UIK.focus.back(); else UIK.focus.drop(); }
 }
 function dropInput(){ holdDir=null; gest=null; kbHold=null; chargeV=0; pts.clear(); dragging=false; if(camG){ camSnapEnd(); camG.b.classList.remove('pan'); camG=null; } }   // pause, lost focus, hidden tab: no held input survives
 function openMenu(){ if(goalLock || statBusy || lvWipe || cine) return; SND.init(); lvMarks(); evViewSet(lvEvt(cur)); aview.classList.add('drag'); areaGo(areaOf(cur)); void aview.offsetWidth; aview.classList.remove('drag'); placeMenu(); lvdClose(); setSecNow(''); showOverlay('menu'); }   // not under the level curtain or a cinematic
@@ -36100,10 +36305,7 @@ function setSecNow(s){ const m=$('menu'); m.classList.add('nofade'); setSec(s); 
 function placeMenu(){ const r=$('btnMenu').getBoundingClientRect(), m=$('menu').style;
   m.setProperty('--mt',r.top+'px'); m.setProperty('--mb',r.bottom+'px'); m.setProperty('--ml',r.left+'px'); m.setProperty('--mr',(innerWidth-r.left)+'px'); }
 /* Panels scroll without a scrollbar: an edge marker shows only while content is hidden past that edge */
-function moreUpd(sc){ const c=sc.parentNode, up=c&&c.querySelector(':scope > .more.up'), dn=c&&c.querySelector(':scope > .more.dn');
-  if(!up || !dn) return;                                               // overlay text (.lvdatx.scr) has no edge arrows
-  const t=sc.scrollTop, h=sc.scrollHeight-sc.clientHeight;
-  up.classList.toggle('on',t>2); dn.classList.toggle('on',t<h-2); }
+function moreUpd(sc){ UIK.more(sc); }                                      // edge markers .more.up/.dn (the kit, src/ui/kit.js); overlay text (.lvdatx.scr) has none
 function moreAll(){ document.querySelectorAll('.scr').forEach(moreUpd); }
 document.querySelectorAll('.scr').forEach(sc=>sc.addEventListener('scroll',()=>moreUpd(sc),{ passive:true }));
 /* Settings and Controls share one icon (miSettings): two pages, swiped like the Locations areas from anywhere on the plate. The icon follows the page. */
@@ -36130,7 +36332,7 @@ function optPages(){
       g.on=true; oview.classList.add('drag'); try{ oview.setPointerCapture(e.pointerId); }catch(_){} }
     const end=(oCur===0 && dx>0) || (oCur===OPT_PAGES.length-1 && dx<0); oview.style.setProperty('--dx',(end?dx/3:dx)+'px'); });
   const oEnd=e=>{ const g=oDrag; if(!g || e.pointerId!==g.id) return; oDrag=null; if(!g.on) return;
-    oEat=true; tapEat=performance.now()+TAP_EAT; oview.classList.remove('drag');
+    oEat=true; UIK.tap.eat(); oview.classList.remove('drag');
     const dx=e.type==='pointercancel'?0:e.clientX-g.x, v=dx/Math.max(1,performance.now()-g.t), w=oview.clientWidth||1;
     optGo(oCur+(dx<-w/4 || v<-.6 ? 1 : dx>w/4 || v>.6 ? -1 : 0),true); };
   oview.addEventListener('pointerup',oEnd); oview.addEventListener('pointercancel',oEnd);
@@ -37868,7 +38070,7 @@ function ptrEnd(e){
   if(!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId); clearTimeout(peekT);
   if(!gest) return;
   if(gest.mode==='pan'&&!gest.moved&&e.type==='pointerup'&&performance.now()-gest.t<600){
-    if(e.pointerType!=='mouse') tapEat=performance.now()+TAP_EAT;   // a finger's own click lands on what the tap just showed (the legend closed at once, the card's button) — swallowed (locations.js)
+    if(e.pointerType!=='mouse') UIK.tap.eat();   // a finger's own click lands on what the tap just showed (the legend closed at once, the card's button) — swallowed (UIK.tap, src/ui/kit.js)
     tap(e); }
   if(gest.mode!=='pan'&&gest.mode!=='mpan') C.azT=snapAz(C.az);
   if(gest.mode==='multi'&&ptrs.size) gest={ mode:'dead' };
@@ -39099,7 +39301,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.f64ac06'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.a1abe51'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
