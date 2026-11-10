@@ -302,13 +302,9 @@ html[lang="zh"] #levels.list .lvname, html[lang="ja"] #levels.list .lvname, html
 .lvd.bare.art, .lvd.bare.aout{ opacity:1; visibility:visible; pointer-events:auto; transition:none; }
 .lvd.aout .lvda{ opacity:1; visibility:visible; transition:none; transform:translateX(calc(var(--cx) + var(--ox,0px))); }
 .lvda canvas{ position:absolute; z-index:1; display:block; transform-origin:0 0; }
-/* Laid out by lvdArtPaint: tall — the artifact on top, the name and the legend right under it (--at); wide (.wide) — the name on the left,
-   the artifact on the right (a row --ah high), the legend under both */
+/* Laid out by lvdArtPaint (any orientation): the artifact on top, the name and the legend right under it (--at) */
 .lvdatx{ position:absolute; left:0; right:0; top:var(--at,40%); bottom:0; overflow:auto; scrollbar-width:none; touch-action:pan-y; overscroll-behavior:contain; padding:0 20px 16px;
   text-align:center; text-shadow:0 2px 10px rgba(40,10,60,.6); }
-.lvda.wide .lvdatx{ top:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:var(--ah,50%) auto; align-content:start; padding-top:12px; }
-.lvda.wide .lvdah{ display:flex; flex-direction:column; justify-content:center; padding:0 8px; }
-.lvda.wide #lvdALore{ grid-column:1/-1; }
 .lvdatx::-webkit-scrollbar{ display:none; }
 #lvdAName{ display:block; font-family:'Fredoka','Nunito',ui-rounded,sans-serif; font-weight:600; font-size:40px; line-height:1.05; letter-spacing:.03em; color:var(--gold); }
 #lvdASub{ display:block; margin-top:4px; font-size:14px; font-weight:800; opacity:.8; }
@@ -1429,7 +1425,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.21.3';
+const VERSION = '2.21.4';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -30044,12 +30040,10 @@ function lvdArtPaint(){
     const pi=areaLorePic(areaOf(lvdI)); lvPaint(cv,pi<0?lvdI:pi,6,h-6,false); return; }   // no pxCap: the canvas is shown up to 240 px, a 120 px cap blurred it
   const img=artImg(lvdAk,{gen:true}); if(!img) return;
   V.classList.remove('lore');
-  const wide=W>H*1.15; V.classList.toggle('wide',wide);   // measured in the layout it gets
+  V.classList.remove('wide');   // one layout in every orientation: the artifact on top, the name and the legend under it
   const lo=$('lvdALore'), loH=lo.textContent || lo.childNodes.length ? lo.offsetHeight+12 : 0, hdH=$('lvdAName').offsetHeight+$('lvdASub').offsetHeight+4, P=12, A=.76;   // A: the part of the canvas the artifact fills
-  let s, x, y;
-  if(wide){ const ah=clamp(H-P-loH-16,Math.min(hdH,H*.4),H*.6); s=Math.min(W*.5,ah/A); x=W*.73-s/2; y=P+ah/2-s/2; V.style.setProperty('--ah',ah+'px'); }
-  else { const tx=hdH+loH+16; s=clamp((H-2*P-tx)/A,90,Math.min(W*.8,H*.56)); const g=P+Math.max(0,H-2*P-tx-s*A)*.2;   // the same gap above the artifact and under it
-    x=(W-s)/2; y=g-s*(1-A)/2; V.style.setProperty('--at',2*g+s*A+'px'); }
+  const tx=hdH+loH+16, s=clamp((H-2*P-tx)/A,90,Math.min(W*.8,H*.56)), g=P+Math.max(0,H-2*P-tx-s*A)*.2;   // the same gap above the artifact and under it
+  const x=(W-s)/2, y=g-s*(1-A)/2; V.style.setProperty('--at',2*g+s*A+'px');
   const dpr=Math.min(2,devicePixelRatio||1);
   Object.assign(cv.style,{ left:x+'px', top:y+'px', width:s+'px', height:s+'px' }); cv.width=cv.height=Math.round(s*dpr); cv.r=[x,y,s];
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); artDraw(c,img,s*.08,s*.08,s*.84,false);
@@ -30071,7 +30065,7 @@ function lvdArtSet(on,fast,quiet,pk,fromEl){                          // fast �
     lvdArtTx(lvdAk); lvdArtPaint(); }
   if(!on && !fast) L.classList.add('aout');
   L.classList.toggle('art',on); V.setAttribute('aria-hidden',!on);
-  if(!on) V.classList.remove('lore','wide');
+  if(!on) V.classList.remove('lore');
   const P0=$('lvdPic'), ar=lvdMode==='area'?null:(typeof lvdAk==='string' ? (keepRel(lvdAk) ? P0.kr : P0.pr) : P0.ar), r=cv.r;
   const from=src ? lvdArtFrom(src,cv) : (ar && r ? (()=>{ const k=ar[2]/(r[2]*.84); return `translate(${ar[0]-r[0]-k*r[2]*.08}px,${ar[1]-r[1]-k*r[2]*.08}px) scale(${k})`; })() : '');
   if(fast || reduced() || !from){ lvdArtSrc=null; if(!on && src && !fast) lvdClose(); return; }
@@ -39706,7 +39700,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.ed30bff'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.bb5b6ce'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
