@@ -26392,7 +26392,8 @@ function glide(dx,dz){                                              // input whi
 }
 /* A swipe while the stream carries the cube — like a paper fall: a cell over at once, from where it is now; out of the stream — it falls */
 function windSteer([dx,dz]){
-  const [x,z]=P.target||[P.x,P.z], L=P.target ? P.l : root.position.y-HALF, nx=x+dx, nz=z+dz;   // rising in an updraft — from the current height
+  const t=P.target, rp=root.position, ahead=!!t && Math.hypot(rp.x-t[0],rp.z-t[1])<=Math.hypot(rp.x-P.x,rp.z-P.z);   // from the nearer cell: the one it left or the one the stream takes it into (a tie — along the stream)
+  const [x,z]=ahead ? t : [P.x,P.z], L=ahead ? P.l : rp.y-HALF, nx=x+dx, nz=z+dz;   // the cell left or rising in an updraft — from the current height
   if(!freeAt(nx,nz,L) || !freeAt(nx,nz,Math.floor(L))){ SND.bump(); return; }
   SND.flap(.5); anim=null; P.x=x; P.z=z; P.l=L; glideStep(nx,nz,afterGlide,.3);
 }
@@ -29431,6 +29432,16 @@ function onRiver(){                                                  // afloat o
   if(!P.float || !['float','fall'].includes(state)) return false;
   const t=P.target||[P.x,P.z]; return !!(P.drift || flow[K(P.x,P.z)] || flow[K(t[0],t[1])]);
 }
+/* A tap afloat on the river jumps at once: the cube leaves the cell it is nearer to — the one it left or the one the current
+   (or a swipe) takes it into; a tie goes along the drift. Not over a waterfall lip or in a fall (those keep the tap for the water below) */
+function riverJump(){
+  if(state!=='float' || !anim || P.drop) return false;
+  const t=P.target, rp=root.position;
+  if(t && (t[0]!==P.x || t[1]!==P.z)){ const k=K(t[0],t[1]);
+    if(water[k] && Math.abs(wlk(k)-P.l)<.01 && Math.hypot(rp.x-t[0],rp.z-t[1])<=Math.hypot(rp.x-P.x,rp.z-P.z)){ P.x=t[0]; P.z=t[1]; } }
+  anim=null; P.target=null; P.drift=null; P.q.copy(snapQ(pMesh.quaternion.clone())); P.tilt.identity(); P.pos.set(P.x,P.l+FLOAT_Y,P.z);
+  doJump(0,true); return true;
+}
 function noQueue(){                                                   // on a moving piece (lift, platform) and in water input isn't queued
   return state==='ride' || state==='float' || P.float || (P.on && P.on.moving);
 }
@@ -29449,7 +29460,8 @@ function onTap(){
   else if(state==='fly') return;                                       // in a wind stream a tap is ignored
   else if(state==='ride') rideJump(0);                                  // from a moving platform — jump immediately, not after it stops
   else if(state==='slide') slideJump();                                 // from ice and from a slope — immediately as well
-  else if(onRiver()) queue=[{ t:'jump' }];                            // on the river — kept till the next cell, whatever the cube is doing there
+  else if(onRiver() && riverJump()) return;                           // on the river — at once, from the nearer cell (a tie — the one it drifts into)
+  else if(onRiver()) queue=[{ t:'jump' }];                            // over a waterfall lip or falling down one — kept for the water below
   else if(!['jump','leap','win','dead','tele','pound','intro','bounce'].includes(state) && queue.length<2 && !noQueue()) queue.push({ t:'jump' });
 }
 function onDash(sx,sy,pw=1){                                          // pw — accumulated charge 0..1: sets the dash length
@@ -39769,7 +39781,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.f4916e6'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.7c3cd7a'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
