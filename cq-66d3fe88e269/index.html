@@ -681,11 +681,11 @@ body.lowq #say{ backdrop-filter:none; -webkit-backdrop-filter:none; }
 .tact{ display:grid; justify-items:center; } .tact > *{ grid-area:1/1; }
 .tbox .tap{ transition:opacity .25s ease; }
 #title.opt .tap{ opacity:0; animation:none; pointer-events:none; }
-/* the list opens by growing its row from 0, so the centred cube block glides up instead of jumping */
+/* the list opens by growing its row from 0 at once; xFlip glides the centred blocks from where they were (transform only, no layout per frame) */
 .xbox{ display:grid; grid-template-rows:0fr; width:min(86vw,340px); min-height:0; margin:0 auto; text-align:left; opacity:0; visibility:hidden; pointer-events:none;
-  transition:grid-template-rows .55s cubic-bezier(.2,.8,.3,1), opacity .4s ease, visibility 0s .55s; }
+  transition:opacity .4s ease, visibility 0s .4s; }   /* the row opens at once: the blocks glide by transform (xFlip) — animating grid rows re-laid and re-painted the whole title every frame */
 .xin{ min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:10px; }
-#title.opt:not(.hidden) .xbox{ grid-template-rows:1fr; opacity:1; visibility:visible; pointer-events:auto; transition:grid-template-rows .55s cubic-bezier(.2,.8,.3,1), opacity .45s ease .1s, visibility 0s; }
+#title.opt:not(.hidden) .xbox{ grid-template-rows:1fr; opacity:1; visibility:visible; pointer-events:auto; transition:opacity .45s ease .1s, visibility 0s; }
 .xhead{ margin:0; font-size:15px; font-weight:900; text-align:center; opacity:.9; } .xhead:empty{ display:none; }
 .xbox .cta{ flex:none; margin:0; }
 #title.rep .xbox .cta{ display:none; }
@@ -1425,7 +1425,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.21.7';
+const VERSION = '2.21.8';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -26276,6 +26276,7 @@ function flowStep([dx,dz]){
   play(pd?.6:.75, k=>{ const e=e0 ? k : k*k*(2-k)*.5+k*.5;
       if(c){ const u=1-e; root.position.set(u*u*p0.x+2*u*e*c.x+e*e*to.x, to.y, u*u*p0.z+2*u*e*c.z+e*e*to.z); }
       else root.position.lerpVectors(p0,to,e);
+      root.position.y=to.y+floatBobY(); floatBobQ(pMesh.quaternion);   // the same bob as on still water (applyFloatIdle): no jump of height or tilt at each cell
       if(Math.random()<.45) splash(root.position.x-dx*.4+rand(-.3,.3),root.position.z-dz*.4+rand(-.3,.3),.14); },
     ()=>{ P.x=x; P.z=z; P.pos.copy(to); P.drift=[dx,dz]; settle(k,false); });
 }
@@ -32629,15 +32630,24 @@ const KEEP_PX=128, KEEP_PAD=4;                                        // album s
    A disk read is async: artImg returns null until the still is in memory, and artPicReady() makes the screens that show it draw again.
    A read that fails, or no cache at all, builds the still as before. Only the default sizes are kept (cheap 'q160', full 'f360'). opt.gen — build now */
 const PIC_CACHE='pics-v1', PIC_Q=160;
-let picCh=null, picSig='', picWait=new Set(), picMiss=new Set(), picHave=new Set(), picQ=null;   // picHave — the names in the cache; picQ — the stills picWarm still builds
+let picCh=null, picSig='', picWait=new Set(), picMiss=new Set(), picHave=new Set();   // picHave — the names in the cache
 function picHash(s){ let h=2166136261; for(let k=0;k<s.length;k++) h=Math.imul(h^s.charCodeAt(k),16777619); return (h>>>0).toString(36); }
 async function picInit(){                                             // the stills of older builds go; without the cache every still is built
-  try{ picSig=picHash([...document.scripts].map(s=>s.textContent).join('\n')+'|'+THREE.REVISION); const ch=await caches.open(PIC_CACHE), have=new Set();
+  try{ picSig=picHash([artKit,artBuild,artImg,artGL].map(String).join('\n')+'|'+PIC_Q+'|'+ART_PX+'|'+THREE.REVISION); const ch=await caches.open(PIC_CACHE), have=new Set();
     for(const r of await ch.keys()){ const at=r.url.indexOf('/__pic/'); if(at>=0 && r.url.slice(at+7).startsWith(picSig+'.')) have.add(decodeURIComponent(r.url.slice(at+7))); else await ch.delete(r); }
     picHave=have; picCh=ch; }
   catch(e){ picCh=null; }
 }
-const picName=(i,tok)=>picSig+'.'+i+'.'+tok+'.'+picHash(JSON.stringify(relOf(i))), picUrl=n=>'./__pic/'+encodeURIComponent(n);
+/* What a still depends on: its relic's data and the code (and model) of its form — not the whole page: hashing every script
+   made each new build throw all the stills away and redraw hundreds of them on the title (its frame drops after every update) */
+const PIC_MH=new Map();
+function picSrc(i){
+  const kr=keepRel(i), ev=evRel(i), r=relOf(i)||{}, f=String((kr ? kr.f : typeof i==='string' && !ev ? 'pal:'+PALS[i].form : r.model ? 'pk:'+r.id : r.f)||'');
+  let h=PIC_MH.get(f); if(h!==undefined) return h;
+  const nm=f.startsWith('pal:') ? f.slice(4) : f, fn=f.startsWith('pal:') ? PAL_FORM[nm] : f.startsWith('pk:') ? r.model : RELIC_CODE[nm]||ART_FORM[nm]||ART_FORM.keepTmp;
+  h=picHash((typeof fn==='function' ? String(fn) : JSON.stringify(fn||''))+(RELIC_MODEL[nm] ? JSON.stringify(RELIC_MODEL[nm]) : '')); PIC_MH.set(f,h); return h;
+}
+const picName=(i,tok)=>picSig+'.'+i+'.'+tok+'.'+picHash(JSON.stringify(relOf(i))+picSrc(i)), picUrl=n=>'./__pic/'+encodeURIComponent(n);
 function artPut(ck,c){ artCache.set(ck,c); if(artCache.size>ART_KEEP) artCache.delete(artCache.keys().next().value); }
 function picLoad(ck,n){ picWait.add(n);
   picCh.match(picUrl(n)).then(r=>r?r.blob():null).then(b=>b?createImageBitmap(b):null)
@@ -32647,23 +32657,13 @@ function picSave(n,c){ if(!picCh) return; picHave.add(n); c.toBlob(b=>{ if(b) pi
 function artPicReady(){                                               // a still came from disk: the screens that show it draw it now
   if(kJob) keepPump(kJob); lvListPaint(); hudArt(false); if(lvdOn()) lvdDraw($('lvdPic'),lvdI);
 }
-/* No still is built while a player waits for it: the stills nobody has built yet (a first start, a new build) are built in the background
-   on the title, one at a time, with no overlay open and the game not started — a gallery never opens onto a still being drawn. Each lands in
-   the cache, so a later start only reads them. TEST — off (force: the test starts it) */
-function picWarm(force){
-  if(TEST && !force) return;
-  picBoot.then(()=>{ if(!picCh || picQ) return; picQ=[];
-    for(const k of [...Array(N).keys(), ...Object.keys(PALS), ...KEEP_IDS.map(id=>'k:'+id), ...Object.keys(PK_REL).map(id=>'e:'+id)])
-      for(const cheap of [true,false]) if(!picHave.has(picName(k, cheap?'q'+PIC_Q:'f'+ART_PX))) picQ.push([k,cheap]);
-    picStep(force); });
-}
-function picStep(force){
-  if(!picQ) return;
-  const T=$('title'), busy=!force && (paused || artOn || T.classList.contains('hidden') || T.classList.contains('boot'));
-  if(busy){ setTimeout(()=>picStep(force),600); return; }
-  const it=picQ.shift(); if(!it){ picQ=null; return; }
-  artImg(it[0],{cheap:it[1],gen:true});                               // built and saved (picSave); a still that fails is skipped
-  setTimeout(()=>picStep(force),60);
+/* A relic's still is built when its level loads, behind the curtain (warm in loading.js): one relic a level, as the player meets them —
+   nothing is drawn ahead in bulk (that ran on the title and dropped its frames). A still already in the cache is only read later.
+   Any other still a screen asks for and nobody built (a pal, a keepsake) is built on demand by artImg. TEST — off (force: a test) */
+function picLevel(i,force){
+  if((TEST && !force) || i==null || i<0) return;
+  const go=()=>{ if(!picCh || artOn) return; for(const cheap of [true,false]) if(!picHave.has(picName(i, cheap?'q'+PIC_Q:'f'+ART_PX))) artImg(i,{cheap,gen:true}); };
+  picCh ? go() : picBoot.then(go);                                    // the cache is open: now, still behind the curtain
 }
 function artImg(i, opt){
   const cheap=!!(opt&&opt.cheap), ck=cheap?'q:'+i:i;                   // a grid thumb skips the full-turn fit and stays small; the award still is the full one
@@ -37043,7 +37043,7 @@ document.addEventListener('click',e=>{ if(slRow(e.target)){ e.preventDefault(); 
    'opt' (the list under the cube), 'replace'; Esc or a tap beside the list hides it (back to "tap to play"). The menu's settings show the expedition and lead back here (toTitle).
    The level under the title is the current slot's (lvSlot — whose it is; 0 — must be rebuilt before play)
    ===================================================================== */
-let xMode='', xGo=false, lvSlot=slot, xpOn=!TEST, xpPrev=0, xpFresh=0;   // xpFresh — the slot just started as new (backing out of its screen clears it)   // xpOn — the expedition screen between the title and the level (tests skip it)
+let xMode='', xGo=false, xWarm=false, lvSlot=slot, xpOn=!TEST, xpPrev=0, xpFresh=0;   // xpFresh — the slot just started as new (backing out of its screen clears it)   // xpOn — the expedition screen between the title and the level (tests skip it)
 Object.assign(L10N,{
   "Expedition time":["Время в экспедиции","Tiempo de expedición","Tempo de expedição","Zeit der Expedition","Temps d'expédition","探险时间","探検時間","탐험 시간"],
   "Started":["Начата","Inicio","Início","Gestartet","Commencée","开始于","開始","시작"],
@@ -37092,10 +37092,17 @@ function xRows(){
     +(rep ? '' : '<button class="xdel" aria-label="'+esc(loc('Clear expedition'))+'">'+BIN+'</button>')
     +'<div class="xask"><span>'+esc(loc(rep ? 'Replace this expedition?' : 'Clear this expedition?'))+'</span><button class="cta" data-a="yes">'+esc(loc('Yes'))+'</button><button class="cta ghost" data-a="no">'+esc(loc('No'))+'</button></div></div>').join('');
 }
+/* The title's blocks glide to their new places (FLIP): measure, change the layout at once, animate transform from the old spot.
+   The logo's own bob animates its transform, so its svg takes the glide */
+function xFlip(change){
+  const els=[...$('title').querySelector('.tbox').children], y0=els.map(e=>e.getBoundingClientRect().top);
+  change(); if(reduced() || $('title').classList.contains('hidden')) return;
+  els.forEach((e,i)=>{ const d=y0[i]-e.getBoundingClientRect().top; if(Math.abs(d)<.5) return; const el=e.classList.contains('logo') ? e.firstElementChild : e;
+    el.getAnimations().forEach(a=>a.cancel()); el.animate([{ transform:'translateY('+d+'px)' },{ transform:'none' }],{ duration:550, easing:'cubic-bezier(.2,.8,.3,1)' }); });
+}
 function xShow(m,kb){
-  xMode=m; const t=$('title'), on=m==='opt'||m==='replace'; t.classList.toggle('opt',on); t.classList.toggle('rep',m==='replace');
-  xNewTxt();
-  if(on){ xRows();
+  xMode=m; const t=$('title'), on=m==='opt'||m==='replace'; xFlip(()=>{ t.classList.toggle('opt',on); t.classList.toggle('rep',m==='replace'); xNewTxt(); if(on) xRows(); });
+  if(on){
     const b=$('xList').querySelector('.xgo') || (m==='opt' ? $('xNew') : null);
     $('xList').scrollTop=0;
     if(b && !navPtr) setTimeout(()=>{ document.body.classList.add('padnav'); try{ b.focus({ preventScroll:true }); b.scrollIntoView({ block:'nearest', inline:'nearest' }); }catch(e){} },60); }
@@ -37108,11 +37115,10 @@ function titleTap(e){ const t=$('title'); if(xMode || ['hidden','boot','dead'].s
 function xBack(){ if($('tLang').classList.contains('open')){ tlOpen(false); SND.uiTap(.8); return; } const a=$('xList').querySelector('.xrow.ask'); if(a){ a.classList.remove('ask'); SND.uiTap(.8); } else if(xMode){ xShow(''); SND.uiTap(.8); } }
 async function enter(k){ if(!xGo && xpFresh!==k) xpFresh=0;                                               // open slot k: its level (rebuilt behind the title if needed), the expedition screen, then "Let's go!" lets the ship in
   if(xGo) return; xGo=true; xpSave(); xpPrev=(slotMeta(k)||{}).at||0; setSlot(k); slotTouch(k);
-  try{ const i=slotLv(); if(lvSlot!==k || cur!==((i%N)+N)%N){ loadLevel(i,false,true); lvSlot=k; await warm(); } }
-  catch(e){ xGo=false; throw e; }
+  const i=slotLv(), build=async()=>{ if(lvSlot!==k || cur!==((i%N)+N)%N){ loadLevel(i,false,true); lvSlot=k; xWarm=false; } if(!xWarm){ await warm(); xWarm=true; } };   // the level is built and warmed only now, behind the curtain — not under the visible title (it froze there)
   SND.init();
-  if(xpOn) xDown(()=>{ document.activeElement?.blur?.(); xShow(''); xpFill(); showOverlay('xp'); },()=>{ xGo=false; $('xpGo').focus({ preventScroll:true }); });
-  else { xGo=false; xpPlay(); }
+  if(xpOn) xDown(async()=>{ ldotOn(true); try{ await build(); }catch(e){ console.error(e); } ldotOn(false); document.activeElement?.blur?.(); xShow(''); xpFill(); showOverlay('xp'); },()=>{ xGo=false; $('xpGo').focus({ preventScroll:true }); });
+  else { try{ await build(); }catch(e){ xGo=false; throw e; } xGo=false; xpPlay(); }
 }
 function xpPlay(){ xpFresh=0; SND.titleAmb(false); document.activeElement?.blur?.(); closeOverlays(); startLevel(); announce(); }   // no focus left on a hidden button (Enter would click it)
 /* The expedition screen's curtain: a panel in the title's colours comes down over the title, under it mid() shows the screen, then the panel leaves downwards */
@@ -37147,7 +37153,7 @@ function fresh(k){ if(xGo) return; slotDrop(k); slotTouch(k); if(lvSlot===k) lvS
 function newExp(){ const k=[...Array(SLOTS)].map((_,j)=>j+1).find(j=>!slotUsed(j)); if(k) return fresh(k); xShow('replace'); }
 function toTitle(){                                                    // the menu: back to the title to switch expeditions
   if(goalLock || wiping || xGo) return; xGo=true; fbEvEnd('quit',{ w:'title' }); xpSave(); introHide(); showOverlay('title'); logoSpin(); xShow('opt'); SND.init(); SND.titleAmb(true);
-  setTimeout(()=>{ loadLevel(slotLv(),false,true); lvSlot=slot; xGo=false; },320);   // behind the title once it covers the game: nothing plays on
+  setTimeout(()=>{ lvSlot=0; xGo=false; },320);   // the level is rebuilt behind the curtain once an expedition is chosen; under the title the world stands still and is muted (hold 'title')
 }
 /* Closed beta (BETA builds only): the title opens with a confidentiality notice instead of "Tap anywhere to play"; "Enter the game" is that first tap after sign-in.
    Shown at every launch, not after End expedition (the class stays off) */
@@ -37368,7 +37374,8 @@ function warmDraw(){
     if(seeBack && !glLost){ renderer.shadowMap.needsUpdate=true; renderer.render(scene,cam); } }   // the discarded frame must not be the one the curtain opens on
 }
 async function warm(){
-  try{ if(!glLost) warmDraw(); }catch(e){ console.error(e); }       // dummy stars, cube skins, USE_MAP and reactMesh (drawn, not discarded) compile here
+  try{ if(!glLost) warmDraw(); }catch(e){ console.error(e); }
+  try{ picLevel(cur); }catch(e){ console.error(e); }                    // the level's relic still, behind the same curtain (artifacts.js)       // dummy stars, cube skins, USE_MAP and reactMesh (drawn, not discarded) compile here
   await nextFrame(); await nextFrame();
 }
 /* Level curtain: a panel in the current level's backdrop (soft edges) runs in from the left and covers the screen; under it mid()
@@ -39368,6 +39375,7 @@ function frame(now){
     if((mapOn || paused) && warmPose){ resetWarm(); needDraw=true; }   // an idle fidget stops with its whistle (a pause, the map), not plays on silently afterwards
     if(mapOn || paused) smartFreeze();
     if(mapOn){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); SND.cascade(0); MAP.frame(now); frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }   // the level map draws itself
+    if(!wiping && !lvWipe && !titleEl.classList.contains('hidden')){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); SND.cascade(0); frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }   // the title (opaque) covers the world: it stands still, nothing ticks or draws under it
     if(paused){ last=now; SND.slip(0); SND.mach(0); SND.gust(0); SND.geyser(0); SND.cascade(0);   // the game's loops fade out (stats, award and settings don't hold the master)
       if(artOn) artFrame(now); if(needDraw && !glLost){ needDraw=false; renderer.render(scene,cam); } frameErrN=0; dbgFrame(now,performance.now()-t0,0); return; }      // menu open — the world stands still
     qualityWatch(now-last); fbEvFrame(now-last); tick(now); frameErrN=0; dbgFrame(now,performance.now()-t0,dbgRenT);
@@ -39546,7 +39554,7 @@ function dbgFrame(now, cpu, ren){
   const I=renderer.info, ms=dbgSum/dbgN, st=[paused?'paused':state, qStep?'q'+qStep:'', document.body.classList.contains('lowq')?'lowq':'', softOn&&time<softUntil?'soft':''].filter(Boolean).join(' ');
   dbgLast=`${(1000/ms).toFixed(0)} fps  ${ms.toFixed(1)} ms (max ${dbgMax.toFixed(0)}, >25ms: ${dbgLong})\n`+
     `cpu ${(dbgCpu/dbgN).toFixed(1)} ms  render ${(dbgRen/dbgN).toFixed(1)} ms\n`+
-    `calls ${I.render.calls}  tris ${I.render.triangles}  pts ${I.render.points}\n`+
+    (dbgRen>0 ? `calls ${I.render.calls}  tris ${I.render.triangles}  pts ${I.render.points}\n` : `calls —  (nothing drawn)\n`)+   // renderer.info keeps the last drawn frame's counts: under the title / a menu nothing is drawn
     `geom ${I.memory.geometries}  tex ${I.memory.textures}  prog ${(I.programs||[]).length}\n`+
     `${renderer.domElement.width}x${renderer.domElement.height} dpr ${renderer.getPixelRatio()}  shadow ${renderer.shadowMap.enabled?sun.shadow.mapSize.x+(renderer.shadowMap.type===THREE.PCFShadowMap?' pcf':' soft'):'off'}\n`+
     `parts ${parts.length}  crit ${critters.length}  ${lvId(cur)||''}  ${st}`;
@@ -39761,17 +39769,18 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.6d0a49b'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.f4916e6'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
 resize();
-/* Boot: the title is revealed only when everything is ready — fonts (or their timeout), the first level built and drawn once — all at once */
+/* Boot: the title is revealed when the fonts are ready (or their timeout); the last slot's level is built under it but not warmed —
+   warming (shader compiles, the first draw) happens behind the curtain after an expedition is chosen (enter), so nothing loads the GPU while the title shows */
 let booted=false;
 const reveal=()=>{ if(booted) return; booted=true; $('title').classList.remove('boot'); if(window.cubePacksOk) cubePacksOk(); };   // the game came up: the content packs it started with are fine (packs-boot.js kill switch)
 loadLevel(lvSaved(),false,true);
 requestAnimationFrame(frame);
-Promise.all([fontsP, warm()]).then(reveal, e=>{ console.error(e); reveal(); }).then(()=>setTimeout(picWarm,1200));   // the stills the title does not have yet, built behind it (artifacts.js)
+fontsP.then(reveal, e=>{ console.error(e); reveal(); });
 /*web{*/
 /* Offline: the service worker caches the page, three.js, the manifest and icons (and the fonts once seen); its cache follows VERSION */
 const swReg=()=>{ try{ navigator.serviceWorker.register('sw.js?v='+VERSION).catch(()=>{}); }catch(e){} };
