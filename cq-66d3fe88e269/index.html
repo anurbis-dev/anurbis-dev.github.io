@@ -1425,7 +1425,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.21.6';
+const VERSION = '2.21.7';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -16511,10 +16511,46 @@ const TN_GLSL='uniform float tnK,tnS,tnB,tnC,tnM,tnW,tnE,tnH,tnL,tnT; varying ve
   ' else if(m==2){ vec3 g=vec3(clamp(.5+L*.25,0.0,1.0)); o=(1.0-2.0*g)*c*c+2.0*g*c; }'+
   ' else if(m==3) o=c+L*.08; else o=1.0-(1.0-c)*(1.0-max(L,0.0)*.15);'+
   ' return o*(1.0+tnK*t.y*vec3(.06,.01,-.06)); }\n';
+/* The same tint from baked 3D textures (WebGL2): per fragment the procedural one costs ~270 sin and 54 exp (two 27-cell Voronoi searches) — on a phone
+   the terrain's shader alone took most of the frame. Value noise — tiny lattices (8³, 16³) read with hardware trilinear (the smoothstep goes into the coordinate),
+   Voronoi — one 64³ RGB volume (cell shade, F1/1.5, F2-F1; period 8 cells, 8 texels a cell), both layers read it at their own scale and offset. 7 fetches a fragment.
+   The textures are made once, on the first compile (tnBake, ~7M steps); the blur tnL is baked in. WebGL1 keeps the procedural shader */
+const TN3={ tnXa:{ value:null }, tnXb:{ value:null }, tnXv:{ value:null } };
+const TN_GLSL3='uniform float tnK,tnS,tnB,tnC,tnM,tnW,tnE,tnH,tnL,tnT; uniform mediump sampler3D tnXa; uniform mediump sampler3D tnXb; uniform mediump sampler3D tnXv; varying vec3 vTN;\n'+
+  'float tnN8(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f); return texture(tnXa,(i+f+.5)/8.0).r; }\n'+
+  'float tnN16(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f); return texture(tnXb,(i+f+.5)/16.0).r; }\n'+
+  'vec3 tnV(vec3 x){ vec3 t=texture(tnXv,x/8.0).rgb; return vec3(t.x,t.y*1.5,t.z); }\n'+
+  'vec3 tnTint(vec3 w){ w/=tnS;'+
+  ' vec3 q=w+(vec3(tnN8(w/7.0),tnN8(w/7.0+11.0),tnN8(w/7.0+23.0))-.5)*tnW*7.0;'+
+  ' float big=(tnN8(q/10.0+3.0)*.7+tnN16(q/4.5)*.3-.5)*2.0;'+
+  ' vec3 v1=tnV(q/8.0), v2=tnV(q/2.6+5.3);'+
+  ' float e1=mix(1.0,smoothstep(.0,.3,v1.z),tnE), e2=mix(1.0,smoothstep(.0,.25,v2.z),tnE);'+
+  ' float cl=(v1.x-.5)*2.0*e1, sm=((v2.x-.5)*2.0*.7+(.5-v2.y)*.6)*e2;'+
+  ' float lum=big*tnB+cl*tnC+sm*tnM, hue=tnH==0.0 ? 0.0 : (tnN8(q/12.0+7.0)-.5)*2.0+(v1.x-.5);'+
+  ' return vec3(lum,hue*tnH,0.0); }\n'+TN_GLSL.slice(TN_GLSL.indexOf('vec3 tnApply'));
+function tnBake(){
+  let sd=0x9e3779b9; const rnd=()=>{ sd=sd+0x6D2B79F5|0; let t=Math.imul(sd^sd>>>15,1|sd); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  const tex=(d,n,f)=>{ const t=new THREE.DataTexture3D(d,n,n,n); t.format=f; t.type=THREE.UnsignedByteType; t.minFilter=t.magFilter=THREE.LinearFilter;
+    t.wrapS=t.wrapT=t.wrapR=THREE.RepeatWrapping; t.unpackAlignment=1; t.generateMipmaps=false; t.needsUpdate=true; return t; };
+  const lat=n=>{ const d=new Uint8Array(n*n*n); for(let i=0;i<d.length;i++) d[i]=rnd()*256; return tex(d,n,THREE.RedFormat); };
+  TN3.tnXa.value=lat(8); TN3.tnXb.value=lat(16);
+  const P=8, S=64, pt=new Float32Array(P*P*P*3), sh=new Float32Array(P*P*P), out=new Uint8Array(S*S*S*3), k=60/(1+TN.tnL.value*TN.tnL.value*240);
+  for(let i=0;i<pt.length;i++) pt[i]=rnd(); for(let i=0;i<sh.length;i++) sh[i]=rnd();
+  for(let z=0,o=0;z<S;z++){ const pz=(z+.5)*P/S, iz=Math.floor(pz), fz=pz-iz;
+    for(let y=0;y<S;y++){ const py=(y+.5)*P/S, iy=Math.floor(py), fy=py-iy;
+      for(let x=0;x<S;x++,o+=3){ const px=(x+.5)*P/S, ix=Math.floor(px), fx=px-ix; let d1=9, d2=9, ws=0, vs=0;
+        for(let c=-1;c<=1;c++){ const cz=(iz+c+P)%P; for(let b=-1;b<=1;b++){ const cy=(iy+b+P)%P; for(let a=-1;a<=1;a++){ const j=((cz*P+cy)*P+(ix+a+P)%P), j3=j*3;
+          const rx=a+pt[j3]-fx, ry=b+pt[j3+1]-fy, rz=c+pt[j3+2]-fz, d=rx*rx+ry*ry+rz*rz;
+          if(d<d1){ d2=d1; d1=d; } else if(d<d2) d2=d;
+          if(d<1.2){ const w=Math.exp(-k*d); ws+=w; vs+=w*sh[j]; } } } }
+        d1=Math.sqrt(d1); out[o]=ws>0 ? vs/ws*255 : 128; out[o+1]=Math.min(255,d1/1.5*255); out[o+2]=Math.min(255,(Math.sqrt(d2)-d1)*255); } } }
+  TN3.tnXv.value=tex(out,S,THREE.RGBFormat);
+}
 function tnHook(sh){
-  Object.assign(sh.uniforms,TN);
+  const gl2=renderer.capabilities.isWebGL2; if(gl2 && !TN3.tnXv.value) tnBake();
+  Object.assign(sh.uniforms,TN,gl2?TN3:null);
   sh.vertexShader='varying vec3 vTN;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n vTN=(modelMatrix*vec4(transformed,1.0)).xyz;');
-  sh.fragmentShader=TN_GLSL+sh.fragmentShader.replace('#include <alphatest_fragment>','#include <alphatest_fragment>\n diffuseColor.rgb=tnApply(diffuseColor.rgb,vTN);');
+  sh.fragmentShader=(gl2?TN_GLSL3:TN_GLSL)+sh.fragmentShader.replace('#include <alphatest_fragment>','#include <alphatest_fragment>\n diffuseColor.rgb=tnApply(diffuseColor.rgb,vTN);');
 }
 function tintNoise(m){
   const f=m.onBeforeCompile, k=m.customProgramCacheKey;
@@ -39483,7 +39519,7 @@ function tick(now){
   updateCubeReact();
   updateCam(false); updateVeg(); updateSmart(); updateIceMirror();
   if(typeof dynGrassUpdate==='function') dynGrassUpdate();
-  if(!glLost){ softPass(); const r0=performance.now(); renderer.render(scene,cam); dbgRenT=performance.now()-r0; }               // no drawing without a context (phone in the background)
+  if(!glLost && titleEl.classList.contains('hidden')){ softPass(); const r0=performance.now(); renderer.render(scene,cam); dbgRenT=performance.now()-r0; }   // no drawing without a context (phone in the background), nor under the title: it covers the scene whole (opaque)
 }
 
 /* =====================================================================
@@ -39725,7 +39761,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.c1b4b45'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.6d0a49b'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
