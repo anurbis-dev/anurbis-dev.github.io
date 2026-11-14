@@ -1425,7 +1425,7 @@ cubePacks(function cubeMain(){
   Object.assign(s,{ src:'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', integrity:'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==',
     crossOrigin:'anonymous', referrerPolicy:'no-referrer', onload:cubeMain, onerror:cubeMain });
   document.head.append(s); return; }/*}web*/
-const VERSION = '2.21.4';
+const VERSION = '2.21.6';
 const $ = id => document.getElementById(id);
 const TEST = /[?&]test\b/.test(location.search) || !!window.__CUBE_TEST__;   // autotests: the __cube hook, no adaptive quality
 const FB_LOG=[];   // beta: the last console errors for a feedback report (fbsnap.js)
@@ -16307,37 +16307,43 @@ function areaLorePic(a){ const A=AREAS[a]; if(!A||!A.n) return -1;      // the a
 /* =====================================================================
    SCENE
    ===================================================================== */
-/* Adaptive quality: a slow device — the frame time's moving average (~Q_TAU s) held above 1/Q_FPS steps the quality down:
-   pixel ratio 1.5 (auto starts there, with plain PCF shadows; high — up to 2 and soft shadows), then 1, then hard-edged particles (no soft depth pass), then plain PCF shadows (these while the average
-   is under Q_FPS); from the first step on, no backdrop blur (body.lowq). Still worse than Q_FPS2 (30 fps) after that: pixel ratio 0.75, shadows off. Never back up.
-   A step that changes the shaders (the shadow type, shadows off — every material recompiles) waits for the next curtain (qPend → warmDraw), not mid-play.
-   Only frames of play count (not paused, no level change, no long stall); a step waits for Q_TAU s of new frames */
-const Q_FPS=45, Q_FPS2=30, Q_TAU=2;
+/* Adaptive quality (auto): a ladder QL of whole settings, the current rung qStep (0 — the best). Measured in windows of Q_WIN s of play:
+   fps = frames / time (not a time-weighted average — that one counts a 200 ms hitch ~12× and two of them read as 19 fps on a 60 fps phone).
+   Not counted: the title and the expedition screen, level changes and Q_GRACE s after them (first shader compiles, the ship), frames over 250 ms.
+   Down: two windows in a row under Q_FPS (rungs from Q_DEEP on — under Q_FPS2). A step that gave no gain (the device is capped or CPU-bound) is undone,
+   and stepping down rests for qHold s (doubles each time). Up: Q_UP_T s of windows at Q_UP_FPS and more — one rung up; dropped back within Q_PROBE s —
+   that rung is banned for qBack s (doubles, up to 10 min). The resolution goes last and in small steps (1.5 → 1.25 → 1; under 1 only below 30 fps):
+   first soft particles and the panel blur. A rung that changes the shaders (shadows off/on) waits for the next curtain (qPend → warmDraw) */
+const Q_FPS=45, Q_FPS2=30, Q_WIN=1.5, Q_GRACE=3, Q_UP_FPS=56, Q_UP_T=8, Q_PROBE=15, Q_DEEP=4;
+const QL=[ { r:1.5, soft:1, sh:1, blur:1 }, { r:1.5, soft:0, sh:1, blur:0 }, { r:1.25, soft:0, sh:1, blur:0 }, { r:1, soft:0, sh:1, blur:0 },
+  { r:1, soft:0, sh:0, blur:0 }, { r:.85, soft:0, sh:0, blur:0 } ];
 /* Manual graphics (qMode 'manual', menu → Graphics → Manual): the player sets each one — GFX {r pixel ratio, sh 0 off / 1 hard / 2 soft shadows, sm shadow map,
    soft particle edges, fps cap (0 — none), blur behind the panels}; kept in cube-gfx (a device setting) */
 const GFX_R=[.5,.75,1,1.25,1.5,2], GFX_SM=[512,1024,2048], GFX_FPS=[30,45,60,0];
 const GFX=Object.assign({ r:1, sh:1, sm:1024, soft:true, fps:0, blur:true },(()=>{ try{ return JSON.parse(LS.get('cube-gfx','{}'))||{}; }catch(e){ return {}; } })());
 let gfxCap=0;                                                           // the frame rate cap now (frame() skips frames under it); manual only
-let qMode=LS.get('cube-quality','auto'), softOn=true, qCap=qMode==='high'?2:1.5, qStep=0, qAvg=1/60, qT=0, qDone=false, qPend=false, qAuto=!TEST && qMode==='auto';   // qMode: 'auto' (watch and step down), 'high' (the best, no watching), 'low' (the lowest)
+let qMode=LS.get('cube-quality','auto'), softOn=true, qCap=qMode==='high'?2:1.5, qStep=0, qAvg=1/60, qT=0, qN=0, qPend=0, qAuto=!TEST && qMode==='auto';   // qMode: 'auto' (watch and step down), 'high' (the best, no watching), 'low' (the lowest)
 const dprNow=()=>Math.min(window.devicePixelRatio||1, qCap);
 const matsRefresh=()=>{ scene.traverse(o=>{ if(o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true); });
   for(const m of matKeep) m.needsUpdate=true; };                        // cached materials off the scene now (next level's) carry the old shadow defines otherwise
-const qSteps=()=>{ const d=window.devicePixelRatio||1, sm=renderer.shadowMap; return [   // [can step, changes the shaders, step]
-  [qCap>1.5 && d>1.5, 0, ()=>{ qCap=1.5; }],
-  [qCap>1 && d>1, 0, ()=>{ qCap=1; }],
-  [softOn, 0, ()=>{ softOn=false; }],                                    // soft edges of the particles: hard ones again
-  [sm.type!==THREE.PCFShadowMap, 1, ()=>{ sm.type=THREE.PCFShadowMap; sm.needsUpdate=true; matsRefresh(); }],
-  [qCap>.75, 0, ()=>{ qCap=.75; }],
-  [sm.enabled, 1, ()=>{ sm.enabled=false; matsRefresh(); }] ]; };
-function qualityDown(defer){                                            // defer — a shader-changing step only marks qPend
-  const st=qSteps().find(s=>s[0]); if(!st) return false;
-  if(defer && st[1]){ qPend=true; return true; }
-  st[2](); qStep++; document.body.classList.add('lowq'); resize(); return true;
+let qBad=0, qGood=0, qGrace=Q_GRACE, qClock=0, qHoldT=0, qHold=60, qChk=null, qUp=null, qBan=[], qBack=[];
+const qEff=i=>{ const L=QL[i]; return [Math.min(window.devicePixelRatio||1, L.r), L.soft, L.sh, L.blur].join(); };
+const qNext=(i,d)=>{ for(let j=i+d; j>=0 && j<QL.length; j+=d) if(qEff(j)!==qEff(i)) return j; return -1; };   // the next rung that looks different on this screen
+const qShader=(i,j)=>QL[i].sh!==QL[j].sh;
+function qApply(i){                                                     // put rung i on now
+  const L=QL[i], sm=renderer.shadowMap, sh=sm.enabled!==!!L.sh;
+  qStep=i; qCap=L.r; softOn=!!L.soft; document.body.classList.toggle('lowq',!L.blur);
+  if(sh){ sm.enabled=!!L.sh; sm.type=THREE.PCFShadowMap; sm.needsUpdate=true; matsRefresh(); }
+  rszKey=''; resize();
 }
-function qualityPend(){ if(!qPend) return; qPend=false; qualityDown(); qAvg=1/60; qT=0; }   // behind a curtain (warmDraw)
+function qGo(j, defer){ if(defer && qShader(qStep,j)){ qPend=j-qStep; return; } qApply(j); }
+function qualityDown(){ const j=qNext(qStep,1); if(j<0) return false; qApply(j); return true; }   // one rung down now (tests)
+function qualityUp(){ const j=qNext(qStep,-1); if(j<0) return false; qApply(j); return true; }
+function qualityPend(){ if(!qPend) return; const j=qNext(qStep,Math.sign(qPend)); qPend=0; if(j>=0) qApply(j); qN=0; qT=0; qGrace=Q_GRACE; }   // behind a curtain (warmDraw)
 /* The Graphics setting (menu): back to the best first, then — low steps all the way down, high stays, auto watches again */
 function qualitySet(mode){
-  qMode=mode; qCap=mode==='high'?2:1.5; softOn=true; qStep=0; qAvg=1/60; qT=0; qDone=false; qPend=false; gfxCap=0;
+  qMode=mode; qCap=mode==='high'?2:1.5; softOn=true; qStep=0; qAvg=1/60; qT=0; qN=0; qPend=0; gfxCap=0;
+  qBad=qGood=0; qGrace=Q_GRACE; qHoldT=0; qHold=60; qChk=qUp=null; qBan=[]; qBack=[];
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=mode==='high'?THREE.PCFSoftShadowMap:THREE.PCFShadowMap; renderer.shadowMap.needsUpdate=true;
   document.body.classList.remove('lowq'); qAuto=!TEST && mode==='auto';
   if(mode==='manual'){ const sm=renderer.shadowMap; qCap=GFX.r; softOn=GFX.soft; gfxCap=GFX.fps; sm.enabled=GFX.sh>0; sm.type=GFX.sh>1?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
@@ -16351,11 +16357,26 @@ function gfxFromNow(){ const sm=renderer.shadowMap;
 function gfxSave(){ LS.set('cube-gfx',JSON.stringify(GFX)); }
 
 function qualityWatch(ms){
-  if(!qAuto || qDone || qPend || ms>250 || lvWipe || wiping) return;
-  const s=ms/1000; qAvg+=(s-qAvg)*(1-Math.exp(-s/Q_TAU)); qT+=s;
-  if(qT<=Q_TAU) return;
-  const nx=qSteps().findIndex(s=>s[0]);                                 // past the plain-shadow step (index 3) — only under Q_FPS2 it goes on
-  if(qAvg>1/(nx<0 || nx>3 ? Q_FPS2 : Q_FPS)){ qAvg=1/60; qT=0; if(!qualityDown(true)) qDone=true; }
+  if(!qAuto) return;
+  if(lvWipe || wiping || !titleEl.classList.contains('hidden')){ qGrace=Q_GRACE; qN=qT=0; return; }   // the title, the expedition screen, a level change
+  if(ms>250) return;                                                    // a stall (the tab came back, a long compile) — not the frame rate
+  const s=ms/1000; qClock+=s;
+  if(qGrace>0){ qGrace-=s; return; }
+  if(qPend) return;
+  qN++; qT+=s; if(qT<Q_WIN) return;
+  const fps=qN/qT, w=qT; qAvg=1/fps; qN=qT=0;
+  if(qChk){ const c=qChk; qChk=null;                                    // the window after a step down: did it help?
+    if(fps<Q_FPS && fps<c.fps*1.06){ qApply(c.from); qHoldT=qClock+qHold; qHold=Math.min(600,qHold*2); qBad=qGood=0; return; } }
+  const dn=qNext(qStep,1), lim=dn>=Q_DEEP ? Q_FPS2 : Q_FPS;
+  if(dn>=0 && fps<lim && qClock>=qHoldT){
+    qGood=0; if(++qBad<2) return; qBad=0;
+    if(qUp && qUp.to===qStep && qClock-qUp.t<Q_PROBE){ const k=qStep; qBack[k]=Math.min(600,(qBack[k]||30)*2); qBan[k]=qClock+qBack[k]; }   // the rung just tried up did not hold
+    qUp=null; if(!qShader(qStep,dn)) qChk={ from:qStep, fps }; qGo(dn,true); return;
+  }
+  qBad=0;
+  const up=qNext(qStep,-1);
+  if(up>=0 && fps>=Q_UP_FPS && qClock>=(qBan[up]||0)){ if((qGood+=w)<Q_UP_T) return; qGood=0; qUp={ to:up, t:qClock }; qGo(up,true); }
+  else qGood=0;
 }
 let renderer;
 try{ renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true }); }
@@ -37209,7 +37230,7 @@ function loadLevel(i,retry,defer,sv){
    same text measured in #lvlName, the outline and shadow turning into the HUD's on the way) and the real title takes over in the same
    frame; then "Level N of M", the star counter and the lives pop in. The HUD's left column stays empty until then: loadLevel hides
    it for a new level (a restart shows it at once) */
-const INTRO_IN=450, INTRO_HOLD=2300, INTRO_FLY=900, INTRO_STAG=220, INTRO_BEAT=160, LIFE_POP=170, INTRO_M=.13, INTRO_MAX=.18, INTRO_CJK=.8, INTRO_LH=1.05;
+const INTRO_FADE=380, INTRO_IN=450, INTRO_HOLD=2300, INTRO_FLY=900, INTRO_STAG=220, INTRO_BEAT=160, LIFE_POP=170, INTRO_M=.13, INTRO_MAX=.18, INTRO_CJK=.8, INTRO_LH=1.05;
 const CJK=/[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/, CJK1=/[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef]/;   // CJK1 — one character, one unit (Hangul keeps words)
 let introSeq=0, introT=[];
 function hudLeft(on){ [...$('hudL').children,$('lvlNum')].forEach(e=>e.classList.toggle('off',!on)); }
@@ -37263,15 +37284,19 @@ function intro(done){
   const seq=introSeq, el=$('lvIntro'), nm=$('liName'), still=reduced(), at=(ms,f)=>introT.push(setTimeout(()=>{ if(seq===introSeq) f(); },ms));
   fitIntro(); el.classList.add('on'); el.dataset.phase='hold';
   if(!still) el.animate([{ opacity:0, transform:'scale(.9)' },{ opacity:1, transform:'none' }],{ duration:INTRO_IN, easing:'cubic-bezier(.2,.8,.3,1)' });
-  const land=()=>{ const t=$('hudL').firstElementChild;                  // the real title in the same frame, without its fade
+  let landed=false;
+  const land=()=>{ if(landed) return; landed=true; const t=$('hudL').firstElementChild;   // the real title in the same frame, without its fade (once)
     t.style.transition='none'; t.classList.remove('off'); t.offsetWidth; t.style.transition='';
     el.classList.remove('on'); el.dataset.phase=''; el.getAnimations({ subtree:true }).forEach(a=>a.cancel());
     if(still) return popLives(still,seq), done&&done();
     at(INTRO_BEAT, ()=>{ popLives(still,seq); done&&done(); }); };        // "Level N of M" — a beat after the name
   at(INTRO_IN+INTRO_HOLD, ()=>{
-    if(still) return land();
+    if(still){                                                           // no flight: a smooth fade-out instead (timers only — animations may be off)
+      el.dataset.phase='fade'; let a=null; try{ a=el.animate([{ opacity:1 },{ opacity:0 }],{ duration:INTRO_FADE, easing:'ease-out', fill:'forwards' }); }catch(e){}
+      return at(a?INTRO_FADE:0, land); }
     el.dataset.phase='fly';
-    Promise.all(introFly(nm,$('lvlName')).map(a=>a.finished)).then(()=>{ if(seq===introSeq) land(); },()=>{}); });
+    try{ Promise.all(introFly(nm,$('lvlName')).map(a=>a.finished)).then(()=>{ if(seq===introSeq) land(); },()=>{}); }catch(e){}
+    at(INTRO_FLY+INTRO_STAG+600, land); });                                // safety: throttled animations never finish — the title must not stay over the game
 }
 /* After the title lands: "Level N of M" and the star counter fade in, the life cubes pop in one by one; the ones just won for stars shine */
 function popLives(still,seq){
@@ -39513,7 +39538,7 @@ window.__cube = { get aurora(){ return { on:auroraOn(), k:AUR.k, sweep:AUR.sw };
   holdStart:(dx,dz)=>{ holdDir={ d:[dx,dz], t0:time-1 }; if(state==='idle') dirInput([dx,dz]); }, holdEnd:()=>{ holdDir=null; },
   place:(x,z,l)=>{ anim=null; queue=[]; P.x=x; P.z=z; P.l=l===undefined?surface(x,z,99):l; P.wall=null; P.ceil=false; P.float=false; P.fly=false; P.on=null;
     P.tilt.identity(); afterLand(null,null,'soft'); },
-  get paused(){return paused;}, get ready(){return booted;}, get busy(){return wiping;}, get time(){return time;}, get winds(){return winds;}, get holding(){return !!holdDir;}, get charge(){return chargeV;}, get stain(){ return CST.cStK.value ? stainShow : 0; }, get zoom(){return cam.zoom;}, get quality(){ return { step:qStep, dpr:renderer.getPixelRatio(), shadow:renderer.shadowMap.type===THREE.PCFShadowMap?'pcf':'soft', fps:+(1/qAvg).toFixed(1), auto:qAuto, low:document.body.classList.contains('lowq'), soft:softOn, shadows:renderer.shadowMap.enabled }; }, set qualityAuto(v){ qAuto=!!v; }, qualityDown, get shipLeave(){ return SH.leave ? SH.leave.u : null; }, defs:LEVELS,
+  get paused(){return paused;}, get ready(){return booted;}, get busy(){return wiping;}, get time(){return time;}, get winds(){return winds;}, get holding(){return !!holdDir;}, get charge(){return chargeV;}, get stain(){ return CST.cStK.value ? stainShow : 0; }, get zoom(){return cam.zoom;}, get quality(){ return { step:qStep, dpr:renderer.getPixelRatio(), shadow:renderer.shadowMap.type===THREE.PCFShadowMap?'pcf':'soft', fps:+(1/qAvg).toFixed(1), auto:qAuto, low:document.body.classList.contains('lowq'), soft:softOn, shadows:renderer.shadowMap.enabled }; }, set qualityAuto(v){ qAuto=!!v; }, qualityDown, qualityUp, qualityWatch:ms=>qualityWatch(ms), get shipLeave(){ return SH.leave ? SH.leave.u : null; }, defs:LEVELS,
   get pushers(){return pushers;}, get traps(){return traps;}, setMat:m=>{ P.mat=m; applyMaterialLook(); }, skin:k=>{ if(k!==undefined){ P.skin=k||null; cubeSkinSync(); } return { on:cubeSkin, list:cubeSkinList().map(s=>s.name), mats:Array.isArray(pMesh.material)?pMesh.material.length:1, verts:pMesh.geometry.attributes.position.count, edges:pEdge.geometry.attributes.position.count }; }, get ship(){return shipKind;}, setShip, previewShip:i=>{ setShip(i); ship.visible=true; ship.rotation.set(0,-.6,0); ship.position.set(P.x,P.l+2.7,P.z); shipBeam(2.2,.9); },
   get vfx(){ return { trail:trail.visible, trailA:+TR.a.toFixed(2), rings:rings.filter(r=>r.m.visible).length, cols:cols.filter(c=>c.m.visible).length }; },
   get kick(){ return { ok:!!kickWall(), y:root.position.y }; }, get gust(){ return { k:GUST.k, leaves:GUST.n }; }, get crickets(){return crickets;}, get herds(){ return critters.filter(c=>c.type==="herd"||c.type==="chick"||c.young).map(c=>({ kind:c.kind||(c.mom&&c.mom.kind+"-chick"), young:!!c.young||c.type==="chick", x:c.m.position.x, y:c.m.position.y, z:c.m.position.z, mx:(c.lead||c.mom||c).m.position.x, mz:(c.lead||c.mom||c).m.position.z })); }, get fauna(){ return critters.filter(c=>c.type==="shore"||c.type==="sea").map(c=>({ kind:c.kind, swim:!!c.swim, young:!!c.mom, x:c.m.position.x, y:c.m.position.y, z:c.m.position.z })); }, get treeBirds(){ const r={}; for(const b of treeBirds){ const q=r[b.k]||(r[b.k]={ tree:b.k, n:0, fly:0 }); q.n++; if(b.fl) q.fly++; } return Object.values(r); }, treeBirdsPut:(k,n)=>{ for(const b of treeBirds) drop(b.m); treeBirds=[]; for(let i=0;i<n;i++) treeBirdAdd(k); }, trees:()=>treeKeys(), shakeTree:k=>shakeObst(k,1,0), startle:(x,z)=>startle(x??P.x,z??P.z,P.l), snow:(x,z)=>+snowK(x??P.x,z??P.z).toFixed(3), get canCharge(){ return canCharge(); }, get sink(){ return P.sink; }, get sinkVis(){ return sinkVis; }, simSnow:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++) updateSnowC(); dt=d0; }, simCritters:s=>{ const d0=dt; dt=1/30; for(let i=0;i<s*30;i++){ time+=dt; updateCritters(); } dt=d0; }, floor:(x,z)=>obst[K(x,z)] ? null : th(x,z), obTop:(x,z)=>{ const o=obst[K(x,z)]; return o && o.mesh ? +new THREE.Box3().setFromObject(o.mesh).max.y.toFixed(3) : null; }, zap:()=>zapped(), camHide:a=>+camHide(a===undefined?azT:a).toFixed(2), get az(){return azT;}, get cam(){ return { az:azT, el, lock:camLock, on:camOn, base:camBase, lead:camLeadK, tw:!!(camTw||camElTw) }; }, get lead(){ return +camLead.toFixed(2); }, get pan(){ return +pan.length().toFixed(3); }, get locked(){return goalLock;}, get cine(){ return cine ? cine.ph : null; }, get see(){ return SEE.seeK.value.x; }, get msec(){return mSec;}, set msec(v){ setSec(v); },
@@ -39700,7 +39725,7 @@ if(BETA && !FBS){
     pause(on){ fbPaused=!!on; updatePause(); }, slots:SLOTS, exps:fbExps, expPut:fbExpPut, gone:slotGone, goneSent(cs){ LSR.set('cube-gone',JSON.stringify(slotGone().filter(c=>!cs.includes(c)))); },
     evs:(n=200)=>fbEvQ.splice(0,n), evBack(a){ if(!Array.isArray(a) || !a.length) return; fbEvQ.unshift(...a); if(fbEvQ.length>FB_EV_MAX) fbEvQ.splice(0,fbEvQ.length-FB_EV_MAX); },   // telemetry: take the queue / put back what was not sent
     get evN(){ return fbEvQ.length; }, set evEnd(f){ fbEvHook=f; }, get busy(){ return xGo || !$('title').classList.contains('beta'); } };
-  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.bb5b6ce'; s.onload=then; s.onerror=then; document.head.append(s); };
+  const js=(f,then)=>{ const s=document.createElement('script'); s.src='beta/'+f+'?v='+VERSION+'.c1b4b45'; s.onload=then; s.onerror=then; document.head.append(s); };
   js('config.js',()=>js('feedback.js',()=>{ $('tBeta').hidden=false; if(!window.__cubeFb.up){ $('tBetaOk').hidden=false; $('tBetaOk').disabled=false; } }));   // the worker's address, then the notice with the sign-in (or the plain button if feedback.js failed to load — enter without a nickname)
 }
 /*}web*/
